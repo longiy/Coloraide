@@ -1,24 +1,7 @@
-"""
-Copyright (C) 2023 Spencer Magnusson
-semagnum@gmail.com
-Created by Spencer Magnusson
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-
-
 import bpy
-
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
+from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
 from .panels import IMAGE_PT_color_picker, VIEW_PT_color_picker, CLIP_PT_color_picker
 
 bl_info = {
@@ -32,11 +15,17 @@ bl_info = {
     'category': 'Generic',
 }
 
-classes = [IMAGE_OT_screen_picker, IMAGE_OT_screen_rect, IMAGE_PT_color_picker, VIEW_PT_color_picker,
-           CLIP_PT_color_picker]
+# Classes to register
+classes = [IMAGE_OT_screen_picker, IMAGE_OT_screen_rect, IMAGE_OT_quickpick,
+           IMAGE_PT_color_picker, VIEW_PT_color_picker, CLIP_PT_color_picker]
 
-
+# Define WindowManager Properties
 window_manager_props = [
+    ('picker_current', bpy.props.FloatVectorProperty(
+        default=(1.0, 1.0, 1.0),
+        precision=4,
+        description='The current RGB values of the picked pixels',
+        subtype='COLOR_GAMMA')),        
     ('picker_max', bpy.props.FloatVectorProperty(
         default=(1.0, 1.0, 1.0),
         precision=4,
@@ -66,21 +55,48 @@ window_manager_props = [
         description='Custom tile size for color picker')),
 ]
 
+# Keymap setup
+addon_keymaps = []
 
+def register_keymaps():
+    wm = bpy.context.window_manager
+    kc = wm.keyconfigs.addon
+    if kc:
+        # 3D View keymap
+        km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
+        kmi = km.keymap_items.new("wm.quickpick_operator", "BACK_SLASH", "PRESS")
+        addon_keymaps.append((km, kmi))
+
+        # Image Editor keymap
+        km = kc.keymaps.new(name='Image', space_type='IMAGE_EDITOR')
+        kmi = km.keymap_items.new("wm.quickpick_operator", "BACK_SLASH", "PRESS")
+        addon_keymaps.append((km, kmi))
+
+        # Clip Editor keymap
+        km = kc.keymaps.new(name='Clip', space_type='CLIP_EDITOR')
+        kmi = km.keymap_items.new("wm.quickpick_operator", "BACK_SLASH", "PRESS")
+        addon_keymaps.append((km, kmi))
+
+def unregister_keymaps():
+    for km, kmi in addon_keymaps:
+        km.keymap_items.remove(kmi)
+    addon_keymaps.clear()
+
+# Register and unregister functions
 def register():
     window_manager = bpy.types.WindowManager
-
     for name, prop in window_manager_props:
         setattr(window_manager, name, prop)
-
     for cls in classes:
         bpy.utils.register_class(cls)
-
+    register_keymaps()
 
 def unregister():
-    for cls in classes[::-1]:
+    unregister_keymaps()
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
+    for name, _ in window_manager_props:
+        delattr(bpy.types.WindowManager, name)
 
 if __name__ == '__main__':
     register()

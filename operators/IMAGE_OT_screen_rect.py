@@ -46,6 +46,10 @@ def draw(operator):
     batch = batch_for_shader(shader, 'LINES', {"pos": draw_verts})
     batch.draw(shader)
 
+def update_gp_brush_color(color):
+    ts = bpy.context.tool_settings
+    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+        ts.gpencil_paint.brush.color = color[:3]  # Use only RGB values
 
 class IMAGE_OT_screen_rect(bpy.types.Operator):
     bl_idname = 'image.screen_rect'
@@ -89,6 +93,9 @@ class IMAGE_OT_screen_rect(bpy.types.Operator):
             wm.picker_min = tuple(np.min(channels, axis=0))
             wm.picker_median = tuple(np.median(channels, axis=0))
             context.area.tag_redraw()
+
+            update_gp_brush_color(wm.picker_mean)
+            
             return {'FINISHED'}
         elif event.type == 'ESC':
             self.cleanup()
