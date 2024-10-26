@@ -20,8 +20,7 @@ Press escape (or right click, if you haven't left-clicked yet) to cancel.
 
 **Note**: these values are gamma corrected, so they reflect the values you see on the screen, *not* the true values in Blender before the colorspace conversion.
 
-## Quick Color Picker Operator
-
+## ➕ Quick Color Picker Operator
 This operator creates a modal tool activated by a key press, enabling color selection by hovering over an area. When the key is released, the selected color is finalized.
 
 It updates colors across different modes in Blender, including Grease Pencil and Texture Paint, by setting brush colors based on the picked color.
@@ -30,6 +29,5 @@ Visual feedback is given through rectangles drawn on the screen to show both the
 
 To activate the quick pick functionality the Backslash keymap is registered
 
-## Side Panel
-
+## ➕ Side Panel
 Small reorganization for the side panel (omitted median color value)
