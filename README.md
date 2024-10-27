@@ -30,4 +30,4 @@ Visual feedback is given through rectangles drawn on the screen to show both the
 To activate the quick pick functionality the Backslash keymap is registered
 
 ## ➕ Side Panel
-Small reorganization for the side panel (omitted median color value)
+Small reorganization for the side panel
