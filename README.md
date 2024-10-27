@@ -35,4 +35,5 @@ To activate the quick pick functionality the Backslash keymap is registered
 ## ➕ Side Panel
 
 ![Image Description](https://github.com/longiy/static-assets/blob/main/ColorPickerPro-assets/ColorPickerProPanel.png)
+
 Small reorganization for the side panel
