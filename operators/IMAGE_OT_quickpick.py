@@ -31,7 +31,7 @@ def draw(operator):
     batch_mean.draw(fill_shader)
 
     # Draw current picked color rectangle (offset to the right)
-    current_color = tuple(list(operator.curr_color) + [1.0])
+    current_color = tuple(list(bpy.context.window_manager.picker_current) + [1.0])
     fill_shader.uniform_float("color", current_color)
 
     # New vertices for current color (offset by rectangle width + small gap)
@@ -62,13 +62,11 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
     bl_description = "Press and hold to activate color picker, release to select color"
     bl_options = {'REGISTER', 'UNDO'}
 
-    # Instead of checking specifically for backslash, we'll make it work with any key
     _key_pressed = None
     
     sqrt_length: bpy.props.IntProperty(default=3)
     x: bpy.props.IntProperty()
     y: bpy.props.IntProperty()
-    curr_color: bpy.props.FloatVectorProperty(size=3)
     _handler = None
 
     def modal(self, context, event):
@@ -98,7 +96,10 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
             channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
 
             curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
-            self.curr_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
+            current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
+            
+            # Update current color in window manager
+            wm.picker_current = tuple(current_color)
 
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
@@ -122,16 +123,10 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
-        self._key_pressed = event.type  # Store which key was used to invoke the operator
+        self._key_pressed = event.type
         wm = context.window_manager
         
-        # Store initial values
-        if not hasattr(wm, 'picker_mean'):
-            wm.picker_mean = (0.0, 0.0, 0.0)
-            wm.picker_median = (0.0, 0.0, 0.0)
-            wm.picker_max = (0.0, 0.0, 0.0)
-            wm.picker_min = (0.0, 0.0, 0.0)
-
+        # No need to check for properties as they're already defined in __init__.py
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
         
@@ -141,43 +136,10 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
         
         return {'RUNNING_MODAL'}
 
-# Consolidated keymap management
-addon_keymaps = []
-
-def register_keymaps():
-    # Register keymaps for all relevant areas
-    wm = bpy.context.window_manager
-
-    # kc = wm.keyconfigs.addon
-
-    # if kc:
-    #     # 3D View keymap
-    #     km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
-    #     kmi = km.keymap_items.new("wm.quickpick_operator", "BACK_SLASH", "PRESS")
-    #     addon_keymaps.append((km, kmi))
-
-    #     # Image Editor keymap
-    #     km = kc.keymaps.new(name='Image', space_type='IMAGE_EDITOR')
-    #     kmi = km.keymap_items.new("wm.quickpick_operator", "BACK_SLASH", "PRESS")
-    #     addon_keymaps.append((km, kmi))
-
-    #     # Clip Editor keymap
-    #     km = kc.keymaps.new(name='Clip', space_type='CLIP_EDITOR')
-    #     kmi = km.keymap_items.new("wm.quickpick_operator", "BACK_SLASH", "PRESS")
-    #     addon_keymaps.append((km, kmi))
-
-# def unregister_keymaps():
-#     # Remove all keymaps
-#     for km, kmi in addon_keymaps:
-#         km.keymap_items.remove(kmi)
-#     addon_keymaps.clear()
-
 def register():
     bpy.utils.register_class(IMAGE_OT_quickpick)
-    register_keymaps()
 
 def unregister():
-    unregister_keymaps()
     bpy.utils.unregister_class(IMAGE_OT_quickpick)
 
 if __name__ == "__main__":

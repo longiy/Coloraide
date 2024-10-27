@@ -48,11 +48,11 @@ window_manager_props = [
         subtype='COLOR_GAMMA')),
     ('custom_size', bpy.props.IntProperty(
         default=10,
-        min=2,
+        min=1,
         soft_max=100,
         soft_min=5,
-        name='Custom Tile Size',
-        description='Custom tile size for color picker')),
+        name='Quickpick size',
+        description='Custom tile size for quickpicker')),
 ]
 
 # Keymap setup

@@ -27,30 +27,34 @@ def draw_panel(layout, context):
     wm = context.window_manager
     row = layout.row(align=True) 
 
-    # row.prop(wm, 'picker_max', text='Max')
-    # row.prop(wm, 'picker_mean', text='Mean')
-    # row.prop(wm, 'picker_median', text='Median')
-    # row.prop(wm, 'picker_min', text='Min')
     row.scale_y = 2.0
-    row.prop(wm, 'picker_current', text='')
     row.prop(wm, 'picker_mean', text='')
-    # row.prop(wm, 'picker_median', text='Median')
+    row.prop(wm, 'picker_current', text='')
     row = layout.row(align=True) 
-    row.prop(wm, 'picker_max', text='Max')
     row.prop(wm, 'picker_min', text='Min')
+    row.prop(wm, 'picker_max', text='Max')
     
     row = layout.row(align=True) 
 
     row.operator(IMAGE_OT_screen_picker.bl_idname, text='3x3', icon='EYEDROPPER').sqrt_length = 3
     row.operator(IMAGE_OT_screen_picker.bl_idname, text='10x10', icon='EYEDROPPER').sqrt_length = 10
+        
+
+    row = layout.row(align=True)
+    split = row.split(factor=0.85)
+    split.prop(wm, 'custom_size', slider=True)
+
+    split.operator(IMAGE_OT_screen_picker.bl_idname, text="", icon='EYEDROPPER').sqrt_length = wm.custom_size
     
-    row = layout.row(align=True) 
-    row.prop(wm, 'custom_size', slider=True)
-    tile_str = str(wm.custom_size)
-    custom_label = tile_str + 'x' + tile_str 
-    row.operator(IMAGE_OT_screen_picker.bl_idname, text=custom_label, icon='EYEDROPPER').sqrt_length = wm.custom_size
+    # tile_str = str(wm.custom_size)
+    # custom_label = f"{tile_str} x {tile_str}"
+    # split.operator(IMAGE_OT_screen_picker.bl_idname, text=custom_label, icon='EYEDROPPER').sqrt_length = wm.custom_size
+    
+
     layout.separator()
     layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
+
+
 
 
 class IMAGE_PT_color_picker(bpy.types.Panel):
