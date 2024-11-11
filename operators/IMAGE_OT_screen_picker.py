@@ -55,21 +55,41 @@ def draw(operator):
     batch_current = batch_for_shader(fill_shader, 'TRIS', {"pos": draw_verts_current}, indices=indices)
     batch_current.draw(fill_shader)
 
-def update_color_pickers(color):
+def update_color_history(color):
+    wm = bpy.context.window_manager
+    history = wm.picker_history
+    
+    # Check if color already exists in history
+    for item in history:
+        if (abs(item.color[0] - color[0]) < 0.001 and 
+            abs(item.color[1] - color[1]) < 0.001 and 
+            abs(item.color[2] - color[2]) < 0.001):
+            return
+    
+    # Remove oldest color if we have 5 or more
+    if len(history) >= 5:
+        history.remove(0)
+    
+    # Add new color
+    new_color = history.add()
+    new_color.color = color
+
+def update_color_pickers(color, save_to_history=False):
     ts = bpy.context.tool_settings
     
     # Update Grease Pencil brush color
     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-        ts.gpencil_paint.brush.color = color[:3]  # Use only RGB values
+        ts.gpencil_paint.brush.color = color[:3]
     
     # Update Texture Paint brush color
     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-        # Update the brush color
         ts.image_paint.brush.color = color[:3]
-        
-        # Update the unified color settings if they're being used
         if ts.unified_paint_settings.use_unified_color:
             ts.unified_paint_settings.color = color[:3]
+    
+    # Update color history only when save_to_history is True
+    if save_to_history:
+        update_color_history(color[:3])
 
 
 class IMAGE_OT_screen_picker(bpy.types.Operator):
@@ -113,22 +133,24 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
             wm.picker_min = tuple(channels[min_ind])
             wm.picker_median = tuple(np.median(channels, axis=0))
 
-            update_color_pickers(wm.picker_mean)
+            update_color_pickers(wm.picker_mean, save_to_history=False)
 
         if event.type == 'LEFTMOUSE':
+            # Save to history when finishing the pick
+            update_color_pickers(wm.picker_mean, save_to_history=True)
             context.window.cursor_modal_restore()
             space = getattr(bpy.types, self.space_type)
             space.draw_handler_remove(self._handler, 'WINDOW')
             return {'FINISHED'}
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            wm.picker_current = (0.0, 0.0, 0.0)  # Reset current color
+            # Cancel without saving to history
+            wm.picker_current = (0.0, 0.0, 0.0)
             wm.picker_mean = self.prev_mean
             wm.picker_median = self.prev_median
             wm.picker_max = self.prev_max
             wm.picker_min = self.prev_min
             context.window.cursor_modal_restore()
-
             space = getattr(bpy.types, self.space_type)
             space.draw_handler_remove(self._handler, 'WINDOW')
             return {'CANCELLED'}

@@ -23,6 +23,7 @@ from ..operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 panel_title = 'Color Picker Pro'
 
 
+
 def draw_panel(layout, context):
     wm = context.window_manager
     row = layout.row(align=True) 
@@ -30,6 +31,16 @@ def draw_panel(layout, context):
     row.scale_y = 2.0
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
+    
+    # Add color history
+    box = layout.box()
+    row = box.row(align=True)
+    row.label(text="History:")
+    history_row = box.row(align=True)
+    for i in range(5):
+        if i < len(wm.picker_history):
+            history_row.prop(wm.picker_history[i], "color", text="")
+    
     row = layout.row(align=True) 
     row.prop(wm, 'picker_min', text='Min')
     row.prop(wm, 'picker_max', text='Max')

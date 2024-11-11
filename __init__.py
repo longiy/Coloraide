@@ -1,3 +1,5 @@
+# In __init__.py:
+
 import bpy
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
@@ -15,44 +17,24 @@ bl_info = {
     'category': 'Generic',
 }
 
-# Classes to register
-classes = [IMAGE_OT_screen_picker, IMAGE_OT_screen_rect, IMAGE_OT_quickpick,
-           IMAGE_PT_color_picker, VIEW_PT_color_picker, CLIP_PT_color_picker]
+class ColorHistoryItem(bpy.types.PropertyGroup):
+    color: bpy.props.FloatVectorProperty(
+        name="Color",
+        subtype='COLOR_GAMMA',
+        size=3,
+        min=0.0,
+        max=1.0,
+        default=(1.0, 1.0, 1.0)
+    )
 
-# Define WindowManager Properties
-window_manager_props = [
-    ('picker_current', bpy.props.FloatVectorProperty(
-        default=(1.0, 1.0, 1.0),
-        precision=4,
-        description='The current RGB values of the picked pixels',
-        subtype='COLOR_GAMMA')),        
-    ('picker_max', bpy.props.FloatVectorProperty(
-        default=(1.0, 1.0, 1.0),
-        precision=4,
-        description='The max RGB values of the picked pixels',
-        subtype='COLOR_GAMMA')),
-    ('picker_min', bpy.props.FloatVectorProperty(
-        default=(0.0, 0.0, 0.0),
-        precision=4,
-        description='The min RGB values of the picked pixels',
-        subtype='COLOR_GAMMA')),
-    ('picker_median', bpy.props.FloatVectorProperty(
-        default=(0.5, 0.5, 0.5),
-        precision=4,
-        description='The median RGB values of the picked pixels',
-        subtype='COLOR_GAMMA')),
-    ('picker_mean', bpy.props.FloatVectorProperty(
-        default=(0.5, 0.5, 0.5),
-        precision=4,
-        description='The mean RGB values of the picked pixels',
-        subtype='COLOR_GAMMA')),
-    ('custom_size', bpy.props.IntProperty(
-        default=10,
-        min=1,
-        soft_max=100,
-        soft_min=5,
-        name='Quickpick size',
-        description='Custom tile size for quickpicker')),
+# Classes to register (excluding ColorHistoryItem as it's handled separately)
+classes = [
+    IMAGE_OT_screen_picker, 
+    IMAGE_OT_screen_rect, 
+    IMAGE_OT_quickpick,
+    IMAGE_PT_color_picker, 
+    VIEW_PT_color_picker, 
+    CLIP_PT_color_picker
 ]
 
 # Keymap setup
@@ -82,21 +64,75 @@ def unregister_keymaps():
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
 
-# Register and unregister functions
 def register():
-    window_manager = bpy.types.WindowManager
-    for name, prop in window_manager_props:
-        setattr(window_manager, name, prop)
+    # First register the ColorHistoryItem class
+    bpy.utils.register_class(ColorHistoryItem)
+    
+    # Then register all other classes
     for cls in classes:
         bpy.utils.register_class(cls)
+    
+    # Now we can safely add the properties to WindowManager
+    window_manager = bpy.types.WindowManager
+    window_manager.picker_current = bpy.props.FloatVectorProperty(
+        default=(1.0, 1.0, 1.0),
+        precision=4,
+        description='The current RGB values of the picked pixels',
+        subtype='COLOR_GAMMA')
+    window_manager.picker_max = bpy.props.FloatVectorProperty(
+        default=(1.0, 1.0, 1.0),
+        precision=4,
+        description='The max RGB values of the picked pixels',
+        subtype='COLOR_GAMMA')
+    window_manager.picker_min = bpy.props.FloatVectorProperty(
+        default=(0.0, 0.0, 0.0),
+        precision=4,
+        description='The min RGB values of the picked pixels',
+        subtype='COLOR_GAMMA')
+    window_manager.picker_median = bpy.props.FloatVectorProperty(
+        default=(0.5, 0.5, 0.5),
+        precision=4,
+        description='The median RGB values of the picked pixels',
+        subtype='COLOR_GAMMA')
+    window_manager.picker_mean = bpy.props.FloatVectorProperty(
+        default=(0.5, 0.5, 0.5),
+        precision=4,
+        description='The mean RGB values of the picked pixels',
+        subtype='COLOR_GAMMA')
+    window_manager.custom_size = bpy.props.IntProperty(
+        default=10,
+        min=1,
+        soft_max=100,
+        soft_min=5,
+        name='Quickpick size',
+        description='Custom tile size for quickpicker')
+    window_manager.picker_history = bpy.props.CollectionProperty(
+        type=ColorHistoryItem,
+        name="Color History",
+        description="History of recently picked colors"
+    )
+    
     register_keymaps()
 
 def unregister():
     unregister_keymaps()
+    
+    # Remove window manager properties
+    window_manager = bpy.types.WindowManager
+    del window_manager.picker_history
+    del window_manager.custom_size
+    del window_manager.picker_mean
+    del window_manager.picker_median
+    del window_manager.picker_min
+    del window_manager.picker_max
+    del window_manager.picker_current
+    
+    # Unregister all classes
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-    for name, _ in window_manager_props:
-        delattr(bpy.types.WindowManager, name)
+    
+    # Unregister ColorHistoryItem last
+    bpy.utils.unregister_class(ColorHistoryItem)
 
 if __name__ == '__main__':
     register()
