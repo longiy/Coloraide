@@ -58,18 +58,15 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_current', text='')
     
     # Add color history
-    box = layout.box()
-    row = box.row(align=True)
+    row = layout.row(align=True)
     row.label(text="History:")
-    history_row = box.row(align=True)
+    history_row = layout.row(align=True)
+    history_row.scale_y = 1.0
     for item in wm.picker_history:
-        op = history_row.operator(COLOR_OT_pick_from_history.bl_idname, text="", icon='COLOR', emboss=False)
-        op.color = item.color
-        # Create a non-interactive color preview
+        # Create a scale subrow for each color
         sub = history_row.row(align=True)
-        sub.scale_x = 0.8
-        sub.prop(item, "color", text="")
-        sub.enabled = False  # This makes it non-interactive but still visible
+        sub.scale_x = 1.0  # Adjust this value to change color box width
+        sub.prop(item, "color", text="", event=True)
     
     row = layout.row(align=True) 
     row.prop(wm, 'picker_min', text='Min')

@@ -24,13 +24,27 @@ bl_info = {
 
 # Define ColorHistoryItem only once, in main __init__.py
 class ColorHistoryItem(bpy.types.PropertyGroup):
+    def update_color(self, context):
+        wm = context.window_manager
+        wm.picker_mean = self.color
+        wm.picker_current = self.color
+        # Update the brush colors
+        ts = context.tool_settings
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = self.color
+        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+            ts.image_paint.brush.color = self.color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = self.color
+
     color: bpy.props.FloatVectorProperty(
         name="Color",
         subtype='COLOR_GAMMA',
         size=3,
         min=0.0,
         max=1.0,
-        default=(1.0, 1.0, 1.0)
+        default=(1.0, 1.0, 1.0),
+        update=update_color
     )
 
 # List of classes to register (remove ColorHistoryItem from panels/__init__.py)
