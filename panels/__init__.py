@@ -57,10 +57,17 @@ class COLOR_OT_adjust_history_size(Operator):
     
     increase: bpy.props.BoolProperty()
     
+    @classmethod
+    def description(cls, context, properties):
+        if properties.increase:
+            return "Add one more color slot (Maximum 30)"
+        else:
+            return "Remove one color slot (Minimum 5)"
+    
     def execute(self, context):
         wm = context.window_manager
         if self.increase:
-            wm.history_size = min(wm.history_size + 1, 50)
+            wm.history_size = min(wm.history_size + 1, 30)
         else:
             wm.history_size = max(wm.history_size - 1, 5)
         return {'FINISHED'}
@@ -75,9 +82,9 @@ def draw_panel(layout, context):
     
     # Add color history header with size controls
     header_row = layout.row(align=True)
-    header_row.label(text=f"History ({wm.history_size}):")
+    header_row.label(text=f"Color History {wm.history_size}")
     
-    # Add +/- buttons
+    # Add +/- buttons with tooltips
     size_row = header_row.row(align=True)
     size_row.scale_x = 0.5
     minus = size_row.operator("color.adjust_history_size", text="-", icon='REMOVE')
