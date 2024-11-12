@@ -14,15 +14,40 @@ Created by Spencer Magnusson
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-
 import bpy
-
+from bpy.types import Panel, Operator
+from bpy.props import FloatVectorProperty
 from ..operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from ..operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 
 panel_title = 'Color Picker Pro'
 
-
+class COLOR_OT_pick_from_history(Operator):
+    bl_idname = "color.pick_from_history"
+    bl_label = "Pick Color From History"
+    bl_description = "Set the current color from history"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    color: FloatVectorProperty(
+        subtype='COLOR_GAMMA',
+        size=3,
+        min=0.0,
+        max=1.0
+    )
+    
+    def execute(self, context):
+        wm = context.window_manager
+        wm.picker_mean = self.color
+        wm.picker_current = self.color
+        # Update the brush colors
+        ts = context.tool_settings
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = self.color
+        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+            ts.image_paint.brush.color = self.color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = self.color
+        return {'FINISHED'}
 
 def draw_panel(layout, context):
     wm = context.window_manager
@@ -37,9 +62,14 @@ def draw_panel(layout, context):
     row = box.row(align=True)
     row.label(text="History:")
     history_row = box.row(align=True)
-    for i in range(5):
-        if i < len(wm.picker_history):
-            history_row.prop(wm.picker_history[i], "color", text="")
+    for item in wm.picker_history:
+        op = history_row.operator(COLOR_OT_pick_from_history.bl_idname, text="", icon='COLOR', emboss=False)
+        op.color = item.color
+        # Create a non-interactive color preview
+        sub = history_row.row(align=True)
+        sub.scale_x = 0.8
+        sub.prop(item, "color", text="")
+        sub.enabled = False  # This makes it non-interactive but still visible
     
     row = layout.row(align=True) 
     row.prop(wm, 'picker_min', text='Min')
@@ -68,31 +98,35 @@ def draw_panel(layout, context):
 
 
 
-class IMAGE_PT_color_picker(bpy.types.Panel):
-    bl_label = panel_title
+class IMAGE_PT_color_picker(Panel):
+    bl_label = "Color Picker Pro"
     bl_idname = 'IMAGE_PT_color_picker'
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
+    bl_category = "Color"
 
     def draw(self, context):
         draw_panel(self.layout, context)
 
-
-class VIEW_PT_color_picker(bpy.types.Panel):
-    bl_label = panel_title
+class VIEW_PT_color_picker(Panel):
+    bl_label = "Color Picker Pro"
     bl_idname = 'VIEW_PT_color_picker'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
+    bl_category = "Color"
 
     def draw(self, context):
         draw_panel(self.layout, context)
 
-
-class CLIP_PT_color_picker(bpy.types.Panel):
-    bl_label = panel_title
+class CLIP_PT_color_picker(Panel):
+    bl_label = "Color Picker Pro"
     bl_idname = 'CLIP_PT_color_picker'
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'
+    bl_category = "Color"
+
+    def draw(self, context):
+        draw_panel(self.layout, context)
 
     def draw(self, context):
         draw_panel(self.layout, context)\

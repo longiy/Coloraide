@@ -1,10 +1,15 @@
-# In __init__.py:
+# In main __init__.py:
 
 import bpy
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
-from .panels import IMAGE_PT_color_picker, VIEW_PT_color_picker, CLIP_PT_color_picker
+from .panels import (
+    IMAGE_PT_color_picker, 
+    VIEW_PT_color_picker, 
+    CLIP_PT_color_picker,
+    COLOR_OT_pick_from_history  # Import the new operator
+)
 
 bl_info = {
     'name': 'Color Picker Pro',
@@ -17,6 +22,7 @@ bl_info = {
     'category': 'Generic',
 }
 
+# Define ColorHistoryItem only once, in main __init__.py
 class ColorHistoryItem(bpy.types.PropertyGroup):
     color: bpy.props.FloatVectorProperty(
         name="Color",
@@ -27,14 +33,16 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
         default=(1.0, 1.0, 1.0)
     )
 
-# Classes to register (excluding ColorHistoryItem as it's handled separately)
+# List of classes to register (remove ColorHistoryItem from panels/__init__.py)
 classes = [
+    ColorHistoryItem,
+    COLOR_OT_pick_from_history,
     IMAGE_OT_screen_picker, 
     IMAGE_OT_screen_rect, 
     IMAGE_OT_quickpick,
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
-    CLIP_PT_color_picker
+    CLIP_PT_color_picker,
 ]
 
 # Keymap setup
@@ -65,14 +73,11 @@ def unregister_keymaps():
     addon_keymaps.clear()
 
 def register():
-    # First register the ColorHistoryItem class
-    bpy.utils.register_class(ColorHistoryItem)
-    
-    # Then register all other classes
+    # Register all classes
     for cls in classes:
         bpy.utils.register_class(cls)
     
-    # Now we can safely add the properties to WindowManager
+    # Add window manager properties
     window_manager = bpy.types.WindowManager
     window_manager.picker_current = bpy.props.FloatVectorProperty(
         default=(1.0, 1.0, 1.0),
@@ -130,9 +135,6 @@ def unregister():
     # Unregister all classes
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-    
-    # Unregister ColorHistoryItem last
-    bpy.utils.unregister_class(ColorHistoryItem)
 
 if __name__ == '__main__':
     register()
