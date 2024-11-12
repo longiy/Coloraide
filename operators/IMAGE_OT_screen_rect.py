@@ -54,7 +54,7 @@ def update_gp_brush_color(color):
 class IMAGE_OT_screen_rect(bpy.types.Operator):
     bl_idname = 'image.screen_rect'
     bl_label = 'Screen Mean'
-    bl_description = 'Select a rectangle of the screen and extract its color information'
+    bl_description = 'Select a rectangle (Left Click to start and Right Click to finish) of the screen and extract its color information'
     bl_options = {'REGISTER', 'UNDO'}
 
     def modal(self, context, event):
