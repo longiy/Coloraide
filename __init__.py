@@ -12,7 +12,7 @@ from .panels import (
 )
 
 bl_info = {
-    'name': 'Color Picker Pro',
+    'name': 'Coloraide',
     'author': 'Spencer Magnusson',
     'version': (1, 0, 4),
     'blender': (3, 2, 0),
