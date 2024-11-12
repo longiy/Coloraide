@@ -16,6 +16,7 @@ Created by Spencer Magnusson
 
 import bpy
 from bpy.types import Panel, Operator
+from bpy.props import BoolProperty
 from bpy.props import FloatVectorProperty
 from ..operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from ..operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
@@ -49,6 +50,21 @@ class COLOR_OT_pick_from_history(Operator):
                 ts.unified_paint_settings.color = self.color
         return {'FINISHED'}
 
+class COLOR_OT_adjust_history_size(Operator):
+    bl_idname = "color.adjust_history_size"
+    bl_label = "Adjust History Size"
+    bl_options = {'INTERNAL'}  # This removes the popup
+    
+    increase: bpy.props.BoolProperty()
+    
+    def execute(self, context):
+        wm = context.window_manager
+        if self.increase:
+            wm.history_size = min(wm.history_size + 5, 30)
+        else:
+            wm.history_size = max(wm.history_size - 5, 5)
+        return {'FINISHED'}
+
 def draw_panel(layout, context):
     wm = context.window_manager
     row = layout.row(align=True) 
@@ -57,16 +73,45 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
-    # Add color history
-    row = layout.row(align=True)
-    row.label(text="History:")
-    history_row = layout.row(align=True)
-    history_row.scale_y = 1.0
-    for item in wm.picker_history:
-        # Create a scale subrow for each color
-        sub = history_row.row(align=True)
-        sub.scale_x = 1.0  # Adjust this value to change color box width
-        sub.prop(item, "color", text="", event=True)
+    # Add color history header with size controls
+    header_row = layout.row(align=True)
+    header_row.label(text="History:")
+    
+    # Add +/- buttons
+    size_row = header_row.row(align=True)
+    size_row.scale_x = 0.5
+    minus = size_row.operator("color.adjust_history_size", text="-", icon='REMOVE')
+    minus.increase = False
+    plus = size_row.operator("color.adjust_history_size", text="+", icon='ADD')
+    plus.increase = True
+
+    # Display colors in rows of 5
+    colors_per_row = 5
+    history = list(wm.picker_history)
+    num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
+    
+    for row_idx in range(num_rows):
+        history_row = layout.row(align=True)
+        history_row.scale_y = 1.0
+        
+        start_idx = row_idx * colors_per_row
+        end_idx = min(start_idx + colors_per_row, wm.history_size)
+        
+        # Add existing colors
+        row_colors = history[start_idx:end_idx]
+        for item in row_colors:
+            sub = history_row.row(align=True)
+            sub.scale_x = 1.0
+            sub.prop(item, "color", text="", event=True)
+        
+        # Fill empty spots
+        empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
+        if empty_spots > 0:
+            for _ in range(empty_spots):
+                sub = history_row.row(align=True)
+                sub.scale_x = 1.0
+                sub.enabled = False
+                sub.operator("screen.fake_user", text="", emboss=False)
     
     row = layout.row(align=True) 
     row.prop(wm, 'picker_min', text='Min')
@@ -129,3 +174,9 @@ class CLIP_PT_color_picker(Panel):
         draw_panel(self.layout, context)\
 
 
+__all__ = [
+    'IMAGE_PT_color_picker',
+    'VIEW_PT_color_picker',
+    'CLIP_PT_color_picker',
+    'COLOR_OT_adjust_history_size'
+]

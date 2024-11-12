@@ -66,8 +66,8 @@ def update_color_history(color):
             abs(item.color[2] - color[2]) < 0.001):
             return
     
-    # Remove oldest color if we have 5 or more
-    if len(history) >= 5:
+    # Remove oldest color if we've reached the size limit
+    if len(history) >= wm.history_size:
         history.remove(0)
     
     # Add new color

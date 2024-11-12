@@ -8,7 +8,7 @@ from .panels import (
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,
-    COLOR_OT_pick_from_history  # Import the new operator
+    COLOR_OT_adjust_history_size  # Add this line
 )
 
 bl_info = {
@@ -50,7 +50,7 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
 # List of classes to register (remove ColorHistoryItem from panels/__init__.py)
 classes = [
     ColorHistoryItem,
-    COLOR_OT_pick_from_history,
+    COLOR_OT_adjust_history_size,  # Add this line
     IMAGE_OT_screen_picker, 
     IMAGE_OT_screen_rect, 
     IMAGE_OT_quickpick,
@@ -58,6 +58,7 @@ classes = [
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,
 ]
+
 
 # Keymap setup
 addon_keymaps = []
@@ -125,6 +126,14 @@ def register():
         soft_min=5,
         name='Quickpick size',
         description='Custom tile size for quickpicker')
+     # Add new history_size property
+    window_manager.history_size = bpy.props.IntProperty(
+        default=15,
+        min=5,
+        max=30,
+        name='History Size',
+        description='Number of color history slots'
+    )
     window_manager.picker_history = bpy.props.CollectionProperty(
         type=ColorHistoryItem,
         name="Color History",
@@ -139,6 +148,7 @@ def unregister():
     # Remove window manager properties
     window_manager = bpy.types.WindowManager
     del window_manager.picker_history
+    del window_manager.history_size  # Add this line
     del window_manager.custom_size
     del window_manager.picker_mean
     del window_manager.picker_median
