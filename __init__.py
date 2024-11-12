@@ -125,12 +125,12 @@ def register():
         soft_max=100,
         soft_min=5,
         name='Quickpick size',
-        description='Custom tile size for quickpicker')
+        description='Custom tile size for Quickpicker ')
      # Add new history_size property
     window_manager.history_size = bpy.props.IntProperty(
         default=15,
         min=5,
-        max=30,
+        max=50,
         name='History Size',
         description='Number of color history slots'
     )

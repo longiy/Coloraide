@@ -53,16 +53,16 @@ class COLOR_OT_pick_from_history(Operator):
 class COLOR_OT_adjust_history_size(Operator):
     bl_idname = "color.adjust_history_size"
     bl_label = "Adjust History Size"
-    bl_options = {'INTERNAL'}  # This removes the popup
+    bl_options = {'INTERNAL'}
     
     increase: bpy.props.BoolProperty()
     
     def execute(self, context):
         wm = context.window_manager
         if self.increase:
-            wm.history_size = min(wm.history_size + 5, 30)
+            wm.history_size = min(wm.history_size + 1, 50)
         else:
-            wm.history_size = max(wm.history_size - 5, 5)
+            wm.history_size = max(wm.history_size - 1, 5)
         return {'FINISHED'}
 
 def draw_panel(layout, context):
@@ -75,7 +75,7 @@ def draw_panel(layout, context):
     
     # Add color history header with size controls
     header_row = layout.row(align=True)
-    header_row.label(text="History:")
+    header_row.label(text=f"History ({wm.history_size}):")
     
     # Add +/- buttons
     size_row = header_row.row(align=True)
@@ -88,7 +88,7 @@ def draw_panel(layout, context):
     # Display colors in rows of 5
     colors_per_row = 5
     history = list(wm.picker_history)
-    num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
+    num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row  # Ceiling division
     
     for row_idx in range(num_rows):
         history_row = layout.row(align=True)
@@ -119,20 +119,15 @@ def draw_panel(layout, context):
     
     row = layout.row(align=True) 
 
-    row.operator(IMAGE_OT_screen_picker.bl_idname, text='3x3', icon='EYEDROPPER').sqrt_length = 3
-    row.operator(IMAGE_OT_screen_picker.bl_idname, text='10x10', icon='EYEDROPPER').sqrt_length = 10
+    row.operator(IMAGE_OT_screen_picker.bl_idname, text='1x1', icon='EYEDROPPER').sqrt_length = 1
+    row.operator(IMAGE_OT_screen_picker.bl_idname, text='5x5', icon='EYEDROPPER').sqrt_length = 5
         
 
     row = layout.row(align=True)
-    split = row.split(factor=0.85)
+    split = row.split(factor=1)
     split.prop(wm, 'custom_size', slider=True)
 
-    split.operator(IMAGE_OT_screen_picker.bl_idname, text="", icon='EYEDROPPER').sqrt_length = wm.custom_size
-    
-    # tile_str = str(wm.custom_size)
-    # custom_label = f"{tile_str} x {tile_str}"
-    # split.operator(IMAGE_OT_screen_picker.bl_idname, text=custom_label, icon='EYEDROPPER').sqrt_length = wm.custom_size
-    
+    # split.operator(IMAGE_OT_screen_picker.bl_idname, text="", icon='EYEDROPPER').sqrt_length = wm.custom_size
 
     layout.separator()
     layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
