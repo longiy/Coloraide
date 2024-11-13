@@ -14,7 +14,7 @@ from .panels.IMAGE_PT_Coloraide_panel import (
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy & Spencer Magnusson',
-    'version': (1, 0, 3),
+    'version': (1, 0, 2),
     'blender': (3, 2, 0),
     'location': '(Image Editor, Clip Editor, and 3D View) -> Misc',
     'description': 'Extends color picker with a few extra features',
