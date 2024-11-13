@@ -4,7 +4,7 @@ import bpy
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
-from .panels import (
+from .panels.IMAGE_PT_Coloraide_panel import (
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,

@@ -1,10 +1,10 @@
 schema_version = "1.0.0"
 
-id = "color_picker_pro"
-version = "1.0.4"
-name = "Color Picker Pro"
+id = "Coloraide"
+version = "1.0.2"
+name = "Coloraide"
 tagline = "Extends color picker with a few extra features"
-maintainer = "Spencer Magnusson <semagnum+blenderextensions@gmail.com>"
+maintainer = "longiy <longiyart@gmail.com>"
 type = "add-on"
 
 # Optional: add-ons can list which resources they will require:
