@@ -1,8 +1,9 @@
 # Coloraide
 
 A Blender addon for advanced color picking and management.
-![Image Description](https://github.com/longiy/static-assets/blob/main/ColorPickerPro-assets/ColorPickerProPlus_gif.gif)
-![Image Description](https://github.com/longiy/static-assets/blob/main/ColorPickerPro-assets/ColorPickerProPanel.png)
+![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_ColorHistory.gif?raw=true)
+![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/ColorPickerProPlus_gif.gif)
+![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/ColorPickerProPanel.png)
 
 ## Overview
 
