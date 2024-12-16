@@ -2,15 +2,6 @@
 Copyright (C) 2024 Spencer Magnusson & longiy
 semagnum@gmail.com
 longiyart@gmail.com
-
-This program was originally created by Spencer Magnusson and has been modified by longiy.
-
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 """
 
 import bpy
@@ -54,7 +45,7 @@ class COLOR_OT_adjust_history_size(Operator):
     bl_label = "Adjust History Size"
     bl_options = {'INTERNAL'}
     
-    increase: bpy.props.BoolProperty()
+    increase: BoolProperty()
     
     @classmethod
     def description(cls, context, properties):
@@ -107,15 +98,14 @@ def draw_panel(layout, context):
             sub.scale_x = 1.0
             sub.prop(item, "color", text="", event=True)
         
-        # Fill empty spots with a valid operator
+        # Fill empty spots with blank labels instead of operators
         empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
         if empty_spots > 0:
             for _ in range(empty_spots):
                 sub = history_row.row(align=True)
                 sub.scale_x = 1.0
                 sub.enabled = False
-                # Using a valid built-in operator instead of the non-existent "screen.fake_user"
-                sub.operator("screen.cancel", text="", emboss=False)
+                sub.label(text="")  # Just use a blank label instead of an operator
     
     row = layout.row(align=True) 
     row.prop(wm, 'picker_min', text='Min')
@@ -131,9 +121,6 @@ def draw_panel(layout, context):
 
     layout.separator()
     layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
-
-
-
 
 class IMAGE_PT_color_picker(Panel):
     bl_label = "Coloraide"
@@ -164,10 +151,6 @@ class CLIP_PT_color_picker(Panel):
 
     def draw(self, context):
         draw_panel(self.layout, context)
-
-    def draw(self, context):
-        draw_panel(self.layout, context)\
-
 
 __all__ = [
     'IMAGE_PT_color_picker',
