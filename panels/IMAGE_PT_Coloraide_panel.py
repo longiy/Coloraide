@@ -79,11 +79,9 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
-    # Add color history header with size controls
     header_row = layout.row(align=True)
     header_row.label(text=f"Color History {wm.history_size}")
     
-    # Add +/- buttons with tooltips
     size_row = header_row.row(align=True)
     size_row.scale_x = 0.5
     minus = size_row.operator("color.adjust_history_size", text="-", icon='REMOVE')
@@ -91,10 +89,9 @@ def draw_panel(layout, context):
     plus = size_row.operator("color.adjust_history_size", text="+", icon='ADD')
     plus.increase = True
 
-    # Display colors in rows of 5
     colors_per_row = 5
     history = list(wm.picker_history)
-    num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row  # Ceiling division
+    num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
     
     for row_idx in range(num_rows):
         history_row = layout.row(align=True)
@@ -110,30 +107,27 @@ def draw_panel(layout, context):
             sub.scale_x = 1.0
             sub.prop(item, "color", text="", event=True)
         
-        # Fill empty spots
+        # Fill empty spots with a valid operator
         empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
         if empty_spots > 0:
             for _ in range(empty_spots):
                 sub = history_row.row(align=True)
                 sub.scale_x = 1.0
                 sub.enabled = False
-                sub.operator("screen.fake_user", text="", emboss=False)
+                # Using a valid built-in operator instead of the non-existent "screen.fake_user"
+                sub.operator("screen.cancel", text="", emboss=False)
     
     row = layout.row(align=True) 
     row.prop(wm, 'picker_min', text='Min')
     row.prop(wm, 'picker_max', text='Max')
     
     row = layout.row(align=True) 
-
     row.operator(IMAGE_OT_screen_picker.bl_idname, text='1x1', icon='EYEDROPPER').sqrt_length = 1
     row.operator(IMAGE_OT_screen_picker.bl_idname, text='5x5', icon='EYEDROPPER').sqrt_length = 5
-        
-
+    
     row = layout.row(align=True)
     split = row.split(factor=1)
     split.prop(wm, 'custom_size', slider=True)
-
-    # split.operator(IMAGE_OT_screen_picker.bl_idname, text="", icon='EYEDROPPER').sqrt_length = wm.custom_size
 
     layout.separator()
     layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
