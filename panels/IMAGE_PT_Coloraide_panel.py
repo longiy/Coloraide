@@ -70,14 +70,31 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
+    # RGB sliders for fine-tuning mean color
+    box = layout.box()
+    col = box.column(align=True)
+    col.label(text="RGB Adjust")
+    # Split the color into individual RGB components with visual sliders
+    split = col.split(factor=0.1)
+    split.label(text="R:")
+    split.prop(wm, 'picker_mean', text="", index=0, slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="G:")
+    split.prop(wm, 'picker_mean', text="", index=1, slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="B:")
+    split.prop(wm, 'picker_mean', text="", index=2, slider=True)
+    
     header_row = layout.row(align=True)
     header_row.label(text=f"Color History {wm.history_size}")
     
     size_row = header_row.row(align=True)
     size_row.scale_x = 0.5
-    minus = size_row.operator("color.adjust_history_size", text="-", icon='REMOVE')
+    minus = size_row.operator("color.adjust_history_size", text="-")
     minus.increase = False
-    plus = size_row.operator("color.adjust_history_size", text="+", icon='ADD')
+    plus = size_row.operator("color.adjust_history_size", text="+")
     plus.increase = True
 
     colors_per_row = 5
