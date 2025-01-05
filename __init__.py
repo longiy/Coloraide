@@ -1,9 +1,11 @@
 # In main __init__.py:
 
 import bpy
+from bpy.props import FloatProperty  # Add this import
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
+from .utils.color_conversions import rgb_to_lab, lab_to_rgb
 from .panels.IMAGE_PT_Coloraide_panel import (
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
@@ -39,6 +41,19 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
         default=(1.0, 1.0, 1.0),
         update=update_color
     )
+
+def update_lab(self, context):
+    lab = (self.lab_l, self.lab_a, self.lab_b)
+    rgb = lab_to_rgb(lab)
+    context.window_manager.picker_mean = rgb
+
+def update_rgb(self, context):
+    rgb = self.picker_mean
+    lab = rgb_to_lab(rgb)
+    wm = context.window_manager
+    wm["lab_l"] = lab[0]
+    wm["lab_a"] = lab[1]
+    wm["lab_b"] = lab[2]
 
 def update_picker_color(self, context):
     update_all_colors(self.picker_mean, context)
@@ -106,6 +121,7 @@ def unregister_keymaps():
     addon_keymaps.clear()
 
 def register():
+    register_lab_properties()  # Add this line
     # Register all classes
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -170,9 +186,39 @@ def register():
     
     register_keymaps()
 
+def register_lab_properties():
+    bpy.types.WindowManager.lab_l = FloatProperty(
+        name="L",
+        description="Lightness",
+        default=50.0,
+        min=0.0,
+        max=100.0,
+        update=update_lab
+    )
+    bpy.types.WindowManager.lab_a = FloatProperty(
+        name="a",
+        description="Green-Red",
+        default=0.0,
+        min=-128.0,
+        max=127.0,
+        update=update_lab
+    )
+    bpy.types.WindowManager.lab_b = FloatProperty(
+        name="b",
+        description="Blue-Yellow",
+        default=0.0,
+        min=-128.0,
+        max=127.0,
+        update=update_lab
+    )
+def unregister_lab_properties():
+    del bpy.types.WindowManager.lab_l
+    del bpy.types.WindowManager.lab_a
+    del bpy.types.WindowManager.lab_b
+    
 def unregister():
     unregister_keymaps()
-    
+    unregister_lab_properties()  # Add this line
     # Remove window manager properties
     window_manager = bpy.types.WindowManager
     del window_manager.picker_history
@@ -182,7 +228,7 @@ def unregister():
     del window_manager.picker_median
     del window_manager.picker_min
     del window_manager.picker_max
-    del window_manager.picker_current
+    del window_manager.picker_current    
     
     # Unregister all classes
     for cls in reversed(classes):

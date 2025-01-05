@@ -10,6 +10,7 @@ from bpy.props import BoolProperty
 from bpy.props import FloatVectorProperty
 from ..operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from ..operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
+from ..utils.color_conversions import rgb_to_lab, lab_to_rgb
 
 panel_title = 'Coloraide'
 
@@ -62,6 +63,35 @@ class COLOR_OT_adjust_history_size(Operator):
             wm.history_size = max(wm.history_size - 1, 5)
         return {'FINISHED'}
 
+def update_lab(self, context):
+    # Convert LAB to RGB and update picker_mean
+    lab = (self.lab_l, self.lab_a, self.lab_b)
+    rgb = lab_to_rgb(lab)
+    
+    wm = context.window_manager
+    wm.picker_mean = rgb
+    wm.picker_current = rgb
+    
+    # Update brush colors
+    ts = context.tool_settings
+    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+        ts.gpencil_paint.brush.color = rgb
+    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+        ts.image_paint.brush.color = rgb
+        if ts.unified_paint_settings.use_unified_color:
+            ts.unified_paint_settings.color = rgb
+
+def update_rgb(self, context):
+    # Convert RGB to LAB and update LAB properties
+    rgb = self.picker_mean
+    lab = rgb_to_lab(rgb)
+    
+    # Update LAB properties without triggering their update callbacks
+    wm = context.window_manager
+    wm["lab_l"] = lab[0]
+    wm["lab_a"] = lab[1]
+    wm["lab_b"] = lab[2]
+
 def draw_panel(layout, context):
     wm = context.window_manager
     row = layout.row(align=True) 
@@ -74,6 +104,7 @@ def draw_panel(layout, context):
     box = layout.box()
     col = box.column(align=True)
     col.label(text="RGB Adjust")
+    
     # Split the color into individual RGB components with visual sliders
     split = col.split(factor=0.1)
     split.label(text="R:")
@@ -86,6 +117,23 @@ def draw_panel(layout, context):
     split = col.split(factor=0.1)
     split.label(text="B:")
     split.prop(wm, 'picker_mean', text="", index=2, slider=True)
+    
+     # LAB sliders - new addition
+    box = layout.box()
+    col = box.column(align=True)
+    col.label(text="LAB")
+    
+    split = col.split(factor=0.1)
+    split.label(text="L:")
+    split.prop(wm, "lab_l", text="", slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="a:")
+    split.prop(wm, "lab_a", text="", slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="b:")
+    split.prop(wm, "lab_b", text="", slider=True)
     
     header_row = layout.row(align=True)
     header_row.label(text=f"Color History {wm.history_size}")
