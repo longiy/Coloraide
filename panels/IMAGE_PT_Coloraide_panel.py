@@ -64,33 +64,74 @@ class COLOR_OT_adjust_history_size(Operator):
         return {'FINISHED'}
 
 def update_lab(self, context):
-    # Convert LAB to RGB and update picker_mean
-    lab = (self.lab_l, self.lab_a, self.lab_b)
-    rgb = lab_to_rgb(lab)
+    """Update handler for LAB slider changes"""
+    global _updating_lab, _updating_rgb, _updating_picker
+    if _updating_rgb or _updating_picker:
+        return
     
-    wm = context.window_manager
-    wm.picker_mean = rgb
-    wm.picker_current = rgb
-    
-    # Update brush colors
-    ts = context.tool_settings
-    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-        ts.gpencil_paint.brush.color = rgb
-    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-        ts.image_paint.brush.color = rgb
-        if ts.unified_paint_settings.use_unified_color:
-            ts.unified_paint_settings.color = rgb
+    _updating_lab = True
+    try:
+        wm = context.window_manager
+        
+        # Get and round LAB values
+        lab = (round(self.lab_l), round(self.lab_a), round(self.lab_b))
+        
+        # Convert to RGB through LAB values
+        rgb_float = lab_to_rgb(lab)
+        rgb_bytes = rgb_float_to_byte(rgb_float)
+        
+        # Update RGB values
+        if tuple(wm.picker_mean) != rgb_float:  # Only update if different
+            wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        wm["picker_mean_r"] = rgb_bytes[0]
+        wm["picker_mean_g"] = rgb_bytes[1]
+        wm["picker_mean_b"] = rgb_bytes[2]
+        
+        # Update brush colors
+        update_all_colors(rgb_float, context)
+    finally:
+        _updating_lab = False
 
-def update_rgb(self, context):
-    # Convert RGB to LAB and update LAB properties
-    rgb = self.picker_mean
-    lab = rgb_to_lab(rgb)
-    
-    # Update LAB properties without triggering their update callbacks
-    wm = context.window_manager
-    wm["lab_l"] = lab[0]
-    wm["lab_a"] = lab[1]
-    wm["lab_b"] = lab[2]
+def update_rgb_byte(self, context):
+    """Update handler for RGB byte value changes (0-255 range)"""
+    global _updating_lab, _updating_rgb, _updating_picker
+    if _updating_lab or _updating_picker:
+        return
+        
+    _updating_rgb = True
+    try:
+        wm = context.window_manager
+        
+        # Get RGB bytes and convert to float
+        rgb_bytes = (
+            wm.picker_mean_r,
+            wm.picker_mean_g,
+            wm.picker_mean_b
+        )
+        rgb_float = rgb_byte_to_float(rgb_bytes)
+        
+        # Convert to LAB and back to ensure consistency
+        lab = rgb_to_lab(rgb_float)
+        lab = (round(lab[0]), round(lab[1]), round(lab[2]))
+        
+        # Update LAB values
+        wm["lab_l"] = lab[0]
+        wm["lab_a"] = lab[1]
+        wm["lab_b"] = lab[2]
+        
+        # Convert back to RGB through LAB
+        rgb_float = lab_to_rgb(lab)
+        
+        # Update RGB float values
+        if tuple(wm.picker_mean) != rgb_float:  # Only update if different
+            wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        
+        # Update brush colors
+        update_all_colors(rgb_float, context)
+    finally:
+        _updating_rgb = False
 
 def draw_panel(layout, context):
     wm = context.window_manager
@@ -188,6 +229,8 @@ def draw_panel(layout, context):
     row = layout.row(align=True)
     split = row.split(factor=1)
     split.prop(wm, 'custom_size', slider=True)
+    row = layout.row(align=True)
+    row.operator(IMAGE_OT_screen_picker.bl_idname, text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
 
     layout.separator()
     layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')

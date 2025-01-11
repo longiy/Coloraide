@@ -131,27 +131,32 @@ def update_picker_color(self, context):
     
     _updating_picker = True
     try:
-        # Get RGB float values and convert to bytes
-        rgb_float = tuple(self.picker_mean)
-        rgb_bytes = rgb_float_to_byte(rgb_float)
-        
-        # Update all values without triggering their update callbacks
         wm = context.window_manager
+        # First get and clamp the RGB values from picker
+        rgb_float = tuple(max(0, min(1, c)) for c in self.picker_mean)
         
-        # Update RGB byte sliders
-        wm["picker_mean_r"] = rgb_bytes[0]
-        wm["picker_mean_g"] = rgb_bytes[1]
-        wm["picker_mean_b"] = rgb_bytes[2]
-        
-        # Update current picked color
-        wm["picker_current"] = rgb_float
-        
-        # Update LAB values
+        # Convert to LAB
         lab = rgb_to_lab(rgb_float)
-        lab = round_lab(lab)
+        lab = (round(lab[0]), round(lab[1]), round(lab[2]))  # Round to integers
+        
+        # Store LAB values
+        # Update LAB properties without triggering their update callbacks
         wm["lab_l"] = lab[0]
         wm["lab_a"] = lab[1]
         wm["lab_b"] = lab[2]
+        
+        # Convert back to RGB through LAB to ensure consistency
+        # This ensures the color matches the LAB values exactly
+        rgb_float = lab_to_rgb(lab)
+        rgb_bytes = rgb_float_to_byte(rgb_float)
+        
+        # Store all RGB values
+        if tuple(wm.picker_mean) != rgb_float:  # Only update if different
+            wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        wm["picker_mean_r"] = rgb_bytes[0]
+        wm["picker_mean_g"] = rgb_bytes[1]
+        wm["picker_mean_b"] = rgb_bytes[2]
         
         # Update brush colors
         update_all_colors(rgb_float, context)
