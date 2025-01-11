@@ -13,6 +13,9 @@ from .panels.IMAGE_PT_Coloraide_panel import (
     COLOR_OT_adjust_history_size  # Add this line
 )
 
+_updating_lab = False
+_updating_rgb = False
+
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy & Spencer Magnusson',
@@ -43,27 +46,41 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
     )
 
 def update_lab(self, context):
-    lab = (self.lab_l, self.lab_a, self.lab_b)
-    rgb = lab_to_rgb(lab)
-    context.window_manager.picker_mean = rgb
+    global _updating_lab, _updating_rgb
+    if _updating_rgb:  # If update is triggered by RGB change, don't proceed
+        return
+    
+    _updating_lab = True  # Set flag before updating
+    try:
+        lab = (self.lab_l, self.lab_a, self.lab_b)
+        rgb = lab_to_rgb(lab)
+        # Update the picker_mean without triggering its update callback
+        wm = context.window_manager
+        wm["picker_mean"] = rgb
+        update_all_colors(rgb, context)
+    finally:
+        _updating_lab = False  # Always clear flag
 
 def update_rgb(self, context):
-    rgb = self.picker_mean
-    lab = rgb_to_lab(rgb)
-    wm = context.window_manager
-    wm["lab_l"] = lab[0]
-    wm["lab_a"] = lab[1]
-    wm["lab_b"] = lab[2]
+    global _updating_lab, _updating_rgb
+    if _updating_lab:  # If update is triggered by LAB change, don't proceed
+        return
+    
+    _updating_rgb = True  # Set flag before updating
+    try:
+        rgb = self.picker_mean
+        lab = rgb_to_lab(rgb)
+        wm = context.window_manager
+        # Update LAB values without triggering their update callbacks
+        wm["lab_l"] = lab[0]
+        wm["lab_a"] = lab[1]
+        wm["lab_b"] = lab[2]
+    finally:
+        _updating_rgb = False  # Always clear flag
 
 def update_picker_color(self, context):
     update_all_colors(self.picker_mean, context)
-    
-    # Then update LAB values
-    rgb = self.picker_mean
-    lab = rgb_to_lab(rgb)
-    self["lab_l"] = lab[0]
-    self["lab_a"] = lab[1]
-    self["lab_b"] = lab[2]
+    update_rgb(self, context)  # Update LAB values when RGB changes
 
 def update_all_colors(color, context):
     """
@@ -197,28 +214,32 @@ def register():
 def register_lab_properties():
     bpy.types.WindowManager.lab_l = FloatProperty(
         name="L",
-        description="Lightness",
+        description="Lightness (0-100)",
         default=50.0,
         min=0.0,
         max=100.0,
-        update=update_lab
+        update=update_lab,
+        precision=2
     )
     bpy.types.WindowManager.lab_a = FloatProperty(
         name="a",
-        description="Green-Red",
+        description="Green (-) to Red (+)",
         default=0.0,
         min=-128.0,
         max=127.0,
-        update=update_lab
+        update=update_lab,
+        precision=2
     )
     bpy.types.WindowManager.lab_b = FloatProperty(
         name="b",
-        description="Blue-Yellow",
+        description="Blue (-) to Yellow (+)",
         default=0.0,
         min=-128.0,
         max=127.0,
-        update=update_lab
+        update=update_lab,
+        precision=2
     )
+    
 def unregister_lab_properties():
     del bpy.types.WindowManager.lab_l
     del bpy.types.WindowManager.lab_a
