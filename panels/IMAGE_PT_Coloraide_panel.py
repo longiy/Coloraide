@@ -95,15 +95,20 @@ def update_rgb(self, context):
 def draw_panel(layout, context):
     wm = context.window_manager
     row = layout.row(align=True) 
-
     row.scale_y = 2.0
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
-        # RGB sliders for fine-tuning mean color (0-255 range)
+    # Add hex code display
+    rgb_bytes = [int(c * 255) for c in wm.picker_mean]
+    hex_color = "#{:02X}{:02X}{:02X}".format(rgb_bytes[0], rgb_bytes[1], rgb_bytes[2])
+    row = layout.row()
+    row.label(text=f"Hex: {hex_color}")
+    
+    # RGB sliders for fine-tuning mean color (0-255 range)
     box = layout.box()
     col = box.column(align=True)
-    col.label(text="RGB")
+    col.label(text="RGB Adjust")
     
     # Split the color into individual RGB components with sliders in 0-255 range
     split = col.split(factor=0.1)
