@@ -103,7 +103,7 @@ def draw_panel(layout, context):
         # RGB sliders for fine-tuning mean color (0-255 range)
     box = layout.box()
     col = box.column(align=True)
-    col.label(text="RGB Adjust")
+    col.label(text="RGB")
     
     # Split the color into individual RGB components with sliders in 0-255 range
     split = col.split(factor=0.1)
