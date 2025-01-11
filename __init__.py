@@ -57,6 +57,13 @@ def update_rgb(self, context):
 
 def update_picker_color(self, context):
     update_all_colors(self.picker_mean, context)
+    
+    # Then update LAB values
+    rgb = self.picker_mean
+    lab = rgb_to_lab(rgb)
+    self["lab_l"] = lab[0]
+    self["lab_a"] = lab[1]
+    self["lab_b"] = lab[2]
 
 def update_all_colors(color, context):
     """
@@ -119,13 +126,11 @@ def unregister_keymaps():
     for km, kmi in addon_keymaps:
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
-
+    
 def register():
-    register_lab_properties()  # Add this line
-    # Register all classes
     for cls in classes:
         bpy.utils.register_class(cls)
-    
+
     # Add window manager properties
     window_manager = bpy.types.WindowManager
     window_manager.picker_current = bpy.props.FloatVectorProperty(
@@ -161,7 +166,7 @@ def register():
         precision=4,
         min=0.0,
         max=1.0,
-        update=update_picker_color,  # Add update callback
+        update=update_picker_color,  # This is correct now
         description='The mean RGB values of the picked pixels',
         subtype='COLOR_GAMMA')
     window_manager.custom_size = bpy.props.IntProperty(
@@ -183,6 +188,9 @@ def register():
         name="Color History",
         description="History of recently picked colors"
     )
+    
+    register_lab_properties()  # Add this line
+    # Register all classes
     
     register_keymaps()
 
