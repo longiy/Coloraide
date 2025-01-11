@@ -377,9 +377,39 @@ def update_rgb_byte(self, context):
         _updating_rgb = False
 
 def update_picker_color(self, context):
+    """Update handler for picker color changes (color wheel popup)"""
     global _updating_lab, _updating_rgb, _updating_picker
     if _updating_lab or _updating_rgb:
         return
+    
+    _updating_picker = True
+    try:
+        # Get RGB float values and convert to bytes
+        rgb_float = tuple(self.picker_mean)
+        rgb_bytes = rgb_float_to_byte(rgb_float)
+        
+        # Update all values without triggering their update callbacks
+        wm = context.window_manager
+        
+        # Update RGB byte sliders
+        wm["picker_mean_r"] = rgb_bytes[0]
+        wm["picker_mean_g"] = rgb_bytes[1]
+        wm["picker_mean_b"] = rgb_bytes[2]
+        
+        # Update current picked color
+        wm["picker_current"] = rgb_float
+        
+        # Update LAB values
+        lab = rgb_to_lab(rgb_float)
+        lab = round_lab(lab)
+        wm["lab_l"] = lab[0]
+        wm["lab_a"] = lab[1]
+        wm["lab_b"] = lab[2]
+        
+        # Update brush colors
+        update_all_colors(rgb_float, context)
+    finally:
+        _updating_picker = False
     
 def unregister_lab_properties():
     del bpy.types.WindowManager.lab_l
