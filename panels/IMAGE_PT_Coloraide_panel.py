@@ -100,23 +100,23 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
-    # RGB sliders for fine-tuning mean color
+        # RGB sliders for fine-tuning mean color (0-255 range)
     box = layout.box()
     col = box.column(align=True)
     col.label(text="RGB Adjust")
     
-    # Split the color into individual RGB components with visual sliders
+    # Split the color into individual RGB components with sliders in 0-255 range
     split = col.split(factor=0.1)
     split.label(text="R:")
-    split.prop(wm, 'picker_mean', text="", index=0, slider=True)
+    split.prop(wm, 'picker_mean_r', text="", slider=True)
     
     split = col.split(factor=0.1)
     split.label(text="G:")
-    split.prop(wm, 'picker_mean', text="", index=1, slider=True)
+    split.prop(wm, 'picker_mean_g', text="", slider=True)
     
     split = col.split(factor=0.1)
     split.label(text="B:")
-    split.prop(wm, 'picker_mean', text="", index=2, slider=True)
+    split.prop(wm, 'picker_mean_b', text="", slider=True)
     
      # LAB sliders - new addition
     box = layout.box()
