@@ -68,15 +68,22 @@ def update_color_history(color):
     
     # Remove oldest color if we've reached the size limit
     if len(history) >= wm.history_size:
-        history.remove(0)
+        history.remove(len(history) - 1)  # Remove the last item instead of first
     
-    # Add new color
+    # Add new color at the beginning
     new_color = history.add()
     new_color.color = color
+    
+    # Move the new color to the start by shifting all items
+    for i in range(len(history) - 1, 0, -1):
+        history.move(i, i - 1)
 
-def update_color_pickers(color, current_color=None, save_to_history=False):
-    ts = bpy.context.tool_settings
+def update_color_pickers(color, save_to_history=False):
     wm = bpy.context.window_manager
+    ts = bpy.context.tool_settings
+    
+    # Update wheel color
+    wm["wheel_color"] = (*color[:3], 1.0)  # Add alpha channel
     
     # Update Grease Pencil brush color
     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
@@ -87,10 +94,6 @@ def update_color_pickers(color, current_color=None, save_to_history=False):
         ts.image_paint.brush.color = color[:3]
         if ts.unified_paint_settings.use_unified_color:
             ts.unified_paint_settings.color = color[:3]
-    
-    # Update current color if provided
-    if current_color is not None:
-        wm.picker_current = current_color[:3]
     
     # Update color history only when save_to_history is True
     if save_to_history:

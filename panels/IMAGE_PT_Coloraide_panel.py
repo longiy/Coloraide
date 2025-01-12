@@ -135,20 +135,28 @@ def update_rgb_byte(self, context):
 
 def draw_panel(layout, context):
     wm = context.window_manager
+        
+    # Add color wheel with dynamic scaling
+    col = layout.column()
+    col.scale_y = wm.wheel_scale
+    col.template_color_picker(wm, "wheel_color", value_slider=True, lock_luminosity=False)
+    
+    # Add wheel scale slider
+    layout.prop(wm, "wheel_scale", slider=True)
+    
+    # Original color display row
     row = layout.row(align=True) 
-    
-    # Add hex code display
-    row = layout.row(align=True)
-    split = row.split(factor=0.2)  # Adjusted factor to give more space to hex field
-    split.label(text="Hex:")
-    hex_field = split.prop(wm, "hex_color", text="")
-    
-    # Colorboxes
-    row = layout.row(align=True)
     row.scale_y = 2.0
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
+    # Add hex code display
+    row = layout.row(align=True)
+    split = row.split(factor=0.2)
+    split.label(text="Hex:")
+    hex_field = split.prop(wm, "hex_color", text="")
+    
+    # Color history section
     header_row = layout.row(align=True)
     header_row.label(text=f"Color History {wm.history_size}")
     
@@ -170,32 +178,29 @@ def draw_panel(layout, context):
         start_idx = row_idx * colors_per_row
         end_idx = min(start_idx + colors_per_row, wm.history_size)
         
-        # Add existing colors
         row_colors = history[start_idx:end_idx]
         for item in row_colors:
             sub = history_row.row(align=True)
             sub.scale_x = 1.0
             sub.prop(item, "color", text="", event=True)
         
-        # Fill empty spots with blank labels instead of operators
         empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
         if empty_spots > 0:
             for _ in range(empty_spots):
                 sub = history_row.row(align=True)
                 sub.scale_x = 1.0
                 sub.enabled = False
-                sub.label(text="")  # Just use a blank label instead of an operator
+                sub.label(text="")
     
-    row = layout.row(align=True) 
-    row.prop(wm, 'picker_min', text='Min')
-    row.prop(wm, 'picker_max', text='Max')
+    # row = layout.row(align=True) 
+    # row.prop(wm, 'picker_min', text='Min')
+    # row.prop(wm, 'picker_max', text='Max')
     
-    # RGB sliders for fine-tuning mean color (0-255 range)
+     # RGB sliders
     box = layout.box()
     col = box.column(align=True)
     col.label(text="RGB Adjust")
     
-    # Split the color into individual RGB components with sliders in 0-255 range
     split = col.split(factor=0.1)
     split.label(text="R:")
     split.prop(wm, 'picker_mean_r', text="", slider=True)
@@ -208,7 +213,7 @@ def draw_panel(layout, context):
     split.label(text="B:")
     split.prop(wm, 'picker_mean_b', text="", slider=True)
     
-     # LAB sliders - new addition
+    # LAB sliders
     box = layout.box()
     col = box.column(align=True)
     col.label(text="LAB")
@@ -227,14 +232,14 @@ def draw_panel(layout, context):
     
     
     row = layout.row(align=True) 
-    row.operator(IMAGE_OT_screen_picker.bl_idname, text='1x1', icon='EYEDROPPER').sqrt_length = 1
-    row.operator(IMAGE_OT_screen_picker.bl_idname, text='5x5', icon='EYEDROPPER').sqrt_length = 5
+    row.operator('image.screen_picker', text='1x1', icon='EYEDROPPER').sqrt_length = 1
+    row.operator('image.screen_picker', text='5x5', icon='EYEDROPPER').sqrt_length = 5
     
     row = layout.row(align=True)
     split = row.split(factor=1)
     split.prop(wm, 'custom_size', slider=True)
     row = layout.row(align=True)
-    row.operator(IMAGE_OT_screen_picker.bl_idname, text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
+    row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
 
     # layout.separator()
     # layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')

@@ -1,6 +1,7 @@
 # In main __init__.py:
 
 import bpy
+from bpy.types import PropertyGroup
 from bpy.props import FloatProperty
 from math import floor, ceil
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
@@ -18,6 +19,7 @@ _updating_lab = False
 _updating_rgb = False
 _updating_picker = False
 _updating_hex = False
+_updating_wheel = False
 
 
 bl_info = {
@@ -48,6 +50,8 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
         update=update_color
     )
 
+
+
 def rgb_float_to_byte(rgb_float):
     """Convert 0-1 RGB float to 0-255 byte values"""
     return tuple(round(c * 255) for c in rgb_float)
@@ -73,34 +77,89 @@ def stabilize_lab(lab):
     
     return (L, a, b)
 
+def update_from_wheel(self, context):
+    """Update handler for color wheel changes"""
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_hex, _updating_wheel
+    if _updating_lab or _updating_rgb or _updating_picker or _updating_hex:
+        return
+        
+    _updating_wheel = True
+    try:
+        wm = context.window_manager
+        # Get RGB values from wheel color
+        color = tuple(self.wheel_color[:3])
+        
+        # Convert to bytes for consistent RGB values
+        rgb_bytes = tuple(int(c * 255) for c in color)
+        
+        # Update all the existing color values without triggering callbacks
+        wm["picker_mean_r"] = rgb_bytes[0]
+        wm["picker_mean_g"] = rgb_bytes[1]
+        wm["picker_mean_b"] = rgb_bytes[2]
+        wm["picker_mean"] = color
+        wm["picker_current"] = color
+        
+        # Update hex directly
+        wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
+            rgb_bytes[0],
+            rgb_bytes[1],
+            rgb_bytes[2]
+        )
+        
+        # Calculate and update LAB values
+        lab = rgb_to_lab(color)
+        lab = stabilize_lab(lab)
+        wm["lab_l"] = lab[0]
+        wm["lab_a"] = lab[1]
+        wm["lab_b"] = lab[2]
+        
+        # Update brush colors
+        update_all_colors(color, context)
+        
+    finally:
+        _updating_wheel = False
+
+def update_wheel_from_rgb(self, context):
+    """Update color wheel when RGB values change"""
+    global _updating_wheel, _updating_rgb, _updating_lab, _updating_picker, _updating_hex
+    if _updating_wheel or _updating_rgb or _updating_lab or _updating_picker or _updating_hex:
+        return
+        
+    _updating_wheel = True
+    try:
+        wm = context.window_manager
+        color = wm.picker_mean
+        if tuple(wm.wheel_color) != color:
+            wm["wheel_color"] = color
+    finally:
+        _updating_wheel = False
+
 def update_from_hex(self, context):
     """Update handler for hex color input"""
-    global _updating_lab, _updating_rgb, _updating_picker, _updating_hex
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_wheel
     
-    if _updating_lab or _updating_rgb or _updating_picker:
+    if _updating_lab or _updating_rgb or _updating_picker or _updating_wheel:
         return
     
+    global _updating_hex
     if _updating_hex:
         return
     
     _updating_hex = True
     try:
-        # Parse hex color, stripping # if present
         hex_color = self.hex_color.lstrip('#')
-        
-        # Validate hex format (6 characters, valid hex digits)
         if len(hex_color) != 6 or not all(c in '0123456789ABCDEFabcdef' for c in hex_color):
-            print("Invalid hex, setting black")
             wm = context.window_manager
             wm["picker_mean_r"] = 0
             wm["picker_mean_g"] = 0
             wm["picker_mean_b"] = 0
             wm["picker_mean"] = (0.0, 0.0, 0.0)
+            wm["picker_current"] = (0.0, 0.0, 0.0)
+            wm["wheel_color"] = (0.0, 0.0, 0.0, 1.0)  # Add wheel color update
             wm["hex_color"] = "#000000"
             update_all_colors((0.0, 0.0, 0.0), context)
             return
             
-        # Valid hex, convert and update
         rgb_bytes = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
         rgb_float = tuple(c / 255 for c in rgb_bytes)
         
@@ -109,139 +168,122 @@ def update_from_hex(self, context):
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        wm["wheel_color"] = (*rgb_float, 1.0)  # Add wheel color update
         
         update_all_colors(rgb_float, context)
         
-    except Exception as e:
-        print("Error in hex update:", e)
-        wm = context.window_manager
-        wm["hex_color"] = "#000000"
     finally:
         _updating_hex = False
+
         
 def update_lab(self, context):
     """Update handler for LAB slider changes"""
-    global _updating_lab, _updating_rgb, _updating_picker
-    if _updating_rgb or _updating_picker:
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_wheel
+    if _updating_rgb or _updating_picker or _updating_wheel:
         return
     
     _updating_lab = True
     try:
-        # Get LAB values and convert to RGB
         lab = stabilize_lab((self.lab_l, self.lab_a, self.lab_b))
         rgb = lab_to_rgb(lab)
         
-        # Convert to bytes for consistent RGB values
-        rgb_bytes = rgb_float_to_byte(rgb)
-        rgb_float = rgb_byte_to_float(rgb_bytes)
+        rgb_bytes = tuple(int(c * 255) for c in rgb)
+        rgb_float = tuple(c / 255 for c in rgb_bytes)
         
-        # Update values without triggering callbacks
         wm = context.window_manager
         
-        # RGB bytes are our source of truth
         wm["picker_mean_r"] = rgb_bytes[0]
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         
-        # Update float RGB values from the bytes
         wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        wm["wheel_color"] = (*rgb_float, 1.0)  # Add wheel color update
         
-        # Update hex from RGB bytes
         wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
             rgb_bytes[0],
             rgb_bytes[1],
             rgb_bytes[2]
         )
         
-        # Update brush colors from RGB float
         update_all_colors(rgb_float, context)
     finally:
         _updating_lab = False
 
 def update_rgb_byte(self, context):
-    """Update handler for RGB byte value changes (0-255 range)"""
-    global _updating_lab, _updating_rgb, _updating_picker
-    if _updating_lab or _updating_picker:
+    """Update handler for RGB byte value changes"""
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_wheel
+    if _updating_lab or _updating_picker or _updating_wheel:
         return
         
     _updating_rgb = True
     try:
         wm = context.window_manager
-        # RGB bytes are our source of truth
         rgb_bytes = (
             wm.picker_mean_r,
             wm.picker_mean_g,
             wm.picker_mean_b
         )
         
-        # Convert to float for internal Blender use
-        rgb_float = rgb_byte_to_float(rgb_bytes)
+        rgb_float = tuple(c / 255 for c in rgb_bytes)
         
-        # Update RGB float values for mean only
         wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        wm["wheel_color"] = (*rgb_float, 1.0)  # Add wheel color update
         
-        # Update hex directly from RGB bytes
         wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
             rgb_bytes[0],
             rgb_bytes[1],
             rgb_bytes[2]
         )
         
-        # Calculate LAB values from RGB float
         lab = rgb_to_lab(rgb_float)
         lab = stabilize_lab(lab)
         
-        # Update LAB without triggering callbacks
         wm["lab_l"] = lab[0]
         wm["lab_a"] = lab[1]
         wm["lab_b"] = lab[2]
         
-        # Update brush colors from RGB float
         update_all_colors(rgb_float, context)
     finally:
         _updating_rgb = False
 
 def update_picker_color(self, context):
-    """Update handler for picker color changes (color wheel popup)"""
-    global _updating_lab, _updating_rgb, _updating_picker
-    if _updating_lab or _updating_rgb:
+    """Update handler for picker color changes"""
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_wheel
+    if _updating_lab or _updating_rgb or _updating_wheel:
         return
     
     _updating_picker = True
     try:
         wm = context.window_manager
-        # Get RGB float values from picker
         rgb_float = tuple(max(0, min(1, c)) for c in self.picker_mean)
         
-        # Convert to bytes - this becomes our source of truth
-        rgb_bytes = rgb_float_to_byte(rgb_float)
-        rgb_float = rgb_byte_to_float(rgb_bytes)  # Convert back for consistency
+        rgb_bytes = tuple(int(c * 255) for c in rgb_float)
+        rgb_float = tuple(c / 255 for c in rgb_bytes)
         
-        # Store RGB values
         if tuple(wm.picker_mean) != rgb_float:
             wm["picker_mean"] = rgb_float
         wm["picker_current"] = rgb_float
+        wm["wheel_color"] = (*rgb_float, 1.0)  # Add wheel color update
         wm["picker_mean_r"] = rgb_bytes[0]
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         
-        # Update hex directly from RGB bytes
         wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
             rgb_bytes[0],
             rgb_bytes[1],
             rgb_bytes[2]
         )
         
-        # Calculate LAB from RGB float
         lab = rgb_to_lab(rgb_float)
         lab = stabilize_lab(lab)
         
-        # Update LAB values without triggering callbacks
         wm["lab_l"] = lab[0]
         wm["lab_a"] = lab[1]
         wm["lab_b"] = lab[2]
         
-        # Update brush colors from RGB float
         update_all_colors(rgb_float, context)
     finally:
         _updating_picker = False
@@ -309,7 +351,6 @@ def register():
         bpy.utils.register_class(cls)
     # Add window manager properties
     window_manager = bpy.types.WindowManager
-    
     # Initialize history with black swatches
     def init_color_history():
         wm = bpy.context.window_manager
@@ -320,7 +361,26 @@ def register():
         for _ in range(wm.history_size):
             new_color = history.add()
             new_color.color = (0.0, 0.0, 0.0)
-    
+            
+    # Add wheel scale property
+    bpy.types.WindowManager.wheel_scale = FloatProperty(
+        name="Wheel Size",
+        description="Adjust the size of the color wheel",
+        min=1.0,
+        max=4.0,
+        default=1.5,    
+        step=10,
+        precision=1
+    )
+    # Add wheel color property with update handler
+    bpy.types.WindowManager.wheel_color = bpy.props.FloatVectorProperty(
+        name="Color",
+        subtype='COLOR',
+        size=4,
+        min=0.0, max=1.0,
+        default=(1.0, 1.0, 1.0, 1.0),
+        update=update_from_wheel
+    )
     # Add window manager properties
     window_manager.hex_color = bpy.props.StringProperty(
         name="Hex",
@@ -471,6 +531,7 @@ def unregister_lab_properties():
 def unregister():
     unregister_keymaps()
     unregister_lab_properties()
+    unregister_wheel_properties()
     
     window_manager = bpy.types.WindowManager
     del window_manager.picker_history
@@ -484,6 +545,9 @@ def unregister():
     del window_manager.picker_mean_r
     del window_manager.picker_mean_g
     del window_manager.picker_mean_b
+    
+    del bpy.types.WindowManager.wheel_scale
+    del bpy.types.WindowManager.wheel_color
     
     del window_manager.hex_color
     
