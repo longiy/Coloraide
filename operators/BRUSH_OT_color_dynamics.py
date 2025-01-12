@@ -1,26 +1,30 @@
 import bpy
 import random
-from bpy.app.handlers import persistent
 
 # Store original colors and operator state
 original_brush_color = {}
+current_random_color = None
 
-def apply_color_dynamics(color, dynamics_strength):
+def apply_color_dynamics(color, dynamics_strength, force_new=False):
     """Apply color dynamics to an RGB color"""
+    global current_random_color
+    
     if dynamics_strength <= 0:
         return color
         
-    # Generate random color
-    random_color = (
-        random.random(),
-        random.random(),
-        random.random()
-    )
+    # Generate new random color only if needed
+    if current_random_color is None or force_new:
+        current_random_color = (
+            random.random(),
+            random.random(),
+            random.random()
+        )
     
     # Lerp between original and random color based on dynamics strength
+    strength_factor = dynamics_strength / 100.0
     return tuple(
-        original + (random - original) * dynamics_strength
-        for original, random in zip(color, random_color)
+        original + (random - original) * strength_factor
+        for original, random in zip(color, current_random_color)
     )
 
 class BRUSH_OT_color_dynamics(bpy.types.Operator):
@@ -39,6 +43,9 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         return context.window_manager.color_dynamics_enable
 
     def invoke(self, context, event):
+        global current_random_color
+        current_random_color = None
+        
         self._stroke_active = False
         self._last_mouse = None
         self._is_painting = False
@@ -68,6 +75,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
                 original_brush_color['unified'] = ts.unified_paint_settings.color[:3]
 
     def modal(self, context, event):
+        global current_random_color
         wm = context.window_manager
         
         # Check if dynamics should be disabled
@@ -83,41 +91,46 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         # Detect stroke start/end
         if event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
+                # Start new stroke - generate new random color
+                current_random_color = None
                 self._stroke_active = True
                 self._is_painting = True
+                
+                # Apply the new random color immediately
+                strength = wm.color_dynamics_strength
+                ts = context.tool_settings
+
+                # Update Grease Pencil brush
+                if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                    brush = ts.gpencil_paint.brush
+                    if 'gpencil' in original_brush_color:
+                        new_color = apply_color_dynamics(original_brush_color['gpencil'], strength, True)
+                        brush.color = new_color
+
+                # Update Image Paint brush
+                if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                    brush = ts.image_paint.brush
+                    if 'image_paint' in original_brush_color:
+                        new_color = apply_color_dynamics(original_brush_color['image_paint'], strength, True)
+                        brush.color = new_color
+                        if ts.unified_paint_settings.use_unified_color and 'unified' in original_brush_color:
+                            ts.unified_paint_settings.color = new_color
+                            
             elif event.value == 'RELEASE':
                 self._stroke_active = False
                 self._is_painting = False
+                current_random_color = None
                 self.restore_original_colors(context)
-
-        # Update colors during stroke
-        if self._stroke_active and self._is_painting:
-            strength = wm.color_dynamics_strength / 100.0
-            ts = context.tool_settings
-
-            # Update Grease Pencil brush
-            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                brush = ts.gpencil_paint.brush
-                if 'gpencil' in original_brush_color:
-                    new_color = apply_color_dynamics(original_brush_color['gpencil'], strength)
-                    brush.color = new_color
-
-            # Update Image Paint brush
-            if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                brush = ts.image_paint.brush
-                if 'image_paint' in original_brush_color:
-                    new_color = apply_color_dynamics(original_brush_color['image_paint'], strength)
-                    brush.color = new_color
-                    if ts.unified_paint_settings.use_unified_color and 'unified' in original_brush_color:
-                        ts.unified_paint_settings.color = new_color
 
         return {'PASS_THROUGH'}
 
     def cleanup(self, context):
         """Clean up timer and restore colors"""
+        global current_random_color
         if self._timer is not None:
             context.window_manager.event_timer_remove(self._timer)
             self._timer = None
+        current_random_color = None
         self.restore_original_colors(context)
 
     def restore_original_colors(self, context):
@@ -136,36 +149,10 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
 
     def cancel(self, context):
         """Handle operator cancellation"""
+        global current_random_color
         context.window_manager.color_dynamics_running = False
+        current_random_color = None
         self.cleanup(context)
-
-def register():
-    if not hasattr(bpy.types.WindowManager, "color_dynamics_running"):
-        bpy.types.WindowManager.color_dynamics_running = bpy.props.BoolProperty(
-            name="Color Dynamics Running",
-            default=False
-        )
-    
-    if not hasattr(bpy.types.WindowManager, "color_dynamics_strength"):
-        bpy.types.WindowManager.color_dynamics_strength = bpy.props.IntProperty(
-            name="Strength",
-            description="Amount of random color variation during strokes",
-            min=0,
-            max=100,
-            default=50,
-            subtype='PERCENTAGE'
-        )
-    
-    bpy.utils.register_class(BRUSH_OT_color_dynamics)
-
-def unregister():
-    bpy.utils.unregister_class(BRUSH_OT_color_dynamics)
-    
-    if hasattr(bpy.types.WindowManager, "color_dynamics_running"):
-        del bpy.types.WindowManager.color_dynamics_running
-    
-    if hasattr(bpy.types.WindowManager, "color_dynamics_strength"):
-        del bpy.types.WindowManager.color_dynamics_strength
 
 def register():
     if not hasattr(bpy.types.WindowManager, "color_dynamics_running"):
