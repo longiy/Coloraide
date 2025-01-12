@@ -75,16 +75,11 @@ def stabilize_lab(lab):
 
 def update_from_hex(self, context):
     """Update handler for hex color input"""
-    global _updating_lab, _updating_rgb, _updating_picker
-    
-    # Add debug print to verify the handler is being called
-    print("Hex update called with:", self.hex_color)
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_hex
     
     if _updating_lab or _updating_rgb or _updating_picker:
         return
     
-    # Add a flag for hex updates to prevent loops    
-    global _updating_hex
     if _updating_hex:
         return
     
@@ -92,16 +87,15 @@ def update_from_hex(self, context):
     try:
         # Parse hex color, stripping # if present
         hex_color = self.hex_color.lstrip('#')
+        
         # Validate hex format (6 characters, valid hex digits)
         if len(hex_color) != 6 or not all(c in '0123456789ABCDEFabcdef' for c in hex_color):
-            print("Invalid hex, setting black")  # Debug print
-            # Set all values to black using item access
+            print("Invalid hex, setting black")
             wm = context.window_manager
             wm["picker_mean_r"] = 0
             wm["picker_mean_g"] = 0
             wm["picker_mean_b"] = 0
             wm["picker_mean"] = (0.0, 0.0, 0.0)
-            wm["picker_current"] = (0.0, 0.0, 0.0)
             wm["hex_color"] = "#000000"
             update_all_colors((0.0, 0.0, 0.0), context)
             return
@@ -115,12 +109,11 @@ def update_from_hex(self, context):
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         wm["picker_mean"] = rgb_float
-        wm["picker_current"] = rgb_float
         
         update_all_colors(rgb_float, context)
         
     except Exception as e:
-        print("Error in hex update:", e)  # Debug print
+        print("Error in hex update:", e)
         wm = context.window_manager
         wm["hex_color"] = "#000000"
     finally:
@@ -142,7 +135,7 @@ def update_lab(self, context):
         rgb_bytes = rgb_float_to_byte(rgb)
         rgb_float = rgb_byte_to_float(rgb_bytes)
         
-        # Update all values without triggering callbacks
+        # Update values without triggering callbacks
         wm = context.window_manager
         
         # RGB bytes are our source of truth
@@ -150,9 +143,8 @@ def update_lab(self, context):
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         
-        # Update float RGB and current values from the bytes
+        # Update float RGB values from the bytes
         wm["picker_mean"] = rgb_float
-        wm["picker_current"] = rgb_float
         
         # Update hex from RGB bytes
         wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
@@ -185,9 +177,8 @@ def update_rgb_byte(self, context):
         # Convert to float for internal Blender use
         rgb_float = rgb_byte_to_float(rgb_bytes)
         
-        # Update RGB float values
+        # Update RGB float values for mean only
         wm["picker_mean"] = rgb_float
-        wm["picker_current"] = rgb_float
         
         # Update hex directly from RGB bytes
         wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
