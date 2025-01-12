@@ -17,6 +17,8 @@ from .panels.IMAGE_PT_Coloraide_panel import (
 _updating_lab = False
 _updating_rgb = False
 _updating_picker = False
+_updating_hex = False
+
 
 bl_info = {
     'name': 'Coloraide',
@@ -71,6 +73,59 @@ def stabilize_lab(lab):
     
     return (L, a, b)
 
+def update_from_hex(self, context):
+    """Update handler for hex color input"""
+    global _updating_lab, _updating_rgb, _updating_picker
+    
+    # Add debug print to verify the handler is being called
+    print("Hex update called with:", self.hex_color)
+    
+    if _updating_lab or _updating_rgb or _updating_picker:
+        return
+    
+    # Add a flag for hex updates to prevent loops    
+    global _updating_hex
+    if _updating_hex:
+        return
+    
+    _updating_hex = True
+    try:
+        # Parse hex color, stripping # if present
+        hex_color = self.hex_color.lstrip('#')
+        # Validate hex format (6 characters, valid hex digits)
+        if len(hex_color) != 6 or not all(c in '0123456789ABCDEFabcdef' for c in hex_color):
+            print("Invalid hex, setting black")  # Debug print
+            # Set all values to black using item access
+            wm = context.window_manager
+            wm["picker_mean_r"] = 0
+            wm["picker_mean_g"] = 0
+            wm["picker_mean_b"] = 0
+            wm["picker_mean"] = (0.0, 0.0, 0.0)
+            wm["picker_current"] = (0.0, 0.0, 0.0)
+            wm["hex_color"] = "#000000"
+            update_all_colors((0.0, 0.0, 0.0), context)
+            return
+            
+        # Valid hex, convert and update
+        rgb_bytes = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        rgb_float = tuple(c / 255 for c in rgb_bytes)
+        
+        wm = context.window_manager
+        wm["picker_mean_r"] = rgb_bytes[0]
+        wm["picker_mean_g"] = rgb_bytes[1]
+        wm["picker_mean_b"] = rgb_bytes[2]
+        wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        
+        update_all_colors(rgb_float, context)
+        
+    except Exception as e:
+        print("Error in hex update:", e)  # Debug print
+        wm = context.window_manager
+        wm["hex_color"] = "#000000"
+    finally:
+        _updating_hex = False
+        
 def update_lab(self, context):
     """Update handler for LAB slider changes"""
     global _updating_lab, _updating_rgb, _updating_picker
@@ -264,11 +319,15 @@ def register():
 
     # Add window manager properties
     window_manager = bpy.types.WindowManager
+    
     window_manager.hex_color = bpy.props.StringProperty(
-        name="Hex Color",
-        description="Synchronized hex color value",
-        default="#808080"
+        name="Hex",
+        description="Color in hex format (e.g. #FF0000)",
+        default="#808080",
+        maxlen=7,
+        update=update_from_hex
     )
+    
     window_manager.picker_current = bpy.props.FloatVectorProperty(
         default=(1.0, 1.0, 1.0),
         precision=4,

@@ -142,7 +142,9 @@ def draw_panel(layout, context):
     
     # Add hex code display
     row = layout.row()
-    row.label(text=f"Hex: {wm.hex_color}")
+    split = row.split(factor=0.3)
+    split.label(text="Hex:")
+    split.prop(wm, "hex_color", text="")
     
     # RGB sliders for fine-tuning mean color (0-255 range)
     box = layout.box()
