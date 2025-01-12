@@ -316,10 +316,21 @@ def unregister_keymaps():
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-
     # Add window manager properties
     window_manager = bpy.types.WindowManager
     
+    # Initialize history with black swatches
+    def init_color_history():
+        wm = bpy.context.window_manager
+        history = wm.picker_history
+        # Clear existing history
+        history.clear()
+        # Add black swatches up to history_size
+        for _ in range(wm.history_size):
+            new_color = history.add()
+            new_color.color = (0.0, 0.0, 0.0)
+    
+    # Add window manager properties
     window_manager.hex_color = bpy.props.StringProperty(
         name="Hex",
         description="Color in hex format (e.g. #FF0000)",
@@ -327,7 +338,6 @@ def register():
         maxlen=7,
         update=update_from_hex
     )
-    
     window_manager.picker_current = bpy.props.FloatVectorProperty(
         default=(1.0, 1.0, 1.0),
         precision=4,
@@ -414,6 +424,22 @@ def register():
 
     register_lab_properties()
     register_keymaps()
+
+    # Initialize color history with black swatches
+    try:
+        wm = bpy.context.window_manager
+        history = wm.picker_history
+        
+        # Clear any existing history
+        while len(history) > 0:
+            history.remove(0)
+            
+        # Add black swatches
+        for _ in range(wm.history_size):
+            color_item = history.add()
+            color_item.color = (0.0, 0.0, 0.0)
+    except Exception as e:
+        print("Error initializing color history:", e)
 
 def register_lab_properties():
     bpy.types.WindowManager.lab_l = bpy.props.FloatProperty(

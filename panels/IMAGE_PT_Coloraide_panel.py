@@ -136,50 +136,18 @@ def update_rgb_byte(self, context):
 def draw_panel(layout, context):
     wm = context.window_manager
     row = layout.row(align=True) 
+    
+    # Add hex code display
+    row = layout.row(align=True)
+    split = row.split(factor=0.2)  # Adjusted factor to give more space to hex field
+    split.label(text="Hex:")
+    hex_field = split.prop(wm, "hex_color", text="")
+    
+    # Colorboxes
+    row = layout.row(align=True)
     row.scale_y = 2.0
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
-    
-    # Add hex code display
-    row = layout.row()
-    split = row.split(factor=0.3)
-    split.label(text="Hex:")
-    split.prop(wm, "hex_color", text="")
-    
-    # RGB sliders for fine-tuning mean color (0-255 range)
-    box = layout.box()
-    col = box.column(align=True)
-    col.label(text="RGB Adjust")
-    
-    # Split the color into individual RGB components with sliders in 0-255 range
-    split = col.split(factor=0.1)
-    split.label(text="R:")
-    split.prop(wm, 'picker_mean_r', text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="G:")
-    split.prop(wm, 'picker_mean_g', text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="B:")
-    split.prop(wm, 'picker_mean_b', text="", slider=True)
-    
-     # LAB sliders - new addition
-    box = layout.box()
-    col = box.column(align=True)
-    col.label(text="LAB")
-    
-    split = col.split(factor=0.1)
-    split.label(text="L:")
-    split.prop(wm, "lab_l", text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="a:")
-    split.prop(wm, "lab_a", text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="b:")
-    split.prop(wm, "lab_b", text="", slider=True)
     
     header_row = layout.row(align=True)
     header_row.label(text=f"Color History {wm.history_size}")
@@ -222,6 +190,42 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_min', text='Min')
     row.prop(wm, 'picker_max', text='Max')
     
+    # RGB sliders for fine-tuning mean color (0-255 range)
+    box = layout.box()
+    col = box.column(align=True)
+    col.label(text="RGB Adjust")
+    
+    # Split the color into individual RGB components with sliders in 0-255 range
+    split = col.split(factor=0.1)
+    split.label(text="R:")
+    split.prop(wm, 'picker_mean_r', text="", slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="G:")
+    split.prop(wm, 'picker_mean_g', text="", slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="B:")
+    split.prop(wm, 'picker_mean_b', text="", slider=True)
+    
+     # LAB sliders - new addition
+    box = layout.box()
+    col = box.column(align=True)
+    col.label(text="LAB")
+    
+    split = col.split(factor=0.1)
+    split.label(text="L:")
+    split.prop(wm, "lab_l", text="", slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="a:")
+    split.prop(wm, "lab_a", text="", slider=True)
+    
+    split = col.split(factor=0.1)
+    split.label(text="b:")
+    split.prop(wm, "lab_b", text="", slider=True)
+    
+    
     row = layout.row(align=True) 
     row.operator(IMAGE_OT_screen_picker.bl_idname, text='1x1', icon='EYEDROPPER').sqrt_length = 1
     row.operator(IMAGE_OT_screen_picker.bl_idname, text='5x5', icon='EYEDROPPER').sqrt_length = 5
@@ -232,8 +236,8 @@ def draw_panel(layout, context):
     row = layout.row(align=True)
     row.operator(IMAGE_OT_screen_picker.bl_idname, text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
 
-    layout.separator()
-    layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
+    # layout.separator()
+    # layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
 
 class IMAGE_PT_color_picker(Panel):
     bl_label = "Coloraide"

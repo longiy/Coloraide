@@ -66,13 +66,17 @@ def update_color_history(color):
             abs(item.color[2] - color[2]) < 0.001):
             return
     
-    # Remove oldest color if we've reached the size limit
+    # If we've reached the size limit, remove the last color
     if len(history) >= wm.history_size:
-        history.remove(0)
+        history.remove(len(history) - 1)  # Remove last item
     
-    # Add new color
-    new_color = history.add()
-    new_color.color = color
+    # Add new color at the beginning
+    history.add()  # Add new item
+    # Shift all colors down
+    for i in range(len(history) - 1, 0, -1):
+        history[i].color = history[i-1].color
+    # Set new color at the beginning
+    history[0].color = color
 
 def update_color_pickers(color, save_to_history=False):
     ts = bpy.context.tool_settings
