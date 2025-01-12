@@ -63,6 +63,8 @@ class COLOR_OT_adjust_history_size(Operator):
             wm.history_size = max(wm.history_size - 1, 5)
         return {'FINISHED'}
 
+
+
 def update_lab(self, context):
     """Update handler for LAB slider changes"""
     global _updating_lab, _updating_rgb, _updating_picker
@@ -245,6 +247,32 @@ def draw_panel(layout, context):
     row = layout.row(align=True)
     row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
 
+    # Add color dynamics section
+    box = layout.box()
+    col = box.column(align=True)
+    
+    # Header with expand/collapse arrow
+    row = col.row(align=True)
+    row.prop(wm, "show_dynamics", text="Color Dynamics", 
+        icon='TRIA_DOWN' if wm.show_dynamics else 'TRIA_RIGHT', 
+        icon_only=True, emboss=False)
+    row.label(text="Color Dynamics")
+    
+    # Only show contents if expanded
+    if wm.show_dynamics:
+        # Strength slider is always visible
+        col.prop(wm, "color_dynamics_strength", text="Variation Strength", slider=True)
+        
+        # Single toggle that both enables and starts color dynamics
+        row = col.row(align=True)
+        row.scale_y = 1.2
+        if wm.color_dynamics_running:
+            row.prop(wm, "color_dynamics_enable", text="Stop Color Dynamics", 
+                toggle=True, icon='PAUSE')
+        else:
+            row.prop(wm, "color_dynamics_enable", text="Start Color Dynamics", 
+                toggle=True, icon='PLAY')
+    
     # layout.separator()
     # layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
 

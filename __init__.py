@@ -1,6 +1,8 @@
 # In main __init__.py:
 
 import bpy
+import random
+import time
 from bpy.types import PropertyGroup
 from bpy.props import BoolProperty
 from bpy.props import FloatProperty
@@ -9,6 +11,7 @@ from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
 from .utils.color_conversions import rgb_to_lab, lab_to_rgb
+from .operators.BRUSH_OT_color_dynamics import BRUSH_OT_color_dynamics
 from .panels.IMAGE_PT_Coloraide_panel import (
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
@@ -21,6 +24,7 @@ _updating_rgb = False
 _updating_picker = False
 _updating_hex = False
 _updating_wheel = False
+
 
 
 bl_info = {
@@ -51,7 +55,23 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
         update=update_color
     )
 
+def toggle_color_dynamics(self, context):
+    """Handle enabling/disabling color dynamics"""
+    if self.color_dynamics_enable:
+        # Start the operator if it's not already running
+        if not context.window_manager.color_dynamics_running:
+            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
+    else:
+        # Disable running state which will cause operator to stop
+        context.window_manager.color_dynamics_running = False
 
+def update_color_dynamics(self, context):
+    if self.color_dynamics_enable:
+        if not any(op.bl_idname == "brush.color_dynamics" for op in context.window_manager.operators):
+            bpy.ops.brush.color_dynamics()
+    else:
+        # Disable color dynamics by setting strength to 0
+        context.window_manager.color_dynamics_strength = 0
 
 def rgb_float_to_byte(rgb_float):
     """Convert 0-1 RGB float to 0-255 byte values"""
@@ -290,24 +310,22 @@ def update_picker_color(self, context):
         _updating_picker = False
 
 def update_all_colors(color, context):
-    """Synchronize color across all relevant brush settings"""
+    """Update colors and store originals"""
     ts = context.tool_settings
     
-    # Update Grease Pencil brush color
+    # Update brush colors
     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
         ts.gpencil_paint.brush.color = color
     
-    # Update Texture Paint brush color and unified settings
     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
         ts.image_paint.brush.color = color
         if ts.unified_paint_settings.use_unified_color:
             ts.unified_paint_settings.color = color
-        else:
-            # If not using unified color, update the active brush
-            if context.active_object and context.active_object.mode == 'TEXTURE_PAINT':
-                brush = ts.image_paint.brush
-                if brush:
-                    brush.color = color
+
+    # Start color dynamics operator if enabled
+    if context.window_manager.color_dynamics_strength > 0:
+        if not any(op.bl_idname == "brush.color_dynamics" for op in context.window_manager.operators):
+            bpy.ops.brush.color_dynamics()
 
 classes = [
     ColorHistoryItem,
@@ -315,6 +333,7 @@ classes = [
     IMAGE_OT_screen_picker, 
     IMAGE_OT_screen_rect, 
     IMAGE_OT_quickpick,
+    BRUSH_OT_color_dynamics,  # Add this line
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,
@@ -362,6 +381,37 @@ def register():
         for _ in range(wm.history_size):
             new_color = history.add()
             new_color.color = (0.0, 0.0, 0.0)
+    
+    # Register color dynamics properties first
+    window_manager.show_dynamics = bpy.props.BoolProperty(
+        name="Show Color Dynamics",
+        default=True
+    )
+    
+    window_manager.color_dynamics_enable = bpy.props.BoolProperty(
+        name="Enable Color Dynamics",
+        default=False,
+        description="Enable random color variation during brush strokes",
+        update=toggle_color_dynamics
+    )
+    
+    window_manager.color_dynamics_running = bpy.props.BoolProperty(
+        name="Color Dynamics Running",
+        default=False
+    )
+    
+    window_manager.color_dynamics_strength = bpy.props.IntProperty(
+        name="Strength",
+        description="Amount of random color variation during strokes",
+        min=0,
+        max=100,
+        default=50,
+        subtype='PERCENTAGE'
+    )
+    
+    
+    
+    
     
     
     bpy.types.WindowManager.show_rgb_sliders = BoolProperty(
@@ -542,7 +592,6 @@ def unregister_lab_properties():
 def unregister():
     unregister_keymaps()
     unregister_lab_properties()
-    unregister_wheel_properties()
     
     window_manager = bpy.types.WindowManager
     del window_manager.picker_history
@@ -564,6 +613,11 @@ def unregister():
     del bpy.types.WindowManager.show_lab_sliders
     
     del window_manager.hex_color
+    
+    del window_manager.show_dynamics
+    del window_manager.color_dynamics_enable
+    del window_manager.color_dynamics_strength
+    del window_manager.color_dynamics_running
     
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
