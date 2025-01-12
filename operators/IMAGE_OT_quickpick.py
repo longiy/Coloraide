@@ -51,30 +51,30 @@ def update_color_history(color):
             abs(item.color[2] - color[2]) < 0.001):
             return
     
-    # If we've reached the size limit, remove the last color
+    # Remove oldest color if we've reached the size limit
     if len(history) >= wm.history_size:
-        history.remove(len(history) - 1)  # Remove last item
+        history.remove(0)
     
-    # Add new color at the beginning
-    history.add()  # Add new item
-    # Shift all colors down
-    for i in range(len(history) - 1, 0, -1):
-        history[i].color = history[i-1].color
-    # Set new color at the beginning
-    history[0].color = color
+    # Add new color
+    new_color = history.add()
+    new_color.color = color
 
-def update_color_pickers(color, save_to_history=False):
+def update_color_pickers(color, current_color=None, save_to_history=False):
     ts = bpy.context.tool_settings
+    wm = bpy.context.window_manager
     
-    # Update Grease Pencil brush color
+    # Update mean color for tools
     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
         ts.gpencil_paint.brush.color = color[:3]
     
-    # Update Texture Paint brush color
     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
         ts.image_paint.brush.color = color[:3]
         if ts.unified_paint_settings.use_unified_color:
             ts.unified_paint_settings.color = color[:3]
+    
+    # Update current color if provided
+    if current_color is not None:
+        wm.picker_current = current_color[:3]
     
     # Update color history only when save_to_history is True
     if save_to_history:
@@ -122,22 +122,25 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
             screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
             channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
 
+            # Get current pixel color
             curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
             current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
             
-            # Update current color in window manager
-            wm.picker_current = tuple(current_color)
+            # Calculate mean color for the area
+            mean_color = np.mean(channels, axis=0)
+            
+            # Update both mean and current colors
+            wm.picker_mean = tuple(mean_color)
+            update_color_pickers(mean_color, current_color=current_color)
 
+            # Update other statistical values
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
-
-            wm.picker_mean = tuple(np.mean(channels, axis=0))
+            
             wm.picker_max = tuple(channels[max_ind])
             wm.picker_min = tuple(channels[min_ind])
             wm.picker_median = tuple(np.median(channels, axis=0))
-
-            update_color_pickers(wm.picker_mean)
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             # Cancel operation without saving to history
