@@ -1,7 +1,8 @@
 # In main __init__.py:
 
 import bpy
-from bpy.props import FloatProperty  # Add this import
+from bpy.props import FloatProperty
+from math import floor, ceil
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
@@ -53,10 +54,22 @@ def rgb_byte_to_float(rgb_byte):
     """Convert 0-255 RGB byte values to 0-1 float"""
     return tuple(c / 255 for c in rgb_byte)
 
-def round_lab(lab_values):
-    """Round LAB values to reasonable precision"""
-    L, a, b = lab_values
-    return (round(L, 1), round(a, 1), round(b, 1))
+def stabilize_lab(lab):
+    """Stabilize LAB values using floor/ceil based on sign"""
+    L, a, b = lab
+    
+    # L is always positive, use ceil
+    L = ceil(L)
+    # For a and b, use ceil for positive, floor for negative
+    a = ceil(a) if a >= 0 else floor(a)
+    b = ceil(b) if b >= 0 else floor(b)
+    
+    # Clamp values to valid ranges
+    L = max(0, min(100, L))
+    a = max(-128, min(127, a))
+    b = max(-128, min(127, b))
+    
+    return (L, a, b)
 
 def update_lab(self, context):
     """Update handler for LAB slider changes"""
@@ -66,27 +79,34 @@ def update_lab(self, context):
     
     _updating_lab = True
     try:
-        # Get and round LAB values
-        lab = round_lab((self.lab_l, self.lab_a, self.lab_b))
+        # Get LAB values and convert to RGB
+        lab = stabilize_lab((self.lab_l, self.lab_a, self.lab_b))
         rgb = lab_to_rgb(lab)
         
-        # Convert to bytes and back for consistent rounding
+        # Convert to bytes for consistent RGB values
         rgb_bytes = rgb_float_to_byte(rgb)
         rgb_float = rgb_byte_to_float(rgb_bytes)
         
-        # Update all values without triggering their update callbacks
+        # Update all values without triggering callbacks
         wm = context.window_manager
         
-        # Update RGB byte values first (0-255)
+        # RGB bytes are our source of truth
         wm["picker_mean_r"] = rgb_bytes[0]
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         
-        # Then update float RGB values (0-1)
+        # Update float RGB and current values from the bytes
         wm["picker_mean"] = rgb_float
         wm["picker_current"] = rgb_float
         
-        # Update brush colors
+        # Update hex from RGB bytes
+        wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
+            rgb_bytes[0],
+            rgb_bytes[1],
+            rgb_bytes[2]
+        )
+        
+        # Update brush colors from RGB float
         update_all_colors(rgb_float, context)
     finally:
         _updating_lab = False
@@ -100,26 +120,38 @@ def update_rgb_byte(self, context):
     _updating_rgb = True
     try:
         wm = context.window_manager
-        # Convert byte values to float
-        rgb = (
-            wm.picker_mean_r / 255.0,
-            wm.picker_mean_g / 255.0,
-            wm.picker_mean_b / 255.0
+        # RGB bytes are our source of truth
+        rgb_bytes = (
+            wm.picker_mean_r,
+            wm.picker_mean_g,
+            wm.picker_mean_b
         )
         
-        # Update the float RGB values
-        wm["picker_mean"] = rgb
-        wm["picker_current"] = rgb
+        # Convert to float for internal Blender use
+        rgb_float = rgb_byte_to_float(rgb_bytes)
         
-        # Update LAB values
-        lab = rgb_to_lab(rgb)
-        lab = round_lab(lab)
+        # Update RGB float values
+        wm["picker_mean"] = rgb_float
+        wm["picker_current"] = rgb_float
+        
+        # Update hex directly from RGB bytes
+        wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
+            rgb_bytes[0],
+            rgb_bytes[1],
+            rgb_bytes[2]
+        )
+        
+        # Calculate LAB values from RGB float
+        lab = rgb_to_lab(rgb_float)
+        lab = stabilize_lab(lab)
+        
+        # Update LAB without triggering callbacks
         wm["lab_l"] = lab[0]
         wm["lab_a"] = lab[1]
         wm["lab_b"] = lab[2]
         
-        # Update brush colors
-        update_all_colors(rgb, context)
+        # Update brush colors from RGB float
+        update_all_colors(rgb_float, context)
     finally:
         _updating_rgb = False
 
@@ -132,33 +164,38 @@ def update_picker_color(self, context):
     _updating_picker = True
     try:
         wm = context.window_manager
-        # First get and clamp the RGB values from picker
+        # Get RGB float values from picker
         rgb_float = tuple(max(0, min(1, c)) for c in self.picker_mean)
         
-        # Convert to LAB
-        lab = rgb_to_lab(rgb_float)
-        lab = (round(lab[0]), round(lab[1]), round(lab[2]))  # Round to integers
-        
-        # Store LAB values
-        # Update LAB properties without triggering their update callbacks
-        wm["lab_l"] = lab[0]
-        wm["lab_a"] = lab[1]
-        wm["lab_b"] = lab[2]
-        
-        # Convert back to RGB through LAB to ensure consistency
-        # This ensures the color matches the LAB values exactly
-        rgb_float = lab_to_rgb(lab)
+        # Convert to bytes - this becomes our source of truth
         rgb_bytes = rgb_float_to_byte(rgb_float)
+        rgb_float = rgb_byte_to_float(rgb_bytes)  # Convert back for consistency
         
-        # Store all RGB values
-        if tuple(wm.picker_mean) != rgb_float:  # Only update if different
+        # Store RGB values
+        if tuple(wm.picker_mean) != rgb_float:
             wm["picker_mean"] = rgb_float
         wm["picker_current"] = rgb_float
         wm["picker_mean_r"] = rgb_bytes[0]
         wm["picker_mean_g"] = rgb_bytes[1]
         wm["picker_mean_b"] = rgb_bytes[2]
         
-        # Update brush colors
+        # Update hex directly from RGB bytes
+        wm["hex_color"] = "#{:02X}{:02X}{:02X}".format(
+            rgb_bytes[0],
+            rgb_bytes[1],
+            rgb_bytes[2]
+        )
+        
+        # Calculate LAB from RGB float
+        lab = rgb_to_lab(rgb_float)
+        lab = stabilize_lab(lab)
+        
+        # Update LAB values without triggering callbacks
+        wm["lab_l"] = lab[0]
+        wm["lab_a"] = lab[1]
+        wm["lab_b"] = lab[2]
+        
+        # Update brush colors from RGB float
         update_all_colors(rgb_float, context)
     finally:
         _updating_picker = False
@@ -227,6 +264,11 @@ def register():
 
     # Add window manager properties
     window_manager = bpy.types.WindowManager
+    window_manager.hex_color = bpy.props.StringProperty(
+        name="Hex Color",
+        description="Synchronized hex color value",
+        default="#808080"
+    )
     window_manager.picker_current = bpy.props.FloatVectorProperty(
         default=(1.0, 1.0, 1.0),
         precision=4,
@@ -281,7 +323,6 @@ def register():
         default=128,
         update=update_rgb_byte
     )
-    
     window_manager.picker_mean = bpy.props.FloatVectorProperty(
         default=(0.5, 0.5, 0.5),
         precision=6,
@@ -310,7 +351,8 @@ def register():
         name="Color History",
         description="History of recently picked colors"
     )
-    
+
+
     register_lab_properties()
     register_keymaps()
 
@@ -366,6 +408,8 @@ def unregister():
     del window_manager.picker_mean_r
     del window_manager.picker_mean_g
     del window_manager.picker_mean_b
+    
+    del window_manager.hex_color
     
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
