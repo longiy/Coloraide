@@ -167,7 +167,7 @@ def draw_panel(layout, context):
     plus = size_row.operator("color.adjust_history_size", text="+")
     plus.increase = True
 
-    colors_per_row = 5
+    colors_per_row = 7
     history = list(wm.picker_history)
     num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
     
@@ -196,39 +196,43 @@ def draw_panel(layout, context):
     # row.prop(wm, 'picker_min', text='Min')
     # row.prop(wm, 'picker_max', text='Max')
     
-     # RGB sliders
+    # RGB sliders box with toggle
     box = layout.box()
-    col = box.column(align=True)
-    col.label(text="RGB Adjust")
+    row = box.row()
+    row.prop(wm, "show_rgb_sliders", text="RGB", icon='TRIA_DOWN' if wm.show_rgb_sliders else 'TRIA_RIGHT', emboss=False)
     
-    split = col.split(factor=0.1)
-    split.label(text="R:")
-    split.prop(wm, 'picker_mean_r', text="", slider=True)
+    if wm.show_rgb_sliders:
+        col = box.column(align=True)
+        split = col.split(factor=0.1)
+        split.label(text="R:")
+        split.prop(wm, 'picker_mean_r', text="", slider=True)
+        
+        split = col.split(factor=0.1)
+        split.label(text="G:")
+        split.prop(wm, 'picker_mean_g', text="", slider=True)
+        
+        split = col.split(factor=0.1)
+        split.label(text="B:")
+        split.prop(wm, 'picker_mean_b', text="", slider=True)
     
-    split = col.split(factor=0.1)
-    split.label(text="G:")
-    split.prop(wm, 'picker_mean_g', text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="B:")
-    split.prop(wm, 'picker_mean_b', text="", slider=True)
-    
-    # LAB sliders
+    # LAB sliders box with toggle
     box = layout.box()
-    col = box.column(align=True)
-    col.label(text="LAB")
+    row = box.row()
+    row.prop(wm, "show_lab_sliders", text="LAB", icon='TRIA_DOWN' if wm.show_lab_sliders else 'TRIA_RIGHT', emboss=False)
     
-    split = col.split(factor=0.1)
-    split.label(text="L:")
-    split.prop(wm, "lab_l", text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="a:")
-    split.prop(wm, "lab_a", text="", slider=True)
-    
-    split = col.split(factor=0.1)
-    split.label(text="b:")
-    split.prop(wm, "lab_b", text="", slider=True)
+    if wm.show_lab_sliders:
+        col = box.column(align=True)
+        split = col.split(factor=0.1)
+        split.label(text="L:")
+        split.prop(wm, "lab_l", text="", slider=True)
+        
+        split = col.split(factor=0.1)
+        split.label(text="a:")
+        split.prop(wm, "lab_a", text="", slider=True)
+        
+        split = col.split(factor=0.1)
+        split.label(text="b:")
+        split.prop(wm, "lab_b", text="", slider=True)
     
     
     row = layout.row(align=True) 

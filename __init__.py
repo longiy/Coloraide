@@ -2,6 +2,7 @@
 
 import bpy
 from bpy.types import PropertyGroup
+from bpy.props import BoolProperty
 from bpy.props import FloatProperty
 from math import floor, ceil
 from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
@@ -361,6 +362,16 @@ def register():
         for _ in range(wm.history_size):
             new_color = history.add()
             new_color.color = (0.0, 0.0, 0.0)
+    
+    
+    bpy.types.WindowManager.show_rgb_sliders = BoolProperty(
+        name="Show RGB Sliders",
+        default=True
+    )
+    bpy.types.WindowManager.show_lab_sliders = BoolProperty(
+        name="Show LAB Sliders",
+        default=True
+    )
             
     # Add wheel scale property
     bpy.types.WindowManager.wheel_scale = FloatProperty(
@@ -460,8 +471,8 @@ def register():
         name='Quickpick size',
         description='Custom tile size for Quickpicker (Backlash \ by default)')
     window_manager.history_size = bpy.props.IntProperty(
-        default=15,
-        min=5,
+        default=7,
+        min=7,
         max=50,
         name='History Size',
         description='Number of color history slots'
@@ -548,6 +559,9 @@ def unregister():
     
     del bpy.types.WindowManager.wheel_scale
     del bpy.types.WindowManager.wheel_color
+    
+    del bpy.types.WindowManager.show_rgb_sliders
+    del bpy.types.WindowManager.show_lab_sliders
     
     del window_manager.hex_color
     
