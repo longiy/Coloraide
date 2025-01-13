@@ -499,9 +499,9 @@ def register():
     )
     
     window_manager.history_size = bpy.props.IntProperty(
-        default=7,
-        min=7,
-        max=50,
+        default=8,
+        min=8,
+        max=80,
         name='History Size',
         description='Number of color history slots'
     )

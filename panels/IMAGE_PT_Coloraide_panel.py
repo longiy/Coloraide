@@ -51,27 +51,31 @@ class COLOR_OT_adjust_history_size(Operator):
     @classmethod
     def description(cls, context, properties):
         if properties.increase:
-            return "Add one more color slot (Maximum 30)"
+            return "Add one more color slot (Maximum 40)"
         else:
-            return "Remove one color slot (Minimum 5)"
+            return "Remove one color slot (Minimum 8)"
     
     def execute(self, context):
         wm = context.window_manager
         history = wm.picker_history
         
-        if self.increase:
-            if wm.history_size < 30:
-                wm.history_size += 1
-                # Add a new black color swatch
+        if self.increase and wm.history_size < 40:
+            # First increase the size
+            wm.history_size += 1
+            
+            # Then add new color if needed
+            if len(history) < wm.history_size:
                 new_color = history.add()
                 new_color.color = (0.0, 0.0, 0.0)
-        else:
-            if wm.history_size > 7:
-                wm.history_size -= 1
-                # Remove the last color swatch
-                if len(history) > 0:
-                    history.remove(len(history) - 1)
-                    
+                
+        elif not self.increase and wm.history_size > 5:
+            # First decrease the size
+            wm.history_size -= 1
+            
+            # Then remove extra colors if needed
+            while len(history) > wm.history_size:
+                history.remove(len(history) - 1)
+                
         return {'FINISHED'}
 
 
@@ -175,8 +179,7 @@ def draw_panel(layout, context):
     row.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
     
 
-    
-    # Color history box with toggle
+# Color history box with toggle
     box = layout.box()
     row = box.row()
     row.prop(wm, "show_history", 
@@ -193,29 +196,35 @@ def draw_panel(layout, context):
         plus = size_row.operator("color.adjust_history_size", text="+")
         plus.increase = True
 
+        box.separator(factor=0.3)
+
         # Color swatches
-        colors_per_row = 7
+        colors_per_row = 8
         history = list(wm.picker_history)
-        num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
+        
+        # Only show swatches up to current history_size
+        visible_history = history[:wm.history_size]
+        num_rows = (len(visible_history) + colors_per_row - 1) // colors_per_row
+        
+        # Create column for swatch rows
+        col = box.column(align=True)
         
         for row_idx in range(num_rows):
-            history_row = box.row(align=True)
-            history_row.scale_y = 1.0
+            history_row = col.row(align=True)
             
             start_idx = row_idx * colors_per_row
-            end_idx = min(start_idx + colors_per_row, wm.history_size)
+            end_idx = min(start_idx + colors_per_row, len(visible_history))
             
-            row_colors = history[start_idx:end_idx]
+            row_colors = visible_history[start_idx:end_idx]
             for item in row_colors:
                 sub = history_row.row(align=True)
-                sub.scale_x = 1.0
                 sub.prop(item, "color", text="", event=True)
             
-            empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
+            # Fill empty spots in the last row
+            empty_spots = colors_per_row - len(row_colors)
             if empty_spots > 0:
                 for _ in range(empty_spots):
                     sub = history_row.row(align=True)
-                    sub.scale_x = 1.0
                     sub.enabled = False
                     sub.label(text="")
     
