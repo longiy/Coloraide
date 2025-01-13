@@ -22,76 +22,105 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
     bl_description = "Apply random color variation during brush strokes"
     bl_options = {'REGISTER'}
 
-    original_colors = {}  # Store original brush colors
+    _timer = None
 
     @classmethod
     def poll(cls, context):
         return context.window_manager.color_dynamics_strength > 0
 
     def invoke(self, context, event):
-        # Store original colors
-        ts = context.tool_settings
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-            self.original_colors['gpencil'] = ts.gpencil_paint.brush.color[:3]
+        wm = context.window_manager
         
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-            self.original_colors['image_paint'] = ts.image_paint.brush.color[:3]
-            if ts.unified_paint_settings.use_unified_color:
-                self.original_colors['unified'] = ts.unified_paint_settings.color[:3]
-
-        context.window_manager.modal_handler_add(self)
-        context.window_manager.color_dynamics_running = True
+        # Set up timer for continuous updates
+        self._timer = wm.event_timer_add(0.1, window=context.window)
+        wm.modal_handler_add(self)
+        wm.color_dynamics_running = True
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
-        if context.window_manager.color_dynamics_strength <= 0:
-            self.restore_colors(context)
-            context.window_manager.color_dynamics_running = False
+        wm = context.window_manager
+        
+        if wm.color_dynamics_strength <= 0:
+            self.cleanup(context)
             return {'CANCELLED'}
 
-        if event.type == 'LEFTMOUSE':
+        if event.type == 'TIMER':
+            # Store the current color as the base color
+            ts = context.tool_settings
+            
+            # Update Grease Pencil brush
+            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                base_color = tuple(wm.picker_mean)
+                ts.gpencil_paint.brush.color = apply_color_dynamics(
+                    base_color, 
+                    wm.color_dynamics_strength
+                )
+
+            # Update Image Paint brush
+            if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                base_color = tuple(wm.picker_mean)
+                new_color = apply_color_dynamics(
+                    base_color, 
+                    wm.color_dynamics_strength
+                )
+                ts.image_paint.brush.color = new_color
+                if ts.unified_paint_settings.use_unified_color:
+                    ts.unified_paint_settings.color = new_color
+
+        elif event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
-                # Apply new random colors at stroke start
-                strength = context.window_manager.color_dynamics_strength
+                # Apply new random colors at stroke start using current color
                 ts = context.tool_settings
-
-                # Update Grease Pencil brush
+                base_color = tuple(wm.picker_mean)
+                
                 if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                    if 'gpencil' in self.original_colors:
-                        ts.gpencil_paint.brush.color = apply_color_dynamics(
-                            self.original_colors['gpencil'], 
-                            strength
-                        )
+                    ts.gpencil_paint.brush.color = apply_color_dynamics(
+                        base_color,
+                        wm.color_dynamics_strength
+                    )
 
-                # Update Image Paint brush
                 if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                    if 'image_paint' in self.original_colors:
-                        new_color = apply_color_dynamics(
-                            self.original_colors['image_paint'], 
-                            strength
-                        )
-                        ts.image_paint.brush.color = new_color
-                        if ts.unified_paint_settings.use_unified_color:
-                            ts.unified_paint_settings.color = new_color
-                            
+                    new_color = apply_color_dynamics(
+                        base_color,
+                        wm.color_dynamics_strength
+                    )
+                    ts.image_paint.brush.color = new_color
+                    if ts.unified_paint_settings.use_unified_color:
+                        ts.unified_paint_settings.color = new_color
+
             elif event.value == 'RELEASE':
-                self.restore_colors(context)
+                # Reset to current picker color
+                ts = context.tool_settings
+                base_color = tuple(wm.picker_mean)
+                
+                if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                    ts.gpencil_paint.brush.color = base_color
+
+                if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                    ts.image_paint.brush.color = base_color
+                    if ts.unified_paint_settings.use_unified_color:
+                        ts.unified_paint_settings.color = base_color
 
         return {'PASS_THROUGH'}
 
-    def restore_colors(self, context):
-        """Restore original brush colors"""
+    def cleanup(self, context):
+        """Clean up timer and reset state"""
+        wm = context.window_manager
+        if self._timer:
+            wm.event_timer_remove(self._timer)
+        wm.color_dynamics_running = False
+        
+        # Reset to current picker color
         ts = context.tool_settings
+        base_color = tuple(wm.picker_mean)
         
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-            if 'gpencil' in self.original_colors:
-                ts.gpencil_paint.brush.color = self.original_colors['gpencil']
-        
+            ts.gpencil_paint.brush.color = base_color
+            
         if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-            if 'image_paint' in self.original_colors:
-                ts.image_paint.brush.color = self.original_colors['image_paint']
-                if ts.unified_paint_settings.use_unified_color:
-                    ts.unified_paint_settings.color = self.original_colors['unified']
+            ts.image_paint.brush.color = base_color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = base_color
 
 def register():
     bpy.utils.register_class(BRUSH_OT_color_dynamics)
