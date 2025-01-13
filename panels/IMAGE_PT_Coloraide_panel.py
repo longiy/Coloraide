@@ -154,14 +154,12 @@ def draw_panel(layout, context):
     
     # Modified color dynamics section
     row = layout.row(align=True)
-    split = row.split(factor=0.5)
-    split.label(text="Color Dynamics")
-    split.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
+    row.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
     
     # Add hex code display
     row = layout.row(align=True)
     split = row.split(factor=0.5)
-    split.label(text="Hex:")
+    split.label(text="Hex")
     hex_field = split.prop(wm, "hex_color", text="")
     
     # Color history section
@@ -242,17 +240,17 @@ def draw_panel(layout, context):
         split.label(text="b:")
         split.prop(wm, "lab_b", text="", slider=True)
     
-    
-    row = layout.row(align=True) 
-    row.operator('image.screen_picker', text='1x1', icon='EYEDROPPER').sqrt_length = 1
-    row.operator('image.screen_picker', text='5x5', icon='EYEDROPPER').sqrt_length = 5
+
     
     row = layout.row(align=True)
     split = row.split(factor=1)
     split.prop(wm, 'custom_size', slider=True)
     row = layout.row(align=True)
-    row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
-
+    row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size) + " Quickpick", icon='EYEDROPPER').sqrt_length = wm.custom_size
+    
+    row = layout.row(align=True) 
+    row.operator('image.screen_picker', text='1x1', icon='EYEDROPPER').sqrt_length = 1
+    row.operator('image.screen_picker', text='5x5', icon='EYEDROPPER').sqrt_length = 5
 
     
     # layout.separator()

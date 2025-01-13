@@ -500,7 +500,7 @@ def register():
         min=1,
         soft_max=100,
         soft_min=5,
-        name='Quickpick size',
+        name='Quickpick Size',
         description='Custom tile size for Quickpicker (Backlash \ by default)')
     window_manager.history_size = bpy.props.IntProperty(
         default=7,
