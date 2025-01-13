@@ -152,9 +152,15 @@ def draw_panel(layout, context):
     row.prop(wm, 'picker_mean', text='')
     row.prop(wm, 'picker_current', text='')
     
+    # Modified color dynamics section
+    row = layout.row(align=True)
+    split = row.split(factor=0.5)
+    split.label(text="Color Dynamics")
+    split.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
+    
     # Add hex code display
     row = layout.row(align=True)
-    split = row.split(factor=0.2)
+    split = row.split(factor=0.5)
     split.label(text="Hex:")
     hex_field = split.prop(wm, "hex_color", text="")
     
@@ -247,21 +253,7 @@ def draw_panel(layout, context):
     row = layout.row(align=True)
     row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
 
-    # Modified color dynamics section
-    box = layout.box()
-    col = box.column(align=True)
-    
-    # Header with expand/collapse arrow
-    row = col.row(align=True)
-    row.prop(wm, "show_dynamics", text="Color Dynamics", 
-        icon='TRIA_DOWN' if wm.show_dynamics else 'TRIA_RIGHT', 
-        icon_only=True, emboss=False)
-    row.label(text="Color Dynamics")
-    
-    # Only show contents if expanded
-    if wm.show_dynamics:
-        # Only show the strength slider
-        col.prop(wm, "color_dynamics_strength", text="Variation Strength", slider=True)
+
     
     # layout.separator()
     # layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
