@@ -400,7 +400,7 @@ def register():
         name="Wheel Size",
         description="Adjust the size of the color wheel",
         min=1.0,
-        max=4.0,
+        max=3.0,
         default=1.5,    
         step=10,
         precision=1
