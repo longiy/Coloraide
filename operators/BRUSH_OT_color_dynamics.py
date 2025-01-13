@@ -22,17 +22,12 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
     bl_description = "Apply random color variation during brush strokes"
     bl_options = {'REGISTER'}
 
-    _timer = None
-
     @classmethod
     def poll(cls, context):
         return context.window_manager.color_dynamics_strength > 0
 
     def invoke(self, context, event):
         wm = context.window_manager
-        
-        # Set up timer for continuous updates
-        self._timer = wm.event_timer_add(0.1, window=context.window)
         wm.modal_handler_add(self)
         wm.color_dynamics_running = True
         return {'RUNNING_MODAL'}
@@ -44,30 +39,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
             self.cleanup(context)
             return {'CANCELLED'}
 
-        if event.type == 'TIMER':
-            # Store the current color as the base color
-            ts = context.tool_settings
-            
-            # Update Grease Pencil brush
-            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                base_color = tuple(wm.picker_mean)
-                ts.gpencil_paint.brush.color = apply_color_dynamics(
-                    base_color, 
-                    wm.color_dynamics_strength
-                )
-
-            # Update Image Paint brush
-            if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                base_color = tuple(wm.picker_mean)
-                new_color = apply_color_dynamics(
-                    base_color, 
-                    wm.color_dynamics_strength
-                )
-                ts.image_paint.brush.color = new_color
-                if ts.unified_paint_settings.use_unified_color:
-                    ts.unified_paint_settings.color = new_color
-
-        elif event.type == 'LEFTMOUSE':
+        if event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
                 # Apply new random colors at stroke start using current color
                 ts = context.tool_settings
@@ -104,10 +76,8 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         return {'PASS_THROUGH'}
 
     def cleanup(self, context):
-        """Clean up timer and reset state"""
+        """Reset state and colors"""
         wm = context.window_manager
-        if self._timer:
-            wm.event_timer_remove(self._timer)
         wm.color_dynamics_running = False
         
         # Reset to current picker color
