@@ -247,7 +247,7 @@ def draw_panel(layout, context):
     row = layout.row(align=True)
     row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size), icon='EYEDROPPER').sqrt_length = wm.custom_size
 
-    # Add color dynamics section
+    # Modified color dynamics section
     box = layout.box()
     col = box.column(align=True)
     
@@ -260,18 +260,8 @@ def draw_panel(layout, context):
     
     # Only show contents if expanded
     if wm.show_dynamics:
-        # Strength slider is always visible
+        # Only show the strength slider
         col.prop(wm, "color_dynamics_strength", text="Variation Strength", slider=True)
-        
-        # Single toggle that both enables and starts color dynamics
-        row = col.row(align=True)
-        row.scale_y = 1.2
-        if wm.color_dynamics_running:
-            row.prop(wm, "color_dynamics_enable", text="Stop Color Dynamics", 
-                toggle=True, icon='PAUSE')
-        else:
-            row.prop(wm, "color_dynamics_enable", text="Start Color Dynamics", 
-                toggle=True, icon='PLAY')
     
     # layout.separator()
     # layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')

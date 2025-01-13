@@ -55,23 +55,16 @@ class ColorHistoryItem(bpy.types.PropertyGroup):
         update=update_color
     )
 
-def toggle_color_dynamics(self, context):
-    """Handle enabling/disabling color dynamics"""
-    if self.color_dynamics_enable:
-        # Start the operator if it's not already running
-        if not context.window_manager.color_dynamics_running:
-            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
-    else:
-        # Disable running state which will cause operator to stop
-        context.window_manager.color_dynamics_running = False
 
 def update_color_dynamics(self, context):
-    if self.color_dynamics_enable:
+    """Update color dynamics when strength changes"""
+    if self.color_dynamics_strength > 0:
+        # Start color dynamics if it's not already running
         if not any(op.bl_idname == "brush.color_dynamics" for op in context.window_manager.operators):
-            bpy.ops.brush.color_dynamics()
+            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
     else:
-        # Disable color dynamics by setting strength to 0
-        context.window_manager.color_dynamics_strength = 0
+        # If strength is 0, ensure color dynamics is stopped
+        context.window_manager.color_dynamics_running = False
 
 def rgb_float_to_byte(rgb_float):
     """Convert 0-1 RGB float to 0-255 byte values"""
@@ -382,22 +375,15 @@ def register():
             new_color = history.add()
             new_color.color = (0.0, 0.0, 0.0)
     
-    # Register color dynamics properties first
+ # Add window manager properties first
     window_manager.show_dynamics = bpy.props.BoolProperty(
         name="Show Color Dynamics",
         default=True
     )
     
-    window_manager.color_dynamics_enable = bpy.props.BoolProperty(
-        name="Enable Color Dynamics",
-        default=False,
-        description="Enable random color variation during brush strokes",
-        update=toggle_color_dynamics
-    )
-    
     window_manager.color_dynamics_running = bpy.props.BoolProperty(
         name="Color Dynamics Running",
-        default=False
+        default=True  # Set to True by default
     )
     
     window_manager.color_dynamics_strength = bpy.props.IntProperty(
@@ -406,13 +392,9 @@ def register():
         min=0,
         max=100,
         default=50,
-        subtype='PERCENTAGE'
+        subtype='PERCENTAGE',
+        update=update_color_dynamics  # Add update callback
     )
-    
-    
-    
-    
-    
     
     bpy.types.WindowManager.show_rgb_sliders = BoolProperty(
         name="Show RGB Sliders",
@@ -541,7 +523,8 @@ def register():
     try:
         wm = bpy.context.window_manager
         history = wm.picker_history
-        
+        if wm.color_dynamics_strength > 0:
+            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
         # Clear any existing history
         while len(history) > 0:
             history.remove(0)
@@ -615,7 +598,6 @@ def unregister():
     del window_manager.hex_color
     
     del window_manager.show_dynamics
-    del window_manager.color_dynamics_enable
     del window_manager.color_dynamics_strength
     del window_manager.color_dynamics_running
     

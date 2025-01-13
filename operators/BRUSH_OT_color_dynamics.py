@@ -40,7 +40,8 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.window_manager.color_dynamics_enable
+        # Always allow the operator when strength > 0
+        return context.window_manager.color_dynamics_strength > 0
 
     def invoke(self, context, event):
         global current_random_color
@@ -78,25 +79,22 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         global current_random_color
         wm = context.window_manager
         
-        # Check if dynamics should be disabled
-        if not wm.color_dynamics_enable:
-            wm.color_dynamics_running = False
-            self.restore_original_colors(context)
+        # Check if we should still be running
+        if wm.color_dynamics_strength <= 0:
             self.cleanup(context)
             return {'CANCELLED'}
-
+            
+        # Update stroke state
         if event.type == 'MOUSEMOVE':
             self._last_mouse = (event.mouse_x, event.mouse_y)
 
-        # Detect stroke start/end
         if event.type == 'LEFTMOUSE':
             if event.value == 'PRESS':
                 # Start new stroke - generate new random color
-                current_random_color = None
                 self._stroke_active = True
                 self._is_painting = True
                 
-                # Apply the new random color immediately
+                # Apply new random color
                 strength = wm.color_dynamics_strength
                 ts = context.tool_settings
 
@@ -119,9 +117,11 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
             elif event.value == 'RELEASE':
                 self._stroke_active = False
                 self._is_painting = False
-                current_random_color = None
                 self.restore_original_colors(context)
+                # Generate new random color for next stroke
+                current_random_color = None
 
+        # Continue monitoring events
         return {'PASS_THROUGH'}
 
     def cleanup(self, context):
@@ -132,6 +132,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
             self._timer = None
         current_random_color = None
         self.restore_original_colors(context)
+        context.window_manager.color_dynamics_running = False
 
     def restore_original_colors(self, context):
         """Restore the original brush colors"""
@@ -149,35 +150,10 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
 
     def cancel(self, context):
         """Handle operator cancellation"""
-        global current_random_color
-        context.window_manager.color_dynamics_running = False
-        current_random_color = None
         self.cleanup(context)
 
 def register():
-    if not hasattr(bpy.types.WindowManager, "color_dynamics_running"):
-        bpy.types.WindowManager.color_dynamics_running = bpy.props.BoolProperty(
-            name="Color Dynamics Running",
-            default=False
-        )
-    
-    if not hasattr(bpy.types.WindowManager, "color_dynamics_strength"):
-        bpy.types.WindowManager.color_dynamics_strength = bpy.props.IntProperty(
-            name="Strength",
-            description="Amount of random color variation during strokes",
-            min=0,
-            max=100,
-            default=50,
-            subtype='PERCENTAGE'
-        )
-    
     bpy.utils.register_class(BRUSH_OT_color_dynamics)
 
 def unregister():
     bpy.utils.unregister_class(BRUSH_OT_color_dynamics)
-    
-    if hasattr(bpy.types.WindowManager, "color_dynamics_running"):
-        del bpy.types.WindowManager.color_dynamics_running
-    
-    if hasattr(bpy.types.WindowManager, "color_dynamics_strength"):
-        del bpy.types.WindowManager.color_dynamics_strength
