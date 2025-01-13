@@ -2,6 +2,7 @@
 
 A Blender addon for advanced color picking and management.
 
+![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/ColorDynamics.gif?raw=true)
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_v1.1.1_Update_Colorwheel.gif?raw=true)
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_ColorHistory.gif?raw=true)
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/ColorPickerProPlus_gif.gif)
