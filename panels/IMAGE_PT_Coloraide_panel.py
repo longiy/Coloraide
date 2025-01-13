@@ -164,7 +164,7 @@ def draw_panel(layout, context):
     
     # Add hex code display
     row = layout.row(align=True)
-    split = row.split(factor=0.3)
+    split = row.split(factor=0.4)
     hex_field = split.prop(wm, "hex_color", text="")
     split.prop(wm, "wheel_scale", slider=True)
     
