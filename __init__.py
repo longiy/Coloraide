@@ -364,17 +364,7 @@ def register():
         bpy.utils.register_class(cls)
     # Add window manager properties
     window_manager = bpy.types.WindowManager
-    # Initialize history with black swatches
-    def init_color_history():
-        wm = bpy.context.window_manager
-        history = wm.picker_history
-        # Clear existing history
-        history.clear()
-        # Add black swatches up to history_size
-        for _ in range(wm.history_size):
-            new_color = history.add()
-            new_color.color = (0.0, 0.0, 0.0)
-    
+
  # Add window manager properties first
     window_manager.show_dynamics = bpy.props.BoolProperty(
         name="Show Color Dynamics",
@@ -502,6 +492,12 @@ def register():
         soft_min=5,
         name='Quickpick Size',
         description='Custom tile size for Quickpicker (Backlash \ by default)')
+
+    window_manager.show_history = bpy.props.BoolProperty(
+        name="Show Color History",
+        default=True
+    )
+    
     window_manager.history_size = bpy.props.IntProperty(
         default=7,
         min=7,
@@ -579,6 +575,7 @@ def unregister():
     window_manager = bpy.types.WindowManager
     del window_manager.picker_history
     del window_manager.history_size
+    del bpy.types.WindowManager.show_history
     del window_manager.custom_size
     del window_manager.picker_mean
     del window_manager.picker_median

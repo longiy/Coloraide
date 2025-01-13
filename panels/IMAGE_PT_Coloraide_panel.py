@@ -57,10 +57,21 @@ class COLOR_OT_adjust_history_size(Operator):
     
     def execute(self, context):
         wm = context.window_manager
+        history = wm.picker_history
+        
         if self.increase:
-            wm.history_size = min(wm.history_size + 1, 30)
+            if wm.history_size < 30:
+                wm.history_size += 1
+                # Add a new black color swatch
+                new_color = history.add()
+                new_color.color = (0.0, 0.0, 0.0)
         else:
-            wm.history_size = max(wm.history_size - 1, 5)
+            if wm.history_size > 7:
+                wm.history_size -= 1
+                # Remove the last color swatch
+                if len(history) > 0:
+                    history.remove(len(history) - 1)
+                    
         return {'FINISHED'}
 
 
@@ -144,7 +155,14 @@ def draw_panel(layout, context):
     col.template_color_picker(wm, "wheel_color", value_slider=True, lock_luminosity=False)
     
     # Add wheel scale slider
-    layout.prop(wm, "wheel_scale", slider=True)
+    
+    
+    
+    # Add hex code display
+    row = layout.row(align=True)
+    split = row.split(factor=0.3)
+    hex_field = split.prop(wm, "hex_color", text="")
+    split.prop(wm, "wheel_scale", slider=True)
     
     # Original color display row
     row = layout.row(align=True) 
@@ -156,47 +174,50 @@ def draw_panel(layout, context):
     row = layout.row(align=True)
     row.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
     
-    # Add hex code display
-    row = layout.row(align=True)
-    split = row.split(factor=0.5)
-    split.label(text="Hex")
-    hex_field = split.prop(wm, "hex_color", text="")
-    
-    # Color history section
-    header_row = layout.row(align=True)
-    header_row.label(text=f"Color History {wm.history_size}")
-    
-    size_row = header_row.row(align=True)
-    size_row.scale_x = 0.5
-    minus = size_row.operator("color.adjust_history_size", text="-")
-    minus.increase = False
-    plus = size_row.operator("color.adjust_history_size", text="+")
-    plus.increase = True
 
-    colors_per_row = 7
-    history = list(wm.picker_history)
-    num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
     
-    for row_idx in range(num_rows):
-        history_row = layout.row(align=True)
-        history_row.scale_y = 1.0
+    # Color history box with toggle
+    box = layout.box()
+    row = box.row()
+    row.prop(wm, "show_history", 
+        text=f"Color History ({wm.history_size})", 
+        icon='TRIA_DOWN' if wm.show_history else 'TRIA_RIGHT', 
+        emboss=False
+    )
+    
+    if wm.show_history:
+        # Size adjustment row with full width buttons
+        size_row = box.row(align=True)
+        minus = size_row.operator("color.adjust_history_size", text="-")
+        minus.increase = False
+        plus = size_row.operator("color.adjust_history_size", text="+")
+        plus.increase = True
+
+        # Color swatches
+        colors_per_row = 7
+        history = list(wm.picker_history)
+        num_rows = (wm.history_size + colors_per_row - 1) // colors_per_row
         
-        start_idx = row_idx * colors_per_row
-        end_idx = min(start_idx + colors_per_row, wm.history_size)
-        
-        row_colors = history[start_idx:end_idx]
-        for item in row_colors:
-            sub = history_row.row(align=True)
-            sub.scale_x = 1.0
-            sub.prop(item, "color", text="", event=True)
-        
-        empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
-        if empty_spots > 0:
-            for _ in range(empty_spots):
+        for row_idx in range(num_rows):
+            history_row = box.row(align=True)
+            history_row.scale_y = 1.0
+            
+            start_idx = row_idx * colors_per_row
+            end_idx = min(start_idx + colors_per_row, wm.history_size)
+            
+            row_colors = history[start_idx:end_idx]
+            for item in row_colors:
                 sub = history_row.row(align=True)
                 sub.scale_x = 1.0
-                sub.enabled = False
-                sub.label(text="")
+                sub.prop(item, "color", text="", event=True)
+            
+            empty_spots = min(colors_per_row, end_idx - start_idx) - len(row_colors)
+            if empty_spots > 0:
+                for _ in range(empty_spots):
+                    sub = history_row.row(align=True)
+                    sub.scale_x = 1.0
+                    sub.enabled = False
+                    sub.label(text="")
     
     # row = layout.row(align=True) 
     # row.prop(wm, 'picker_min', text='Min')
