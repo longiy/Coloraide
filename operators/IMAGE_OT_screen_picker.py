@@ -150,8 +150,8 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
             wm.picker_min = tuple(channels[min_ind])
             wm.picker_median = tuple(np.median(channels, axis=0))
 
-            # Update tools with mean color, but keep current color separate
-            update_color_pickers(mean_color, current_color=current_color)
+            # Update tools with mean color
+            update_color_pickers(mean_color)
 
         if event.type == 'LEFTMOUSE':
             # Save to history when finishing the pick
