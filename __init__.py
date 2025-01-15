@@ -32,41 +32,7 @@ bl_info = {
     'category': 'Generic',
 }
 
-class ColorHistoryItem(bpy.types.PropertyGroup):
-    def update_color(self, context):
-        wm = context.window_manager
-        wm.coloraide_picker.mean = self.color
-        wm.coloraide_picker.current = self.color
-        ts = context.tool_settings
-        
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-            ts.gpencil_paint.brush.color = self.color
-        
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-            ts.image_paint.brush.color = self.color
-            if ts.unified_paint_settings.use_unified_color:
-                ts.unified_paint_settings.color = self.color
-
-    color: bpy.props.FloatVectorProperty(
-        name="Color",
-        subtype='COLOR_GAMMA',
-        size=3,
-        min=0.0,
-        max=1.0,
-        default=(1.0, 1.0, 1.0),
-        update=update_color
-    )
-
-def update_color_dynamics(self, context):
-    """Update color dynamics when strength changes"""
-    if self.color_dynamics_strength > 0:
-        if not any(op.bl_idname == "brush.color_dynamics" for op in context.window_manager.operators):
-            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
-    else:
-        context.window_manager.color_dynamics_running = False
-
 classes = [
-    ColorHistoryItem,
     COLOR_OT_adjust_history_size,
     IMAGE_OT_screen_picker, 
     IMAGE_OT_quickpick,
@@ -111,63 +77,20 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    # Register remaining individual properties
-    window_manager = bpy.types.WindowManager
-    
-    # Color dynamics properties
-    window_manager.color_dynamics_running = bpy.props.BoolProperty(
-        name="Color Dynamics Running",
-        default=True
-    )
-    
-    window_manager.color_dynamics_strength = bpy.props.IntProperty(
-        name="Strength",
-        description="Amount of random color variation during strokes",
-        min=0,
-        max=100,
-        default=0,
-        subtype='PERCENTAGE',
-        update=update_color_dynamics
-    )
-    
-    # History properties
-    window_manager.history_size = bpy.props.IntProperty(
-        default=8,
-        min=8,
-        max=80,
-        name='History Size',
-        description='Number of color history slots'
-    )
-    
-    window_manager.picker_history = bpy.props.CollectionProperty(
-        type=ColorHistoryItem,
-        name="Color History",
-        description="History of recently picked colors"
-    )
-
-    window_manager.custom_size = bpy.props.IntProperty(
-        default=10,
-        min=1,
-        soft_max=100,
-        soft_min=5,
-        name='Quickpick Size',
-        description='Custom tile size for Quickpicker (Backlash \\ by default)'
-    )
-
     # Register keymaps
     register_keymaps()
 
     # Initialize color history
     try:
         wm = bpy.context.window_manager
-        history = wm.picker_history
-        if wm.color_dynamics_strength > 0:
+        history = wm.color_history.items
+        if wm.color_dynamics.strength > 0:
             bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
             
         while len(history) > 0:
             history.remove(0)
             
-        for _ in range(wm.history_size):
+        for _ in range(wm.color_history.size):
             color_item = history.add()
             color_item.color = (0.0, 0.0, 0.0)
     except Exception as e:
@@ -175,14 +98,6 @@ def register():
 
 def unregister():
     unregister_keymaps()
-    
-    # Unregister remaining individual properties
-    window_manager = bpy.types.WindowManager
-    del window_manager.picker_history
-    del window_manager.history_size
-    del window_manager.custom_size
-    del window_manager.color_dynamics_strength
-    del window_manager.color_dynamics_running
     
     # Unregister classes
     for cls in reversed(classes):

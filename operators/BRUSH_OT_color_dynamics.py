@@ -24,18 +24,18 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.window_manager.color_dynamics_strength > 0
+        return context.window_manager.color_dynamics.strength > 0
 
     def invoke(self, context, event):
         wm = context.window_manager
         wm.modal_handler_add(self)
-        wm.color_dynamics_running = True
+        wm.color_dynamics.running = True
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
         wm = context.window_manager
         
-        if wm.color_dynamics_strength <= 0:
+        if wm.color_dynamics.strength <= 0:
             self.cleanup(context)
             return {'CANCELLED'}
 
@@ -48,13 +48,13 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
                 if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                     ts.gpencil_paint.brush.color = apply_color_dynamics(
                         base_color,
-                        wm.color_dynamics_strength
+                        wm.color_dynamics.strength
                     )
 
                 if hasattr(ts, 'image_paint') and ts.image_paint.brush:
                     new_color = apply_color_dynamics(
                         base_color,
-                        wm.color_dynamics_strength
+                        wm.color_dynamics.strength
                     )
                     ts.image_paint.brush.color = new_color
                     if ts.unified_paint_settings.use_unified_color:
@@ -78,7 +78,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
     def cleanup(self, context):
         """Reset state and colors"""
         wm = context.window_manager
-        wm.color_dynamics_running = False
+        wm.color_dynamics.running = False
         
         # Reset to current picker color
         ts = context.tool_settings

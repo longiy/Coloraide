@@ -53,17 +53,17 @@ class COLOR_OT_adjust_history_size(Operator):
     
     def execute(self, context):
         wm = context.window_manager
-        history = wm.picker_history
+        history = wm.color_history.items
         
-        if self.increase and wm.history_size < 40:
-            wm.history_size += 1
-            if len(history) < wm.history_size:
+        if self.increase and wm.color_history.size < 40:
+            wm.color_history.size += 1
+            if len(history) < wm.color_history.size:
                 new_color = history.add()
                 new_color.color = (0.0, 0.0, 0.0)
                 
-        elif not self.increase and wm.history_size > 5:
-            wm.history_size -= 1
-            while len(history) > wm.history_size:
+        elif not self.increase and wm.color_history.size > 5:
+            wm.color_history.size -= 1
+            while len(history) > wm.color_history.size:
                 history.remove(len(history) - 1)
                 
         return {'FINISHED'}
@@ -90,13 +90,13 @@ def draw_panel(layout, context):
     
     # Modified color dynamics section
     row = layout.row(align=True)
-    row.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
+    row.prop(wm.color_dynamics, "strength", text="Color Dynamics", slider=True)
     
     # Color history box with toggle
     box = layout.box()
     row = box.row()
     row.prop(wm.coloraide_display, "show_history", 
-        text=f"Color History ({wm.history_size})", 
+        text=f"Color History ({wm.color_history.size})", 
         icon='TRIA_DOWN' if wm.coloraide_display.show_history else 'TRIA_RIGHT', 
         emboss=False
     )
@@ -113,10 +113,10 @@ def draw_panel(layout, context):
 
         # Color swatches
         colors_per_row = 8
-        history = list(wm.picker_history)
+        history = list(wm.color_history.items)
         
         # Only show swatches up to current history_size
-        visible_history = history[:wm.history_size]
+        visible_history = history[:wm.color_history.size]
         num_rows = (len(visible_history) + colors_per_row - 1) // colors_per_row
         
         # Create column for swatch rows

@@ -8,7 +8,9 @@ from bpy.props import (
     IntProperty, 
     FloatProperty, 
     FloatVectorProperty,
-    StringProperty
+    StringProperty,
+    CollectionProperty,
+    PointerProperty
 )
 from bpy.types import PropertyGroup
 from .utils.color_conversions import rgb_to_lab, lab_to_rgb
@@ -40,6 +42,78 @@ def update_all_colors(color, context):
         ts.image_paint.brush.color = color
         if ts.unified_paint_settings.use_unified_color:
             ts.unified_paint_settings.color = color
+
+def update_lab(self, context):
+    """Update handler for LAB slider changes"""
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_hex, _updating_wheel
+    if _updating_rgb or _updating_picker or _updating_hex or _updating_wheel:
+        return
+    
+    _updating_lab = True
+    try:
+        lab = (self.lab_l, self.lab_a, self.lab_b)
+        rgb = lab_to_rgb(lab)
+        rgb_bytes = rgb_float_to_byte(rgb)
+        
+        # Update all values
+        self.mean = rgb
+        self.current = rgb
+        self.mean_r = rgb_bytes[0]
+        self.mean_g = rgb_bytes[1]
+        self.mean_b = rgb_bytes[2]
+        
+        # Update hex
+        self.hex_color = "#{:02X}{:02X}{:02X}".format(
+            rgb_bytes[0],
+            rgb_bytes[1],
+            rgb_bytes[2]
+        )
+        
+        # Update wheel
+        context.window_manager.coloraide_wheel.color = (*rgb, 1.0)
+        
+        # Update brush colors
+        update_all_colors(rgb, context)
+    finally:
+        _updating_lab = False
+
+def update_from_hex(self, context):
+    """Update handler for hex color input"""
+    global _updating_lab, _updating_rgb, _updating_picker, _updating_wheel, _updating_hex
+    
+    if _updating_lab or _updating_rgb or _updating_picker or _updating_wheel:
+        return
+    
+    if _updating_hex:
+        return
+    
+    _updating_hex = True
+    try:
+        hex_color = self.hex_color.lstrip('#')
+        if len(hex_color) != 6 or not all(c in '0123456789ABCDEFabcdef' for c in hex_color):
+            # Reset to black if invalid
+            rgb_bytes = (0, 0, 0)
+            rgb_float = (0.0, 0.0, 0.0)
+            self.hex_color = "#000000"
+        else:
+            rgb_bytes = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            rgb_float = rgb_byte_to_float(rgb_bytes)
+        
+        # Update all values
+        self.mean = rgb_float
+        self.current = rgb_float
+        self.mean_r = rgb_bytes[0]
+        self.mean_g = rgb_bytes[1]
+        self.mean_b = rgb_bytes[2]
+        
+        # Update wheel
+        context.window_manager.coloraide_wheel.color = (*rgb_float, 1.0)
+        
+        # Update brush colors
+        update_all_colors(rgb_float, context)
+        
+    finally:
+        _updating_hex = False
 
 def update_from_wheel(self, context):
     """Update handler for color wheel changes"""
@@ -81,78 +155,6 @@ def update_from_wheel(self, context):
         
     finally:
         _updating_wheel = False
-
-def update_from_hex(self, context):
-    """Update handler for hex color input"""
-    global _updating_lab, _updating_rgb, _updating_picker, _updating_wheel, _updating_hex
-    
-    if _updating_lab or _updating_rgb or _updating_picker or _updating_wheel:
-        return
-    
-    if _updating_hex:
-        return
-    
-    _updating_hex = True
-    try:
-        hex_color = self.hex_color.lstrip('#')
-        if len(hex_color) != 6 or not all(c in '0123456789ABCDEFabcdef' for c in hex_color):
-            # Reset to black if invalid
-            rgb_bytes = (0, 0, 0)
-            rgb_float = (0.0, 0.0, 0.0)
-            self.hex_color = "#000000"
-        else:
-            rgb_bytes = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-            rgb_float = rgb_byte_to_float(rgb_bytes)
-        
-        # Update all values
-        self.mean = rgb_float
-        self.current = rgb_float
-        self.mean_r = rgb_bytes[0]
-        self.mean_g = rgb_bytes[1]
-        self.mean_b = rgb_bytes[2]
-        
-        # Update wheel
-        context.window_manager.coloraide_wheel.color = (*rgb_float, 1.0)
-        
-        # Update brush colors
-        update_all_colors(rgb_float, context)
-        
-    finally:
-        _updating_hex = False
-
-def update_lab(self, context):
-    """Update handler for LAB slider changes"""
-    global _updating_lab, _updating_rgb, _updating_picker, _updating_hex, _updating_wheel
-    if _updating_rgb or _updating_picker or _updating_hex or _updating_wheel:
-        return
-    
-    _updating_lab = True
-    try:
-        lab = (self.lab_l, self.lab_a, self.lab_b)
-        rgb = lab_to_rgb(lab)
-        rgb_bytes = rgb_float_to_byte(rgb)
-        
-        # Update all values
-        self.mean = rgb
-        self.current = rgb
-        self.mean_r = rgb_bytes[0]
-        self.mean_g = rgb_bytes[1]
-        self.mean_b = rgb_bytes[2]
-        
-        # Update hex
-        self.hex_color = "#{:02X}{:02X}{:02X}".format(
-            rgb_bytes[0],
-            rgb_bytes[1],
-            rgb_bytes[2]
-        )
-        
-        # Update wheel
-        context.window_manager.coloraide_wheel.color = (*rgb, 1.0)
-        
-        # Update brush colors
-        update_all_colors(rgb, context)
-    finally:
-        _updating_lab = False
 
 def update_rgb_byte(self, context):
     """Update handler for RGB byte value changes"""
@@ -231,6 +233,73 @@ def update_picker_color(self, context):
         update_all_colors(rgb_float, context)
     finally:
         _updating_picker = False
+
+class ColorHistoryItem(PropertyGroup):
+    """Individual color history item"""
+    def update_color(self, context):
+        wm = context.window_manager
+        wm.coloraide_picker.mean = self.color
+        wm.coloraide_picker.current = self.color
+        ts = context.tool_settings
+        
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = self.color
+        
+        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+            ts.image_paint.brush.color = self.color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = self.color
+
+    color: FloatVectorProperty(
+        name="Color",
+        subtype='COLOR_GAMMA',
+        size=3,
+        min=0.0,
+        max=1.0,
+        default=(1.0, 1.0, 1.0),
+        update=update_color
+    )
+
+def update_color_dynamics(self, context):
+    """Update color dynamics when strength changes"""
+    if self.strength > 0:
+        if not any(op.bl_idname == "brush.color_dynamics" for op in context.window_manager.operators):
+            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
+    else:
+        context.window_manager.color_dynamics.running = False
+
+class ColoraideDynamicsProperties(PropertyGroup):
+    """Properties for color dynamics"""
+    running: BoolProperty(
+        name="Color Dynamics Running",
+        default=True
+    )
+    
+    strength: IntProperty(
+        name="Strength",
+        description="Amount of random color variation during strokes",
+        min=0,
+        max=100,
+        default=0,
+        subtype='PERCENTAGE',
+        update=update_color_dynamics
+    )
+
+class ColoraideHistoryProperties(PropertyGroup):
+    """Properties for color history"""
+    size: IntProperty(
+        default=8,
+        min=8,
+        max=80,
+        name='History Size',
+        description='Number of color history slots'
+    )
+    
+    items: CollectionProperty(
+        type=ColorHistoryItem,
+        name="Color History",
+        description="History of recently picked colors"
+    )
 
 class ColoraidePickerProperties(PropertyGroup):
     """Properties related to the color picker functionality"""
@@ -393,21 +462,45 @@ class ColoraideWheelProperties(PropertyGroup):
 
 def register():
     """Register all property groups"""
+    bpy.utils.register_class(ColorHistoryItem)
+    bpy.utils.register_class(ColoraideDynamicsProperties)
+    bpy.utils.register_class(ColoraideHistoryProperties)
     bpy.utils.register_class(ColoraidePickerProperties)
     bpy.utils.register_class(ColoraideDisplayProperties)
     bpy.utils.register_class(ColoraideWheelProperties)
     
     # Add to window manager
-    bpy.types.WindowManager.coloraide_picker = bpy.props.PointerProperty(type=ColoraidePickerProperties)
-    bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
-    bpy.types.WindowManager.coloraide_wheel = bpy.props.PointerProperty(type=ColoraideWheelProperties)
+    window_manager = bpy.types.WindowManager
+    window_manager.coloraide_picker = PointerProperty(type=ColoraidePickerProperties)
+    window_manager.coloraide_display = PointerProperty(type=ColoraideDisplayProperties)
+    window_manager.coloraide_wheel = PointerProperty(type=ColoraideWheelProperties)
+    window_manager.color_dynamics = PointerProperty(type=ColoraideDynamicsProperties)
+    window_manager.color_history = PointerProperty(type=ColoraideHistoryProperties)
+    
+    # Initialize default custom tile size
+    window_manager.custom_size = IntProperty(
+        default=10,
+        min=1,
+        soft_max=100,
+        soft_min=5,
+        name='Quickpick Size',
+        description='Custom tile size for Quickpicker (Backlash \\ by default)'
+    )
 
 def unregister():
     """Unregister all property groups"""
-    del bpy.types.WindowManager.coloraide_wheel
-    del bpy.types.WindowManager.coloraide_display
-    del bpy.types.WindowManager.coloraide_picker
+    window_manager = bpy.types.WindowManager
+    
+    del window_manager.custom_size
+    del window_manager.color_history
+    del window_manager.color_dynamics
+    del window_manager.coloraide_wheel
+    del window_manager.coloraide_display
+    del window_manager.coloraide_picker
     
     bpy.utils.unregister_class(ColoraideWheelProperties)
     bpy.utils.unregister_class(ColoraideDisplayProperties)
     bpy.utils.unregister_class(ColoraidePickerProperties)
+    bpy.utils.unregister_class(ColoraideHistoryProperties)
+    bpy.utils.unregister_class(ColoraideDynamicsProperties)
+    bpy.utils.unregister_class(ColorHistoryItem)

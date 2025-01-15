@@ -42,7 +42,7 @@ def draw(operator):
 
 def update_color_history(color):
     wm = bpy.context.window_manager
-    history = wm.picker_history
+    history = wm.color_history.items
     
     # Check if color already exists in history
     for item in history:
@@ -52,7 +52,7 @@ def update_color_history(color):
             return
     
     # Remove oldest color if we've reached the size limit
-    if len(history) >= wm.history_size:
+    if len(history) >= wm.color_history.size:
         history.remove(len(history) - 1)
     
     # Add new color at the beginning
