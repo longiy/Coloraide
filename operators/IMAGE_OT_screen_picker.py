@@ -2,16 +2,6 @@
 Copyright (C) 2023 Spencer Magnusson
 semagnum@gmail.com
 Created by Spencer Magnusson
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
 import bpy
@@ -37,7 +27,7 @@ def draw(operator):
     length = operator.sqrt_length + 5
     
     # Draw mean color rectangle
-    mean_color = tuple(list(bpy.context.window_manager.picker_mean) + [1.0])
+    mean_color = tuple(list(bpy.context.window_manager.coloraide_picker.mean) + [1.0])
     fill_shader.uniform_float("color", mean_color)
 
     # Original vertices for mean color
@@ -46,7 +36,7 @@ def draw(operator):
     batch_mean.draw(fill_shader)
 
     # Draw current picked color rectangle (offset to the right)
-    current_color = tuple(list(bpy.context.window_manager.picker_current) + [1.0])
+    current_color = tuple(list(bpy.context.window_manager.coloraide_picker.current) + [1.0])
     fill_shader.uniform_float("color", current_color)
 
     # New vertices for current color (offset by rectangle width + small gap)
@@ -68,7 +58,7 @@ def update_color_history(color):
     
     # Remove oldest color if we've reached the size limit
     if len(history) >= wm.history_size:
-        history.remove(len(history) - 1)  # Remove the last item instead of first
+        history.remove(len(history) - 1)
     
     # Add new color at the beginning
     new_color = history.add()
@@ -83,7 +73,7 @@ def update_color_pickers(color, save_to_history=False):
     ts = bpy.context.tool_settings
     
     # Update wheel color
-    wm["wheel_color"] = (*color[:3], 1.0)  # Add alpha channel
+    wm.coloraide_wheel.color = (*color[:3], 1.0)
     
     # Update Grease Pencil brush color
     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
@@ -105,7 +95,6 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
     bl_description = 'Extract color information from multiple adjacent pixels'
     bl_options = {'REGISTER'}
 
-    # square root of number of pixels taken into account
     sqrt_length: bpy.props.IntProperty()
     x: bpy.props.IntProperty()
     y: bpy.props.IntProperty()
@@ -117,8 +106,6 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
 
         if event.type in {'MOUSEMOVE', 'LEFTMOUSE'}:
             distance = self.sqrt_length // 2
-            
-            # Calculate start positions for the sample area
             start_x = max(event.mouse_x - distance, 0)
             start_y = max(event.mouse_y - distance, 0)
 
@@ -131,7 +118,7 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
             screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
             channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
 
-            # Get current pixel color (1x1 sample)
+            # Get current pixel color
             curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
             current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
 
@@ -139,23 +126,25 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
             mean_color = np.mean(channels, axis=0)
             
             # Update window manager properties
-            wm.picker_mean = tuple(mean_color)
-            wm.picker_current = tuple(current_color)
+            wm.coloraide_picker.mean = tuple(mean_color)
+            wm.coloraide_picker.current = tuple(current_color)
 
+            # Calculate statistics
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
+            
+            # Update statistical properties
+            wm.coloraide_picker.max = tuple(channels[max_ind])
+            wm.coloraide_picker.min = tuple(channels[min_ind])
+            wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
 
-            wm.picker_max = tuple(channels[max_ind])
-            wm.picker_min = tuple(channels[min_ind])
-            wm.picker_median = tuple(np.median(channels, axis=0))
-
-            # Update tools with mean color
+            # Update color pickers
             update_color_pickers(mean_color)
 
         if event.type == 'LEFTMOUSE':
             # Save to history when finishing the pick
-            update_color_pickers(wm.picker_mean, save_to_history=True)
+            update_color_pickers(wm.coloraide_picker.mean, save_to_history=True)
             context.window.cursor_modal_restore()
             if self._handler:
                 space = getattr(bpy.types, self.space_type)
@@ -163,12 +152,12 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
             return {'FINISHED'}
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            # Cancel without saving to history
-            wm.picker_mean = self.prev_mean
-            wm.picker_current = self.prev_current
-            wm.picker_median = self.prev_median
-            wm.picker_max = self.prev_max
-            wm.picker_min = self.prev_min
+            # Cancel and restore previous values
+            wm.coloraide_picker.mean = self.prev_mean
+            wm.coloraide_picker.current = self.prev_current
+            wm.coloraide_picker.median = self.prev_median
+            wm.coloraide_picker.max = self.prev_max
+            wm.coloraide_picker.min = self.prev_min
             context.window.cursor_modal_restore()
             if self._handler:
                 space = getattr(bpy.types, self.space_type)
@@ -181,11 +170,11 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
         wm = context.window_manager
         
         # Store previous values for cancellation
-        self.prev_mean = tuple(wm.picker_mean)
-        self.prev_current = tuple(wm.picker_current)
-        self.prev_median = tuple(wm.picker_median)
-        self.prev_max = tuple(wm.picker_max)
-        self.prev_min = tuple(wm.picker_min)
+        self.prev_mean = tuple(wm.coloraide_picker.mean)
+        self.prev_current = tuple(wm.coloraide_picker.current)
+        self.prev_median = tuple(wm.coloraide_picker.median)
+        self.prev_max = tuple(wm.coloraide_picker.max)
+        self.prev_min = tuple(wm.coloraide_picker.min)
         
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
@@ -195,3 +184,12 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
         self._handler = space.draw_handler_add(draw, (self,), 'WINDOW', 'POST_PIXEL')
 
         return {'RUNNING_MODAL'}
+
+def register():
+    bpy.utils.register_class(IMAGE_OT_screen_picker)
+
+def unregister():
+    bpy.utils.unregister_class(IMAGE_OT_screen_picker)
+
+if __name__ == "__main__":
+    register()

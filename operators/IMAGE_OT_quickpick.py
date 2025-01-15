@@ -22,7 +22,7 @@ def draw(operator):
     length = operator.sqrt_length + 5
     
     # Draw mean color rectangle
-    mean_color = tuple(list(bpy.context.window_manager.picker_mean) + [1.0])
+    mean_color = tuple(list(bpy.context.window_manager.coloraide_picker.mean) + [1.0])
     fill_shader.uniform_float("color", mean_color)
 
     # Original vertices for mean color
@@ -31,7 +31,7 @@ def draw(operator):
     batch_mean.draw(fill_shader)
 
     # Draw current picked color rectangle (offset to the right)
-    current_color = tuple(list(bpy.context.window_manager.picker_current) + [1.0])
+    current_color = tuple(list(bpy.context.window_manager.coloraide_picker.current) + [1.0])
     fill_shader.uniform_float("color", current_color)
 
     # New vertices for current color (offset by rectangle width + small gap)
@@ -53,7 +53,7 @@ def update_color_history(color):
     
     # Remove oldest color if we've reached the size limit
     if len(history) >= wm.history_size:
-        history.remove(len(history) - 1)  # Remove the last item instead of first
+        history.remove(len(history) - 1)
     
     # Add new color at the beginning
     new_color = history.add()
@@ -68,7 +68,7 @@ def update_color_pickers(mean_color, save_to_history=False):
     ts = bpy.context.tool_settings
     
     # Update wheel color
-    wm["wheel_color"] = (*mean_color[:3], 1.0)  # Add alpha channel
+    wm.coloraide_wheel.color = (*mean_color[:3], 1.0)  # Add alpha channel
     
     # Update Grease Pencil brush color
     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
@@ -103,7 +103,7 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
 
         if event.type == self._key_pressed and event.value == 'RELEASE':
             # Update colors one final time and save to history
-            update_color_pickers(wm.picker_mean, save_to_history=True)
+            update_color_pickers(wm.coloraide_picker.mean, save_to_history=True)
             
             # Clean up and finish
             context.window.cursor_modal_restore()
@@ -133,18 +133,18 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
             # Calculate mean color and update window manager properties
             mean_color = np.mean(channels, axis=0)
             
-            # Update both mean and current colors in window manager
-            wm.picker_mean = tuple(mean_color)
-            wm.picker_current = tuple(current_color)
+            # Update both mean and current colors
+            wm.coloraide_picker.mean = tuple(mean_color)
+            wm.coloraide_picker.current = tuple(current_color)
 
-            # Update other statistical values
+            # Update statistical values in picker property group
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
             
-            wm.picker_max = tuple(channels[max_ind])
-            wm.picker_min = tuple(channels[min_ind])
-            wm.picker_median = tuple(np.median(channels, axis=0))
+            wm.coloraide_picker.max = tuple(channels[max_ind])
+            wm.coloraide_picker.min = tuple(channels[min_ind])
+            wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
 
             # Update picker without saving to history during movement
             update_color_pickers(mean_color, save_to_history=False)
@@ -163,7 +163,6 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
         self._key_pressed = event.type
         wm = context.window_manager
         
-        # No need to check for properties as they're already defined in __init__.py
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
         

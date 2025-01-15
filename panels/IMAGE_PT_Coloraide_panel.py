@@ -6,11 +6,7 @@ longiyart@gmail.com
 
 import bpy
 from bpy.types import Panel, Operator
-from bpy.props import BoolProperty
-from bpy.props import FloatVectorProperty
-from ..operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
-from ..operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
-from ..utils.color_conversions import rgb_to_lab, lab_to_rgb
+from bpy.props import BoolProperty, FloatVectorProperty
 
 panel_title = 'Coloraide'
 
@@ -29,8 +25,8 @@ class COLOR_OT_pick_from_history(Operator):
     
     def execute(self, context):
         wm = context.window_manager
-        wm.picker_mean = self.color
-        wm.picker_current = self.color
+        wm.coloraide_picker.mean = self.color
+        wm.coloraide_picker.current = self.color
         # Update the brush colors
         ts = context.tool_settings
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
@@ -60,135 +56,52 @@ class COLOR_OT_adjust_history_size(Operator):
         history = wm.picker_history
         
         if self.increase and wm.history_size < 40:
-            # First increase the size
             wm.history_size += 1
-            
-            # Then add new color if needed
             if len(history) < wm.history_size:
                 new_color = history.add()
                 new_color.color = (0.0, 0.0, 0.0)
                 
         elif not self.increase and wm.history_size > 5:
-            # First decrease the size
             wm.history_size -= 1
-            
-            # Then remove extra colors if needed
             while len(history) > wm.history_size:
                 history.remove(len(history) - 1)
                 
         return {'FINISHED'}
-
-
-
-def update_lab(self, context):
-    """Update handler for LAB slider changes"""
-    global _updating_lab, _updating_rgb, _updating_picker
-    if _updating_rgb or _updating_picker:
-        return
-    
-    _updating_lab = True
-    try:
-        wm = context.window_manager
-        
-        # Get and round LAB values
-        lab = (round(self.lab_l), round(self.lab_a), round(self.lab_b))
-        
-        # Convert to RGB through LAB values
-        rgb_float = lab_to_rgb(lab)
-        rgb_bytes = rgb_float_to_byte(rgb_float)
-        
-        # Update RGB values
-        if tuple(wm.picker_mean) != rgb_float:  # Only update if different
-            wm["picker_mean"] = rgb_float
-        wm["picker_current"] = rgb_float
-        wm["picker_mean_r"] = rgb_bytes[0]
-        wm["picker_mean_g"] = rgb_bytes[1]
-        wm["picker_mean_b"] = rgb_bytes[2]
-        
-        # Update brush colors
-        update_all_colors(rgb_float, context)
-    finally:
-        _updating_lab = False
-
-def update_rgb_byte(self, context):
-    """Update handler for RGB byte value changes (0-255 range)"""
-    global _updating_lab, _updating_rgb, _updating_picker
-    if _updating_lab or _updating_picker:
-        return
-        
-    _updating_rgb = True
-    try:
-        wm = context.window_manager
-        
-        # Get RGB bytes and convert to float
-        rgb_bytes = (
-            wm.picker_mean_r,
-            wm.picker_mean_g,
-            wm.picker_mean_b
-        )
-        rgb_float = rgb_byte_to_float(rgb_bytes)
-        
-        # Convert to LAB and back to ensure consistency
-        lab = rgb_to_lab(rgb_float)
-        lab = (round(lab[0]), round(lab[1]), round(lab[2]))
-        
-        # Update LAB values
-        wm["lab_l"] = lab[0]
-        wm["lab_a"] = lab[1]
-        wm["lab_b"] = lab[2]
-        
-        # Convert back to RGB through LAB
-        rgb_float = lab_to_rgb(lab)
-        
-        # Update RGB float values
-        if tuple(wm.picker_mean) != rgb_float:  # Only update if different
-            wm["picker_mean"] = rgb_float
-        wm["picker_current"] = rgb_float
-        
-        # Update brush colors
-        update_all_colors(rgb_float, context)
-    finally:
-        _updating_rgb = False
 
 def draw_panel(layout, context):
     wm = context.window_manager
         
     # Add color wheel with dynamic scaling
     col = layout.column()
-    col.scale_y = wm.wheel_scale
-    col.template_color_picker(wm, "wheel_color", value_slider=True, lock_luminosity=False)
+    col.scale_y = wm.coloraide_wheel.scale
+    col.template_color_picker(wm.coloraide_wheel, "color", value_slider=True, lock_luminosity=False)
     
-    # Add wheel scale slider
-    
-    
-    
-    # Add hex code display
+    # Add hex code display and wheel scale
     row = layout.row(align=True)
     split = row.split(factor=0.4)
-    hex_field = split.prop(wm, "hex_color", text="")
-    split.prop(wm, "wheel_scale", slider=True)
+    hex_field = split.prop(wm.coloraide_picker, "hex_color", text="")
+    split.prop(wm.coloraide_wheel, "scale", slider=True)
     
     # Original color display row
     row = layout.row(align=True) 
     row.scale_y = 2.0
-    row.prop(wm, 'picker_mean', text='')
-    row.prop(wm, 'picker_current', text='')
+    row.prop(wm.coloraide_picker, 'mean', text='')
+    row.prop(wm.coloraide_picker, 'current', text='')
     
     # Modified color dynamics section
     row = layout.row(align=True)
     row.prop(wm, "color_dynamics_strength", text="Color Dynamics", slider=True)
     
-
-# Color history box with toggle
+    # Color history box with toggle
     box = layout.box()
     row = box.row()
-    row.prop(wm, "show_history", 
+    row.prop(wm.coloraide_display, "show_history", 
         text=f"Color History ({wm.history_size})", 
-        icon='TRIA_DOWN' if wm.show_history else 'TRIA_RIGHT', 
+        icon='TRIA_DOWN' if wm.coloraide_display.show_history else 'TRIA_RIGHT', 
         emboss=False
     )
     
-    if wm.show_history:
+    if wm.coloraide_display.show_history:
         # Size adjustment row with full width buttons
         size_row = box.row(align=True)
         minus = size_row.operator("color.adjust_history_size", text="-")
@@ -228,63 +141,67 @@ def draw_panel(layout, context):
                     sub.enabled = False
                     sub.label(text="")
     
-    # row = layout.row(align=True) 
-    # row.prop(wm, 'picker_min', text='Min')
-    # row.prop(wm, 'picker_max', text='Max')
-    
     # RGB sliders box with toggle
     box = layout.box()
     row = box.row()
-    row.prop(wm, "show_rgb_sliders", text="RGB", icon='TRIA_DOWN' if wm.show_rgb_sliders else 'TRIA_RIGHT', emboss=False)
+    row.prop(wm.coloraide_display, "show_rgb_sliders", 
+        text="RGB", 
+        icon='TRIA_DOWN' if wm.coloraide_display.show_rgb_sliders else 'TRIA_RIGHT', 
+        emboss=False
+    )
     
-    if wm.show_rgb_sliders:
+    if wm.coloraide_display.show_rgb_sliders:
         col = box.column(align=True)
         split = col.split(factor=0.1)
         split.label(text="R:")
-        split.prop(wm, 'picker_mean_r', text="", slider=True)
+        split.prop(wm.coloraide_picker, 'mean_r', text="", slider=True)
         
         split = col.split(factor=0.1)
         split.label(text="G:")
-        split.prop(wm, 'picker_mean_g', text="", slider=True)
+        split.prop(wm.coloraide_picker, 'mean_g', text="", slider=True)
         
         split = col.split(factor=0.1)
         split.label(text="B:")
-        split.prop(wm, 'picker_mean_b', text="", slider=True)
+        split.prop(wm.coloraide_picker, 'mean_b', text="", slider=True)
     
     # LAB sliders box with toggle
     box = layout.box()
     row = box.row()
-    row.prop(wm, "show_lab_sliders", text="LAB", icon='TRIA_DOWN' if wm.show_lab_sliders else 'TRIA_RIGHT', emboss=False)
+    row.prop(wm.coloraide_display, "show_lab_sliders", 
+        text="LAB", 
+        icon='TRIA_DOWN' if wm.coloraide_display.show_lab_sliders else 'TRIA_RIGHT', 
+        emboss=False
+    )
     
-    if wm.show_lab_sliders:
+    if wm.coloraide_display.show_lab_sliders:
         col = box.column(align=True)
         split = col.split(factor=0.1)
         split.label(text="L:")
-        split.prop(wm, "lab_l", text="", slider=True)
+        split.prop(wm.coloraide_picker, "lab_l", text="", slider=True)
         
         split = col.split(factor=0.1)
         split.label(text="a:")
-        split.prop(wm, "lab_a", text="", slider=True)
+        split.prop(wm.coloraide_picker, "lab_a", text="", slider=True)
         
         split = col.split(factor=0.1)
         split.label(text="b:")
-        split.prop(wm, "lab_b", text="", slider=True)
+        split.prop(wm.coloraide_picker, "lab_b", text="", slider=True)
     
-
-    
+    # Quick pick size
     row = layout.row(align=True)
     split = row.split(factor=1)
     split.prop(wm, 'custom_size', slider=True)
+    
+    # Quick pick operators
     row = layout.row(align=True)
-    row.operator('image.screen_picker', text=str(wm.custom_size) + 'x' + str(wm.custom_size) + " Quickpick", icon='EYEDROPPER').sqrt_length = wm.custom_size
+    row.operator('image.screen_picker', 
+        text=f"{wm.custom_size}x{wm.custom_size} Quickpick", 
+        icon='EYEDROPPER'
+    ).sqrt_length = wm.custom_size
     
     row = layout.row(align=True) 
     row.operator('image.screen_picker', text='1x1', icon='EYEDROPPER').sqrt_length = 1
     row.operator('image.screen_picker', text='5x5', icon='EYEDROPPER').sqrt_length = 5
-
-    
-    # layout.separator()
-    # layout.operator(IMAGE_OT_screen_rect.bl_idname, text='Rect Color Picker', icon='SELECT_SET')
 
 class IMAGE_PT_color_picker(Panel):
     bl_label = "Coloraide"
