@@ -109,8 +109,6 @@ def draw_panel(layout, context):
         plus = size_row.operator("color.adjust_history_size", text="+")
         plus.increase = True
 
-        box.separator(factor=0.3)
-
         # Color swatches
         colors_per_row = 8
         history = list(wm.color_history.items)
