@@ -10,7 +10,6 @@ from bpy.props import BoolProperty, FloatProperty
 from math import floor, ceil
 
 from .properties import register as register_properties, unregister as unregister_properties
-from .operators.IMAGE_OT_screen_rect import IMAGE_OT_screen_rect
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
 from .utils.color_conversions import rgb_to_lab, lab_to_rgb
@@ -70,7 +69,6 @@ classes = [
     ColorHistoryItem,
     COLOR_OT_adjust_history_size,
     IMAGE_OT_screen_picker, 
-    IMAGE_OT_screen_rect, 
     IMAGE_OT_quickpick,
     BRUSH_OT_color_dynamics,
     IMAGE_PT_color_picker, 
