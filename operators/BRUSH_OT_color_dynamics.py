@@ -43,7 +43,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
             if event.value == 'PRESS':
                 # Apply new random colors at stroke start using current color
                 ts = context.tool_settings
-                base_color = tuple(wm.picker_mean)
+                base_color = tuple(wm.coloraide_picker.mean)
                 
                 if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                     ts.gpencil_paint.brush.color = apply_color_dynamics(
@@ -63,7 +63,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
             elif event.value == 'RELEASE':
                 # Reset to current picker color
                 ts = context.tool_settings
-                base_color = tuple(wm.picker_mean)
+                base_color = tuple(wm.coloraide_picker.mean)
                 
                 if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                     ts.gpencil_paint.brush.color = base_color
@@ -82,7 +82,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         
         # Reset to current picker color
         ts = context.tool_settings
-        base_color = tuple(wm.picker_mean)
+        base_color = tuple(wm.coloraide_picker.mean)
         
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = base_color
