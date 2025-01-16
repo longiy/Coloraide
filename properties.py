@@ -10,7 +10,8 @@ from bpy.props import (
     FloatVectorProperty,
     StringProperty,
     CollectionProperty,
-    PointerProperty
+    PointerProperty,
+    EnumProperty  # Add this
 )
 from bpy.types import PropertyGroup
 from .utils.color_conversions import rgb_to_lab, lab_to_rgb
@@ -233,6 +234,24 @@ def update_picker_color(self, context):
         update_all_colors(rgb_float, context)
     finally:
         _updating_picker = False
+
+class ColoraideNormalPickerProperties(PropertyGroup):
+    enabled: BoolProperty(
+        name="Enable Normal Color Picking",
+        description="Use surface normals as colors when painting",
+        default=False
+    )
+    
+    space: EnumProperty(
+        name="Normal Space",
+        description="Coordinate space for normal sampling",
+        items=[
+            ('OBJECT', "Object Space", "Use object space normals"),
+            ('TANGENT', "Tangent Space", "Use tangent space normals (requires UV map)")
+        ],
+        default='OBJECT'
+    )
+
 
 class ColorHistoryItem(PropertyGroup):
     """Individual color history item"""
@@ -468,7 +487,8 @@ def register():
     bpy.utils.register_class(ColoraidePickerProperties)
     bpy.utils.register_class(ColoraideDisplayProperties)
     bpy.utils.register_class(ColoraideWheelProperties)
-    
+    bpy.utils.register_class(ColoraideNormalPickerProperties)
+
     # Add to window manager
     window_manager = bpy.types.WindowManager
     window_manager.coloraide_picker = PointerProperty(type=ColoraidePickerProperties)
@@ -476,7 +496,8 @@ def register():
     window_manager.coloraide_wheel = PointerProperty(type=ColoraideWheelProperties)
     window_manager.color_dynamics = PointerProperty(type=ColoraideDynamicsProperties)
     window_manager.color_history = PointerProperty(type=ColoraideHistoryProperties)
-    
+    window_manager.normal_picker = PointerProperty(type=ColoraideNormalPickerProperties)
+
     # Initialize default custom tile size
     window_manager.custom_size = IntProperty(
         default=10,
@@ -497,7 +518,8 @@ def unregister():
     del window_manager.coloraide_wheel
     del window_manager.coloraide_display
     del window_manager.coloraide_picker
-    
+    del window_manager.normal_picker
+
     bpy.utils.unregister_class(ColoraideWheelProperties)
     bpy.utils.unregister_class(ColoraideDisplayProperties)
     bpy.utils.unregister_class(ColoraidePickerProperties)

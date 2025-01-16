@@ -10,6 +10,8 @@ from bpy.props import BoolProperty, FloatVectorProperty
 
 panel_title = 'Coloraide'
 
+
+
 class COLOR_OT_pick_from_history(Operator):
     bl_idname = "color.pick_from_history"
     bl_label = "Pick Color From History"
@@ -70,7 +72,22 @@ class COLOR_OT_adjust_history_size(Operator):
 
 def draw_panel(layout, context):
     wm = context.window_manager
-        
+
+      # Normal picker section
+    box = layout.box()
+    row = box.row()
+    # Use operator instead of direct property
+    op = row.operator("brush.normal_color_picker", 
+        text="Normal Color Picking", 
+        icon='NORMALS_VERTEX' if wm.normal_picker.enabled else 'NORMALS_VERTEX_FACE',
+        depress=wm.normal_picker.enabled
+    )
+    
+    if wm.normal_picker.enabled:
+        sub = box.row()
+        sub.prop(wm.normal_picker, "space", text="Space")
+
+
     # Add color wheel with dynamic scaling
     col = layout.column()
     col.scale_y = wm.coloraide_wheel.scale
