@@ -43,19 +43,15 @@ def find_face_from_uv(obj, uv_coord):
     if not mesh.uv_layers.active:
         return None, None, None
         
-    # Search through mesh faces
     for poly in mesh.polygons:
         uvs = [mesh.uv_layers.active.data[loop_idx].uv for loop_idx in poly.loop_indices]
         
-        # Check if UV coordinate is inside this face's UV triangle(s)
         if len(uvs) == 3:
-            # For triangles, check directly
             bary_coord = barycentric_coordinates_2d(uv_coord, uvs[0], uvs[1], uvs[2])
             if all(0 <= x <= 1 for x in bary_coord):
                 return poly, bary_coord, poly.loop_indices[0]
                 
         elif len(uvs) == 4:
-            # For quads, split into two triangles and check each
             tris = [(uvs[0], uvs[1], uvs[2]), (uvs[2], uvs[3], uvs[0])]
             for i, tri in enumerate(tris):
                 bary_coord = barycentric_coordinates_2d(uv_coord, tri[0], tri[1], tri[2])
@@ -78,7 +74,7 @@ def barycentric_coordinates_2d(p, a, b, c):
     
     denom = d00 * d11 - d01 * d01
     if abs(denom) < 1e-6:
-        return (-1, -1, -1)  # Invalid result
+        return (-1, -1, -1)
         
     v = (d11 * d20 - d01 * d21) / denom
     w = (d00 * d21 - d01 * d20) / denom
@@ -122,8 +118,13 @@ class BRUSH_OT_normal_color_picker(bpy.types.Operator):
         else:
             return normal
 
+    def create_eval_obj(self, context, obj):
+        """Create an evaluated version of the object with modifiers applied"""
+        depsgraph = context.evaluated_depsgraph_get()
+        return obj.evaluated_get(depsgraph)
+
     def sample_normal_from_3d_view(self, context, event):
-        """Sample normal using 3D view raycast"""
+        """Sample normal using 3D view raycast with subdivision support"""
         obj = context.active_object
         if not obj or not obj.data or obj.type != 'MESH':
             return None
@@ -137,7 +138,10 @@ class BRUSH_OT_normal_color_picker(bpy.types.Operator):
         view_vector = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         ray_origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
         
-        matrix = obj.matrix_world
+        # Get evaluated version of the object with modifiers applied
+        eval_obj = self.create_eval_obj(context, obj)
+        
+        matrix = eval_obj.matrix_world
         matrix_inv = matrix.inverted()
         ray_target = ray_origin + view_vector * 1000.0
         
@@ -145,16 +149,18 @@ class BRUSH_OT_normal_color_picker(bpy.types.Operator):
         local_ray_target = matrix_inv @ ray_target
         local_ray_direction = (local_ray_target - local_ray_origin).normalized()
 
-        success, location, normal, face_index = obj.ray_cast(local_ray_origin, local_ray_direction)
+        success, location, normal, face_index = eval_obj.ray_cast(local_ray_origin, local_ray_direction)
         
         if success:
-            loop_index = -1
-            if context.window_manager.normal_picker.space == 'TANGENT':
-                if obj.data.polygons and face_index >= 0:
-                    poly = obj.data.polygons[face_index]
-                    loop_index = poly.loop_start
-            
-            final_normal = self.get_surface_normal(context, obj, location, normal, loop_index)
+            # Use the evaluated mesh data
+            eval_mesh = eval_obj.data
+            if face_index >= len(eval_mesh.polygons):
+                # If face index is out of range, just use the normal directly
+                final_normal = normal
+            else:
+                loop_index = eval_mesh.polygons[face_index].loop_start
+                final_normal = self.get_surface_normal(context, eval_obj, location, normal, loop_index)
+                
             return normal_to_color(final_normal)
             
         return None
@@ -169,20 +175,20 @@ class BRUSH_OT_normal_color_picker(bpy.types.Operator):
         if not region:
             return None
 
-        # Convert mouse coordinates to UV space
         mouse_uv_x = (event.mouse_region_x - region.x) / region.width
         mouse_uv_y = (event.mouse_region_y - region.y) / region.height
         uv_coord = Vector((mouse_uv_x, mouse_uv_y))
 
-        # Find the face and position in UV space
-        face, bary_coords, loop_start = find_face_from_uv(obj, uv_coord)
+        # Get evaluated version of the object
+        eval_obj = self.create_eval_obj(context, obj)
+        
+        face, bary_coords, loop_start = find_face_from_uv(eval_obj, uv_coord)
         if not face:
             return None
 
-        # Get the normal at this UV position
         normal = face.normal
         if context.window_manager.normal_picker.space == 'TANGENT':
-            normal = get_tangent_space_normal(obj, loop_start, normal)
+            normal = get_tangent_space_normal(eval_obj, loop_start, normal)
 
         return normal_to_color(normal)
 
