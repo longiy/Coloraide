@@ -5,11 +5,31 @@ Main initialization file for Coloraide addon.
 import bpy
 import random
 import time
+
 from bpy.types import PropertyGroup
-from bpy.props import BoolProperty, FloatProperty
+from bpy.props import (
+    BoolProperty, 
+    IntProperty, 
+    FloatProperty, 
+    FloatVectorProperty,
+    StringProperty,
+    CollectionProperty,
+    PointerProperty,
+    EnumProperty
+)
 from math import floor, ceil
 
-from .properties import register as register_properties, unregister as unregister_properties
+from .properties import (
+    ColorHistoryItem,
+    ColoraideDynamicsProperties,  
+    ColoraideHistoryProperties,
+    ColoraidePickerProperties,
+    ColoraideDisplayProperties, 
+    ColoraideWheelProperties,
+    ColoraideNormalPickerProperties,
+    sync_palette_selection  # Import the handler
+)
+
 from .operators.BRUSH_OT_normal_color_picker import BRUSH_OT_normal_color_picker  
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
@@ -35,9 +55,17 @@ bl_info = {
     'category': 'Generic',
 }
 
-# Update the classes list to ensure proper registration order
 classes = [
-    # Register property classes first
+    # Property Groups (register first)
+    ColorHistoryItem,
+    ColoraideDynamicsProperties,
+    ColoraideHistoryProperties,
+    ColoraidePickerProperties,
+    ColoraideDisplayProperties,
+    ColoraideWheelProperties,
+    ColoraideNormalPickerProperties,
+    
+    # Operators (register second)
     PALETTE_OT_select_color,
     PAINT_OT_add_palette_color,  
     COLOR_OT_adjust_history_size,
@@ -45,7 +73,8 @@ classes = [
     IMAGE_OT_quickpick,
     BRUSH_OT_color_dynamics,
     BRUSH_OT_normal_color_picker,
-    # Register panels last
+    
+    # Panels (register last)
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,
@@ -79,12 +108,30 @@ def unregister_keymaps():
     addon_keymaps.clear()
 
 def register():
-    # Register property groups first
-    register_properties()
-    
     # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    # Register property assignments
+    window_manager = bpy.types.WindowManager
+    window_manager.coloraide_picker = PointerProperty(type=ColoraidePickerProperties)
+    window_manager.coloraide_display = PointerProperty(type=ColoraideDisplayProperties)
+    window_manager.coloraide_wheel = PointerProperty(type=ColoraideWheelProperties)
+    window_manager.color_dynamics = PointerProperty(type=ColoraideDynamicsProperties)
+    window_manager.color_history = PointerProperty(type=ColoraideHistoryProperties)
+    window_manager.normal_picker = PointerProperty(type=ColoraideNormalPickerProperties)
+    window_manager.custom_size = IntProperty(
+        default=10,
+        min=1,
+        soft_max=100,
+        soft_min=5,
+        name='Quickpick Size',
+        description='Custom tile size for Quickpicker (Backlash \\ by default)'
+    )
+
+    # Register handler
+    if sync_palette_selection not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(sync_palette_selection)
 
     # Register keymaps
     register_keymaps()
@@ -106,14 +153,26 @@ def register():
         print("Error initializing color history:", e)
 
 def unregister():
+    # Remove handler
+    if sync_palette_selection in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(sync_palette_selection)
+
+    # Unregister keymaps
     unregister_keymaps()
     
-    # Unregister classes
+    # Remove properties
+    window_manager = bpy.types.WindowManager
+    del window_manager.custom_size
+    del window_manager.color_history
+    del window_manager.color_dynamics
+    del window_manager.coloraide_wheel
+    del window_manager.coloraide_display
+    del window_manager.coloraide_picker
+    del window_manager.normal_picker
+
+    # Unregister classes in reverse order
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-        
-    # Unregister property groups last
-    unregister_properties()
 
 if __name__ == '__main__':
     register()

@@ -3,7 +3,8 @@ Property group definitions for Coloraide addon with synchronization.
 """
 
 import bpy
-from bpy.app.handlers import persistent
+
+
 from bpy.props import (
     BoolProperty, 
     IntProperty, 
@@ -15,6 +16,8 @@ from bpy.props import (
     EnumProperty  # Add this
 )
 from bpy.types import PropertyGroup
+from bpy.props import BoolProperty, PointerProperty
+from bpy.app.handlers import persistent
 from .utils.color_conversions import rgb_to_lab, lab_to_rgb
 
 # Global state flags for update cycle prevention
@@ -332,22 +335,66 @@ class ColoraideHistoryProperties(PropertyGroup):
     )
 
 class ColoraidePickerProperties(PropertyGroup):
-    
     def _update_from_palette(self, context):
         """Handler for palette color selection"""
+        if not self.sync_from_palette:
+            return
+            
         ts = context.tool_settings
-        if ts and ts.image_paint and ts.image_paint.palette:
-            palette = ts.image_paint.palette
-            if palette and palette.colors.active:
-                # Update mean color which will trigger all other updates
-                self.mean = palette.colors.active.color
-                
+        if not (ts and ts.image_paint and ts.image_paint.palette):
+            return
+            
+        palette = ts.image_paint.palette
+        if not palette or not palette.colors.active:
+            return
+            
+        # Get active color and update mean
+        active_color = palette.colors.active.color
+        if tuple(active_color) != tuple(self.mean):
+            self.sync_from_palette = False  # Prevent recursion
+            self.mean = active_color
+            self.sync_from_palette = True
+    
+    def _update_to_palette(self, context):
+        """Handler to update palette when Coloraide colors change"""
+        if not self.sync_from_palette:
+            return
+            
+        ts = context.tool_settings
+        if not (ts and ts.image_paint and ts.image_paint.palette):
+            return
+            
+        palette = ts.image_paint.palette
+        if not palette or not palette.colors.active:
+            return
+            
+        # Update active palette color
+        if tuple(palette.colors.active.color) != tuple(self.mean):
+            palette.colors.active.color = self.mean
+
+    def _update_mean(self, context):
+        """Combined update handler for mean color changes"""
+        update_picker_color(self, context)
+        self._update_to_palette(context)
+    
+    # Property Definitions
     sync_from_palette: BoolProperty(
-        name="Sync From Palette",
-        description="Sync color when palette selection changes",
+        name="Sync With Palette",
+        description="Synchronize colors with active palette color",
         default=True,
         update=_update_from_palette
-    )            
+    )
+    
+    mean: FloatVectorProperty(
+        name="Mean Color",
+        default=(0.5, 0.5, 0.5),
+        precision=6,
+        min=0.0,
+        max=1.0,
+        description='The mean RGB values of the picked pixels',
+        subtype='COLOR_GAMMA',
+        update=_update_mean
+    )
     
     """Properties related to the color picker functionality"""
     current: FloatVectorProperty(
@@ -515,6 +562,9 @@ class ColoraideWheelProperties(PropertyGroup):
 @persistent
 def sync_palette_selection(scene):
     """Handler to sync palette color selection with Coloraide"""
+    if not hasattr(bpy.context.window_manager, 'coloraide_picker'):
+        return
+        
     if not bpy.context.window_manager.coloraide_picker.sync_from_palette:
         return
         
@@ -526,67 +576,10 @@ def sync_palette_selection(scene):
     if not palette or not palette.colors.active:
         return
         
-    # Get the active color from palette
     active_color = palette.colors.active.color
     
-    # Update Coloraide's mean color which will trigger all other updates
-    # We temporarily disable sync to prevent recursion
     wm = bpy.context.window_manager
     wm.coloraide_picker.sync_from_palette = False
     wm.coloraide_picker.mean = active_color
     wm.coloraide_picker.sync_from_palette = True
 
-def register():
-    """Register all property groups"""
-    bpy.utils.register_class(ColorHistoryItem)
-    bpy.utils.register_class(ColoraideDynamicsProperties)
-    bpy.utils.register_class(ColoraideHistoryProperties)
-    bpy.utils.register_class(ColoraidePickerProperties)
-    bpy.utils.register_class(ColoraideDisplayProperties)
-    bpy.utils.register_class(ColoraideWheelProperties)
-    bpy.utils.register_class(ColoraideNormalPickerProperties)
-
-    if sync_palette_selection not in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.append(sync_palette_selection)
-
-    
-    # Add to window manager
-    window_manager = bpy.types.WindowManager
-    window_manager.coloraide_picker = PointerProperty(type=ColoraidePickerProperties)
-    window_manager.coloraide_display = PointerProperty(type=ColoraideDisplayProperties)
-    window_manager.coloraide_wheel = PointerProperty(type=ColoraideWheelProperties)
-    window_manager.color_dynamics = PointerProperty(type=ColoraideDynamicsProperties)
-    window_manager.color_history = PointerProperty(type=ColoraideHistoryProperties)
-    window_manager.normal_picker = PointerProperty(type=ColoraideNormalPickerProperties)
-
-    # Initialize default custom tile size
-    window_manager.custom_size = IntProperty(
-        default=10,
-        min=1,
-        soft_max=100,
-        soft_min=5,
-        name='Quickpick Size',
-        description='Custom tile size for Quickpicker (Backlash \\ by default)'
-    )
-
-def unregister():
-    """Unregister all property groups"""
-    window_manager = bpy.types.WindowManager
-    
-    del window_manager.custom_size
-    del window_manager.color_history
-    del window_manager.color_dynamics
-    del window_manager.coloraide_wheel
-    del window_manager.coloraide_display
-    del window_manager.coloraide_picker
-    del window_manager.normal_picker
-
-    if sync_palette_selection not in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.append(sync_palette_selection)
-
-    bpy.utils.unregister_class(ColoraideWheelProperties)
-    bpy.utils.unregister_class(ColoraideDisplayProperties)
-    bpy.utils.unregister_class(ColoraidePickerProperties)
-    bpy.utils.unregister_class(ColoraideHistoryProperties)
-    bpy.utils.unregister_class(ColoraideDynamicsProperties)
-    bpy.utils.unregister_class(ColorHistoryItem)
