@@ -8,7 +8,7 @@ import bpy
 from bpy.types import Panel, Operator
 from bpy.props import BoolProperty, FloatVectorProperty
 
-panel_title = 'Coloraide'
+panel_title = 'Coloraide 1.2.0'
 
 
 
