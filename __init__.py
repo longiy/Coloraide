@@ -27,7 +27,7 @@ from .properties import (
     ColoraideDisplayProperties, 
     ColoraideWheelProperties,
     ColoraideNormalPickerProperties,
-    sync_palette_selection  # Import the handler
+
 )
 
 from .operators.BRUSH_OT_normal_color_picker import BRUSH_OT_normal_color_picker  
@@ -129,10 +129,6 @@ def register():
         description='Custom tile size for Quickpicker (Backlash \\ by default)'
     )
 
-    # Register handler
-    if sync_palette_selection not in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.append(sync_palette_selection)
-
     # Register keymaps
     register_keymaps()
 
@@ -153,9 +149,6 @@ def register():
         print("Error initializing color history:", e)
 
 def unregister():
-    # Remove handler
-    if sync_palette_selection in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(sync_palette_selection)
 
     # Unregister keymaps
     unregister_keymaps()
