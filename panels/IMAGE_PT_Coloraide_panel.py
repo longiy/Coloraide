@@ -8,7 +8,7 @@ import bpy
 from bpy.types import Panel, Operator
 from bpy.props import BoolProperty, FloatVectorProperty
 
-panel_title = 'Coloraide 1.2.0'
+panel_title = 'Coloraide'
 
 
 
@@ -78,7 +78,7 @@ def draw_panel(layout, context):
     row = box.row()
     # Use operator instead of direct property
     op = row.operator("brush.normal_color_picker", 
-        text="Normal Color Picking", 
+        text="Normal Color Sampler",
         icon='NORMALS_VERTEX' if wm.normal_picker.enabled else 'NORMALS_VERTEX_FACE',
         depress=wm.normal_picker.enabled
     )
@@ -219,7 +219,7 @@ def draw_panel(layout, context):
     row.operator('image.screen_picker', text='5x5', icon='EYEDROPPER').sqrt_length = 5
 
 class IMAGE_PT_color_picker(Panel):
-    bl_label = "Coloraide"
+    bl_label = "Coloraide 1.2.0"
     bl_idname = 'IMAGE_PT_color_picker'
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -229,7 +229,7 @@ class IMAGE_PT_color_picker(Panel):
         draw_panel(self.layout, context)
 
 class VIEW_PT_color_picker(Panel):
-    bl_label = "Coloraide"
+    bl_label = "Coloraide 1.2.0"
     bl_idname = 'VIEW_PT_color_picker'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -239,7 +239,7 @@ class VIEW_PT_color_picker(Panel):
         draw_panel(self.layout, context)
 
 class CLIP_PT_color_picker(Panel):
-    bl_label = "Coloraide"
+    bl_label = "Coloraide 1.2.0"
     bl_idname = 'CLIP_PT_color_picker'
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'

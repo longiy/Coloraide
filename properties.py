@@ -238,7 +238,7 @@ def update_picker_color(self, context):
 class ColoraideNormalPickerProperties(PropertyGroup):
     enabled: BoolProperty(
         name="Enable Normal Color Picking",
-        description="Hover over surfaces to sample normals as colors\n• Each brush stroke will get value of sampled normal at the time of mouse press \n• Works in both 3D View and UV/Image Editor\n• If you do switch contexts, disable and re-enable the normal picker",
+        description="Sample normals as colors when painting",
         default=False
     )
     

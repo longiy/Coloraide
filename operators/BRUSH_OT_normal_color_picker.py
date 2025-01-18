@@ -85,7 +85,9 @@ def barycentric_coordinates_2d(p, a, b, c):
 class BRUSH_OT_normal_color_picker(bpy.types.Operator):
     bl_idname = "brush.normal_color_picker"
     bl_label = "Use Normal as Color"
-    bl_description = "Sample normals as colors when painting"
+    bl_description = "Sample normals as color when painting\n• Hover over surfaces to pick color\n• Works in 3D View and UV Editor\n• If you switch contexts, disable and enable in correct context"
+    
+    
     bl_options = {'REGISTER'}
 
     @classmethod
