@@ -36,25 +36,20 @@ def draw_palette_section(layout, context):
         if paint_settings and paint_settings.palette:
             # Control buttons in their own column
             controls_col = box.column()
-            
-            # Control buttons row
             row = controls_col.row(align=True)
             row.alignment = 'LEFT'
             row.operator("palette.colors_add", text="", icon='ADD')
             row.operator("palette.colors_remove", text="", icon='REMOVE')
-            row.separator()
             up_op = row.operator("palette.colors_move", text="", icon='TRIA_UP')
             if up_op:
                 up_op.direction = 'UP'
             down_op = row.operator("palette.colors_move", text="", icon='TRIA_DOWN')
             if down_op:
                 down_op.direction = 'DOWN'
-            row.separator()
             row.operator("palette.colors_filter", text="", icon='FILTER')
             
             # Separate boxed area for palette swatches
             palette_box = box.column()
-            palette_box.separator()
             palette_box.template_palette(paint_settings, "palette", color=True)
 
 
