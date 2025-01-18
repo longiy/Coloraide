@@ -26,6 +26,17 @@ _updating_rgb = False
 _updating_picker = False
 _updating_hex = False
 _updating_wheel = False
+_user_is_editing = False
+
+def start_user_edit():
+    """Start a user editing session"""
+    global _user_is_editing
+    _user_is_editing = True
+
+def end_user_edit():
+    """End a user editing session"""
+    global _user_is_editing
+    _user_is_editing = False
 
 def rgb_float_to_byte(rgb_float):
     """Convert 0-1 RGB float to 0-255 byte values"""
@@ -55,6 +66,7 @@ def update_lab(self, context):
         return
     
     _updating_lab = True
+    start_user_edit()
     try:
         lab = (self.lab_l, self.lab_a, self.lab_b)
         rgb = lab_to_rgb(lab)
@@ -80,6 +92,7 @@ def update_lab(self, context):
         # Update brush colors
         update_all_colors(rgb, context)
     finally:
+        end_user_edit()
         _updating_lab = False
 
 def update_from_hex(self, context):
@@ -121,12 +134,12 @@ def update_from_hex(self, context):
         _updating_hex = False
 
 def update_from_wheel(self, context):
-    """Update handler for color wheel changes"""
     global _updating_lab, _updating_rgb, _updating_picker, _updating_hex, _updating_wheel
     if _updating_lab or _updating_rgb or _updating_picker or _updating_hex:
         return
         
     _updating_wheel = True
+    start_user_edit()  # Start edit session
     try:
         color = tuple(self.color[:3])
         
@@ -159,21 +172,18 @@ def update_from_wheel(self, context):
         update_all_colors(color, context)
         
     finally:
+        end_user_edit()  # End edit session
         _updating_wheel = False
 
 def update_rgb_byte(self, context):
-    """Update handler for RGB byte value changes"""
     global _updating_lab, _updating_rgb, _updating_picker, _updating_hex, _updating_wheel
     if _updating_lab or _updating_picker or _updating_hex or _updating_wheel:
         return
         
     _updating_rgb = True
+    start_user_edit()  # Start edit session
     try:
-        rgb_bytes = (
-            self.mean_r,
-            self.mean_g,
-            self.mean_b
-        )
+        rgb_bytes = (self.mean_r, self.mean_g, self.mean_b)
         rgb_float = rgb_byte_to_float(rgb_bytes)
         
         # Update all values
@@ -199,6 +209,7 @@ def update_rgb_byte(self, context):
         # Update brush colors
         update_all_colors(rgb_float, context)
     finally:
+        end_user_edit()  # End edit session
         _updating_rgb = False
 
 def update_picker_color(self, context):
@@ -208,6 +219,7 @@ def update_picker_color(self, context):
         return
     
     _updating_picker = True
+    start_user_edit()
     try:
         rgb_float = tuple(max(0, min(1, c)) for c in self.mean)
         rgb_bytes = rgb_float_to_byte(rgb_float)
@@ -246,6 +258,7 @@ def update_picker_color(self, context):
                     palette.colors.active.color = rgb_float
                     
     finally:
+        end_user_edit()
         _updating_picker = False
 
 
@@ -337,7 +350,9 @@ class ColoraideHistoryProperties(PropertyGroup):
 class ColoraidePickerProperties(PropertyGroup):
     def _update_from_palette(self, context):
         """Handler for palette color selection"""
-        if not self.sync_from_palette:
+        global _user_is_editing
+        
+        if not self.sync_from_palette or _user_is_editing:
             return
             
         ts = context.tool_settings
@@ -357,7 +372,9 @@ class ColoraidePickerProperties(PropertyGroup):
     
     def _update_to_palette(self, context):
         """Handler to update palette when Coloraide colors change"""
-        if not self.sync_from_palette:
+        global _user_is_editing
+        
+        if not self.sync_from_palette or _user_is_editing:
             return
             
         ts = context.tool_settings
@@ -370,12 +387,20 @@ class ColoraidePickerProperties(PropertyGroup):
             
         # Update active palette color
         if tuple(palette.colors.active.color) != tuple(self.mean):
-            palette.colors.active.color = self.mean
+            start_user_edit()  # Start edit session
+            try:
+                palette.colors.active.color = self.mean
+            finally:
+                end_user_edit()  # End edit session
 
     def _update_mean(self, context):
         """Combined update handler for mean color changes"""
-        update_picker_color(self, context)
-        self._update_to_palette(context)
+        start_user_edit()  # Mark as user edit
+        try:
+            update_picker_color(self, context)
+            self._update_to_palette(context)
+        finally:
+            end_user_edit()  # Reset flag
     
     # Property Definitions
     sync_from_palette: BoolProperty(
@@ -500,16 +525,6 @@ class ColoraidePickerProperties(PropertyGroup):
         update=update_lab
     )
 
-    # Add mean color property with update handler
-    mean: FloatVectorProperty(
-        default=(0.5, 0.5, 0.5),
-        precision=6,
-        min=0.0,
-        max=1.0,
-        description='The mean RGB values of the picked pixels',
-        subtype='COLOR_GAMMA',
-        update=update_picker_color
-    )
 
 class ColoraideDisplayProperties(PropertyGroup):
     """Properties controlling the display settings"""
@@ -562,6 +577,11 @@ class ColoraideWheelProperties(PropertyGroup):
 @persistent
 def sync_palette_selection(scene):
     """Handler to sync palette color selection with Coloraide"""
+    global _user_is_editing
+    
+    if _user_is_editing:
+        return
+        
     if not hasattr(bpy.context.window_manager, 'coloraide_picker'):
         return
         
