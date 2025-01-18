@@ -21,12 +21,19 @@ def draw_palette_section(layout, context):
     )
     
     if context.window_manager.coloraide_display.show_palettes:
+        ts = context.tool_settings
+        
+        # Determine which paint mode we're in and get the corresponding palette
+        if context.mode == 'PAINT_GPENCIL':
+            paint_settings = ts.gpencil_paint
+        else:
+            paint_settings = ts.image_paint
+            
         # Palette selector with new button
         row = box.row(align=True)
-        row.template_ID(context.tool_settings.image_paint, "palette", new="palette.new")
+        row.template_ID(paint_settings, "palette", new="palette.new")
         
-        ts = context.tool_settings
-        if ts and ts.image_paint and ts.image_paint.palette:
+        if paint_settings and paint_settings.palette:
             # Control buttons in their own column
             controls_col = box.column()
             
@@ -35,20 +42,20 @@ def draw_palette_section(layout, context):
             row.alignment = 'LEFT'
             row.operator("palette.colors_add", text="", icon='ADD')
             row.operator("palette.colors_remove", text="", icon='REMOVE')
-
+            row.separator()
             up_op = row.operator("palette.colors_move", text="", icon='TRIA_UP')
             if up_op:
                 up_op.direction = 'UP'
             down_op = row.operator("palette.colors_move", text="", icon='TRIA_DOWN')
             if down_op:
                 down_op.direction = 'DOWN'
-
+            row.separator()
             row.operator("palette.colors_filter", text="", icon='FILTER')
             
             # Separate boxed area for palette swatches
             palette_box = box.column()
-
-            palette_box.template_palette(ts.image_paint, "palette", color=True)
+            palette_box.separator()
+            palette_box.template_palette(paint_settings, "palette", color=True)
 
 
 class PALETTE_OT_select_color(bpy.types.Operator):
@@ -85,16 +92,26 @@ class PAINT_OT_add_palette_color(bpy.types.Operator):
         min=0.0,
         max=1.0,
         size=3,
-        default=(0.0, 0.0, 0.0)  # Add default value
+        default=(0.0, 0.0, 0.0)
     )
     
     @classmethod
     def poll(cls, context):
-        return (context.tool_settings.image_paint.palette is not None and
-                hasattr(context.window_manager, 'coloraide_picker'))
+        ts = context.tool_settings
+        if context.mode == 'PAINT_GPENCIL':
+            return (ts.gpencil_paint.palette is not None and
+                    hasattr(context.window_manager, 'coloraide_picker'))
+        else:
+            return (ts.image_paint.palette is not None and
+                    hasattr(context.window_manager, 'coloraide_picker'))
     
     def execute(self, context):
-        palette = context.tool_settings.image_paint.palette
+        ts = context.tool_settings
+        if context.mode == 'PAINT_GPENCIL':
+            palette = ts.gpencil_paint.palette
+        else:
+            palette = ts.image_paint.palette
+            
         if palette:
             color = palette.colors.new()
             color.color = self.color
