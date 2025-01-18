@@ -242,6 +242,8 @@ def update_picker_color(self, context):
     finally:
         _updating_picker = False
 
+
+
 class ColoraideNormalPickerProperties(PropertyGroup):
     enabled: BoolProperty(
         name="Enable Normal Color Picking",
@@ -293,6 +295,7 @@ def update_color_dynamics(self, context):
     else:
         context.window_manager.color_dynamics.running = False
 
+
 class ColoraideDynamicsProperties(PropertyGroup):
     running: BoolProperty(
         name="Color Dynamics Running",
@@ -332,6 +335,7 @@ class ColoraidePickerProperties(PropertyGroup):
             update_picker_color(self, context)
         finally:
             end_user_edit()
+    
     
     mean: FloatVectorProperty(
         name="Mean Color",
@@ -470,7 +474,7 @@ class ColoraideDisplayProperties(PropertyGroup):
     
     show_palettes: BoolProperty(
         name="Show Color Palettes",
-        default=True
+        default=True    
     )
 
 class ColoraideWheelProperties(PropertyGroup):

@@ -21,19 +21,12 @@ def draw_palette_section(layout, context):
     )
     
     if context.window_manager.coloraide_display.show_palettes:
-        ts = context.tool_settings
-        
-        # Determine which paint mode we're in and get the corresponding palette
-        if context.mode == 'PAINT_GPENCIL':
-            paint_settings = ts.gpencil_paint
-        else:
-            paint_settings = ts.image_paint
-            
         # Palette selector with new button
         row = box.row(align=True)
-        row.template_ID(paint_settings, "palette", new="palette.new")
+        row.template_ID(context.tool_settings.image_paint, "palette", new="palette.new")
         
-        if paint_settings and paint_settings.palette:
+        ts = context.tool_settings
+        if ts and ts.image_paint and ts.image_paint.palette:
             # Control buttons in their own column
             controls_col = box.column()
             
@@ -55,7 +48,14 @@ def draw_palette_section(layout, context):
             # Separate boxed area for palette swatches
             palette_box = box.column()
             palette_box.separator()
-            palette_box.template_palette(paint_settings, "palette", color=True)
+            
+            # Draw palette template and automatically sync with active color
+            palette_box.template_palette(ts.image_paint, "palette", color=True)
+            
+            # If we have an active color, update Coloraide
+            if ts.image_paint.palette.colors.active:
+                context.window_manager.coloraide_picker.mean = ts.image_paint.palette.colors.active.color
+            
 
 
 class PALETTE_OT_select_color(bpy.types.Operator):
@@ -75,7 +75,52 @@ class PALETTE_OT_select_color(bpy.types.Operator):
     )
     
     def execute(self, context):
-        context.window_manager.coloraide_picker.mean = self.color
+        from .properties import (
+            start_user_edit, 
+            end_user_edit,
+            rgb_float_to_byte,
+            update_all_colors,
+            rgb_to_lab
+        )
+        
+        wm = context.window_manager
+        picker = wm.coloraide_picker
+        
+        # Start a user editing session to properly handle updates
+        start_user_edit()
+        try:
+            # Convert color to bytes for RGB values
+            rgb_bytes = rgb_float_to_byte(self.color)
+            
+            # Update all the picker properties directly to avoid circular updates
+            picker.mean = self.color
+            picker.current = self.color
+            picker.mean_r = rgb_bytes[0]
+            picker.mean_g = rgb_bytes[1]
+            picker.mean_b = rgb_bytes[2]
+            
+            # Update hex color
+            picker.hex_color = "#{:02X}{:02X}{:02X}".format(
+                rgb_bytes[0],
+                rgb_bytes[1],
+                rgb_bytes[2]
+            )
+            
+            # Update wheel color
+            wm.coloraide_wheel.color = (*self.color, 1.0)
+            
+            # Update LAB values
+            lab = rgb_to_lab(self.color)
+            picker.lab_l = lab[0]
+            picker.lab_a = lab[1]
+            picker.lab_b = lab[2]
+            
+            # Update brush colors
+            update_all_colors(self.color, context)
+            
+        finally:
+            end_user_edit()
+            
         return {'FINISHED'}
 
 # Update the operator class

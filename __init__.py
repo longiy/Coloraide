@@ -64,6 +64,7 @@ classes = [
     ColoraideDisplayProperties,
     ColoraideWheelProperties,
     ColoraideNormalPickerProperties,
+
     
     # Operators (register second)
     PALETTE_OT_select_color,
