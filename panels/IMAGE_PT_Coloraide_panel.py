@@ -21,6 +21,12 @@ def draw_palette_section(layout, context):
     )
     
     if context.window_manager.coloraide_display.show_palettes:
+        # Add sync toggle at the top
+        row = box.row()
+        row.prop(context.window_manager.coloraide_picker, "sync_from_palette", 
+                text="Sync with Coloraide",
+                icon='UV_SYNC_SELECT')
+        
         # Palette selector with new button
         row = box.row(align=True)
         row.template_ID(context.tool_settings.image_paint, "palette", new="palette.new")
@@ -47,8 +53,9 @@ def draw_palette_section(layout, context):
             
             # Separate boxed area for palette swatches
             palette_box = box.column()
-            palette_box.separator()  # Add some space
+            palette_box.separator()
             palette_box.template_palette(ts.image_paint, "palette", color=True)
+
 
 class PALETTE_OT_select_color(bpy.types.Operator):
     """Select color from palette and update picker"""

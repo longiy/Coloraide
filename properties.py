@@ -3,6 +3,7 @@ Property group definitions for Coloraide addon with synchronization.
 """
 
 import bpy
+from bpy.app.handlers import persistent
 from bpy.props import (
     BoolProperty, 
     IntProperty, 
@@ -232,6 +233,15 @@ def update_picker_color(self, context):
         
         # Update brush colors
         update_all_colors(rgb_float, context)
+        
+        # Update active palette color if sync is enabled
+        if self.sync_from_palette:
+            ts = context.tool_settings
+            if ts and ts.image_paint and ts.image_paint.palette:
+                palette = ts.image_paint.palette
+                if palette and palette.colors.active:
+                    palette.colors.active.color = rgb_float
+                    
     finally:
         _updating_picker = False
 
@@ -502,6 +512,30 @@ class ColoraideWheelProperties(PropertyGroup):
         update=update_from_wheel
     )
 
+@persistent
+def sync_palette_selection(scene):
+    """Handler to sync palette color selection with Coloraide"""
+    if not bpy.context.window_manager.coloraide_picker.sync_from_palette:
+        return
+        
+    ts = bpy.context.tool_settings
+    if not (ts and ts.image_paint and ts.image_paint.palette):
+        return
+        
+    palette = ts.image_paint.palette
+    if not palette or not palette.colors.active:
+        return
+        
+    # Get the active color from palette
+    active_color = palette.colors.active.color
+    
+    # Update Coloraide's mean color which will trigger all other updates
+    # We temporarily disable sync to prevent recursion
+    wm = bpy.context.window_manager
+    wm.coloraide_picker.sync_from_palette = False
+    wm.coloraide_picker.mean = active_color
+    wm.coloraide_picker.sync_from_palette = True
+
 def register():
     """Register all property groups"""
     bpy.utils.register_class(ColorHistoryItem)
@@ -512,6 +546,10 @@ def register():
     bpy.utils.register_class(ColoraideWheelProperties)
     bpy.utils.register_class(ColoraideNormalPickerProperties)
 
+    if sync_palette_selection not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(sync_palette_selection)
+
+    
     # Add to window manager
     window_manager = bpy.types.WindowManager
     window_manager.coloraide_picker = PointerProperty(type=ColoraidePickerProperties)
@@ -542,6 +580,9 @@ def unregister():
     del window_manager.coloraide_display
     del window_manager.coloraide_picker
     del window_manager.normal_picker
+
+    if sync_palette_selection not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(sync_palette_selection)
 
     bpy.utils.unregister_class(ColoraideWheelProperties)
     bpy.utils.unregister_class(ColoraideDisplayProperties)
