@@ -10,6 +10,96 @@ from bpy.props import BoolProperty, FloatVectorProperty
 
 panel_title = 'Coloraide'
 
+def draw_palette_section(layout, context):
+    """Draw the native palette section of the panel"""
+    box = layout.box()
+    row = box.row()
+    row.prop(context.window_manager.coloraide_display, "show_palettes", 
+        text="Color Palettes", 
+        icon='TRIA_DOWN' if context.window_manager.coloraide_display.show_palettes else 'TRIA_RIGHT',
+        emboss=False
+    )
+    
+    if context.window_manager.coloraide_display.show_palettes:
+        # Palette selector with new button
+        row = box.row(align=True)
+        row.template_ID(context.tool_settings.image_paint, "palette", new="palette.new")
+        
+        ts = context.tool_settings
+        if ts and ts.image_paint and ts.image_paint.palette:
+            # Control buttons in their own column
+            controls_col = box.column()
+            
+            # Control buttons row
+            row = controls_col.row(align=True)
+            row.alignment = 'LEFT'
+            row.operator("palette.colors_add", text="", icon='ADD')
+            row.operator("palette.colors_remove", text="", icon='REMOVE')
+            row.separator()
+            up_op = row.operator("palette.colors_move", text="", icon='TRIA_UP')
+            if up_op:
+                up_op.direction = 'UP'
+            down_op = row.operator("palette.colors_move", text="", icon='TRIA_DOWN')
+            if down_op:
+                down_op.direction = 'DOWN'
+            row.separator()
+            row.operator("palette.colors_filter", text="", icon='FILTER')
+            
+            # Separate boxed area for palette swatches
+            palette_box = box.column()
+            palette_box.separator()  # Add some space
+            palette_box.template_palette(ts.image_paint, "palette", color=True)
+
+class PALETTE_OT_select_color(bpy.types.Operator):
+    """Select color from palette and update picker"""
+    bl_idname = "palette.select_color"
+    bl_label = "Select Palette Color"
+    bl_description = "Use this color in the color picker"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    color: bpy.props.FloatVectorProperty(
+        name="Color",
+        subtype='COLOR',
+        min=0.0,
+        max=1.0,
+        size=3,
+        default=(0.0, 0.0, 0.0)
+    )
+    
+    def execute(self, context):
+        context.window_manager.coloraide_picker.mean = self.color
+        return {'FINISHED'}
+
+# Update the operator class
+class PAINT_OT_add_palette_color(bpy.types.Operator):
+    """Add current color to active palette"""
+    bl_idname = "paint.add_palette_color"
+    bl_label = "Add Color to Palette"
+    bl_description = "Add current color to active palette"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    color: bpy.props.FloatVectorProperty(
+        name="Color",
+        subtype='COLOR',
+        min=0.0,
+        max=1.0,
+        size=3,
+        default=(0.0, 0.0, 0.0)  # Add default value
+    )
+    
+    @classmethod
+    def poll(cls, context):
+        return (context.tool_settings.image_paint.palette is not None and
+                hasattr(context.window_manager, 'coloraide_picker'))
+    
+    def execute(self, context):
+        palette = context.tool_settings.image_paint.palette
+        if palette:
+            color = palette.colors.new()
+            color.color = self.color
+            color.weight = 1.0
+            return {'FINISHED'}
+        return {'CANCELLED'}
 
 
 class COLOR_OT_pick_from_history(Operator):
@@ -38,6 +128,8 @@ class COLOR_OT_pick_from_history(Operator):
             if ts.unified_paint_settings.use_unified_color:
                 ts.unified_paint_settings.color = self.color
         return {'FINISHED'}
+
+
 
 class COLOR_OT_adjust_history_size(Operator):
     bl_idname = "color.adjust_history_size"
@@ -156,6 +248,9 @@ def draw_panel(layout, context):
                     sub.enabled = False
                     sub.label(text="")
     
+     # Add palette section before quick pick size
+    draw_palette_section(layout, context)
+    
     # RGB sliders box with toggle
     box = layout.box()
     row = box.row()
@@ -218,6 +313,7 @@ def draw_panel(layout, context):
     row.operator('image.screen_picker', text='1x1', icon='EYEDROPPER').sqrt_length = 1
     row.operator('image.screen_picker', text='5x5', icon='EYEDROPPER').sqrt_length = 5
 
+    
 class IMAGE_PT_color_picker(Panel):
     bl_label = "Coloraide 1.2.0"
     bl_idname = 'IMAGE_PT_color_picker'
@@ -252,5 +348,7 @@ __all__ = [
     'IMAGE_PT_color_picker',
     'VIEW_PT_color_picker',
     'CLIP_PT_color_picker',
-    'COLOR_OT_adjust_history_size'
+    'COLOR_OT_adjust_history_size',
+    'PAINT_OT_add_palette_color',
+    'PALETTE_OT_select_color',
 ]

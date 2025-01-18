@@ -235,6 +235,7 @@ def update_picker_color(self, context):
     finally:
         _updating_picker = False
 
+
 class ColoraideNormalPickerProperties(PropertyGroup):
     enabled: BoolProperty(
         name="Enable Normal Color Picking",
@@ -321,6 +322,23 @@ class ColoraideHistoryProperties(PropertyGroup):
     )
 
 class ColoraidePickerProperties(PropertyGroup):
+    
+    def _update_from_palette(self, context):
+        """Handler for palette color selection"""
+        ts = context.tool_settings
+        if ts and ts.image_paint and ts.image_paint.palette:
+            palette = ts.image_paint.palette
+            if palette and palette.colors.active:
+                # Update mean color which will trigger all other updates
+                self.mean = palette.colors.active.color
+                
+    sync_from_palette: BoolProperty(
+        name="Sync From Palette",
+        description="Sync color when palette selection changes",
+        default=True,
+        update=_update_from_palette
+    )            
+    
     """Properties related to the color picker functionality"""
     current: FloatVectorProperty(
         default=(1.0, 1.0, 1.0),
@@ -455,6 +473,11 @@ class ColoraideDisplayProperties(PropertyGroup):
     
     show_history: BoolProperty(
         name="Show Color History",
+        default=True
+    )
+    
+    show_palettes: BoolProperty(
+        name="Show Color Palettes",
         default=True
     )
 

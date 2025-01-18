@@ -19,7 +19,9 @@ from .panels.IMAGE_PT_Coloraide_panel import (
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,
-    COLOR_OT_adjust_history_size
+    COLOR_OT_adjust_history_size,
+    PAINT_OT_add_palette_color,
+    PALETTE_OT_select_color
 )
 
 bl_info = {
@@ -33,12 +35,17 @@ bl_info = {
     'category': 'Generic',
 }
 
+# Update the classes list to ensure proper registration order
 classes = [
+    # Register property classes first
+    PALETTE_OT_select_color,
+    PAINT_OT_add_palette_color,  
     COLOR_OT_adjust_history_size,
     IMAGE_OT_screen_picker, 
     IMAGE_OT_quickpick,
     BRUSH_OT_color_dynamics,
     BRUSH_OT_normal_color_picker,
+    # Register panels last
     IMAGE_PT_color_picker, 
     VIEW_PT_color_picker, 
     CLIP_PT_color_picker,
