@@ -8,7 +8,7 @@ import bpy
 from bpy.types import Panel, Operator
 from bpy.props import BoolProperty, FloatVectorProperty
 
-panel_title = 'Coloraide'
+
 
 def draw_palette_section(layout, context):
     """Draw the native palette section of the panel"""
@@ -21,12 +21,6 @@ def draw_palette_section(layout, context):
     )
     
     if context.window_manager.coloraide_display.show_palettes:
-        # Add sync toggle at the top
-        row = box.row()
-        row.prop(context.window_manager.coloraide_picker, "sync_from_palette", 
-                text="Sync with Coloraide",
-                icon='UV_SYNC_SELECT')
-        
         # Palette selector with new button
         row = box.row(align=True)
         row.template_ID(context.tool_settings.image_paint, "palette", new="palette.new")
@@ -41,19 +35,19 @@ def draw_palette_section(layout, context):
             row.alignment = 'LEFT'
             row.operator("palette.colors_add", text="", icon='ADD')
             row.operator("palette.colors_remove", text="", icon='REMOVE')
-            row.separator()
+
             up_op = row.operator("palette.colors_move", text="", icon='TRIA_UP')
             if up_op:
                 up_op.direction = 'UP'
             down_op = row.operator("palette.colors_move", text="", icon='TRIA_DOWN')
             if down_op:
                 down_op.direction = 'DOWN'
-            row.separator()
+
             row.operator("palette.colors_filter", text="", icon='FILTER')
             
             # Separate boxed area for palette swatches
             palette_box = box.column()
-            palette_box.separator()
+
             palette_box.template_palette(ts.image_paint, "palette", color=True)
 
 
