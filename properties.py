@@ -24,6 +24,48 @@ _updating_hex = False
 _updating_wheel = False
 _user_is_editing = False
 
+def is_update_in_progress():
+    """Check if any color update cycle is in progress"""
+    return any([
+        _updating_lab,
+        _updating_rgb, 
+        _updating_picker,
+        _updating_hex,
+        _updating_wheel
+    ])
+
+def sync_picker_from_brush(context, brush_color):
+    """Sync all picker values from brush color without triggering update cycles"""
+    global _updating_picker
+    _updating_picker = True
+    try:
+        picker = context.window_manager.coloraide_picker
+        
+        # Update RGB float values
+        picker.mean = brush_color
+        picker.current = brush_color
+        
+        # Update RGB byte values
+        rgb_bytes = rgb_float_to_byte(brush_color)
+        picker.mean_r = rgb_bytes[0]
+        picker.mean_g = rgb_bytes[1]
+        picker.mean_b = rgb_bytes[2]
+        
+        # Update hex
+        picker.hex_color = "#{:02X}{:02X}{:02X}".format(*rgb_bytes)
+        
+        # Update LAB values
+        lab = rgb_to_lab(brush_color)
+        picker.lab_l = lab[0]
+        picker.lab_a = lab[1]
+        picker.lab_b = lab[2]
+        
+        # Update wheel
+        context.window_manager.coloraide_wheel.color = (*brush_color, 1.0)
+        
+    finally:
+        _updating_picker = False
+
 def start_user_edit():
     """Start a user editing session"""
     global _user_is_editing

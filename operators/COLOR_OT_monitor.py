@@ -1,7 +1,6 @@
-"""
-Monitors brush color changes and syncs with Coloraide.
-"""
 import bpy
+
+from ..properties import is_update_in_progress, sync_picker_from_brush
 
 class COLOR_OT_monitor(bpy.types.Operator):
     bl_idname = "color.monitor"
@@ -9,7 +8,6 @@ class COLOR_OT_monitor(bpy.types.Operator):
     bl_options = {'INTERNAL'}
     
     old_color = None
-    _is_running = False
     
     def modal(self, context, event):
         try:
@@ -22,12 +20,11 @@ class COLOR_OT_monitor(bpy.types.Operator):
             elif ts.image_paint and ts.image_paint.brush:
                 curr_color = tuple(ts.image_paint.brush.color)
             
-            # Only update and print if color actually changed
-            if curr_color != self.old_color:
+            # Only sync if color changed and no internal updates are happening
+            if curr_color != self.old_color and curr_color is not None:
+                if not is_update_in_progress():
+                    sync_picker_from_brush(context, curr_color)
                 self.old_color = curr_color
-                if curr_color is not None:
-                    context.window_manager.coloraide_picker.mean = curr_color
-                    print(f"Color changed to: {curr_color}")  # Only prints on actual changes
             
         except Exception as e:
             print(f"Color monitor error: {e}")
