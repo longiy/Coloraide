@@ -29,26 +29,12 @@ def draw_palette_section(layout, context):
         else:
             paint_settings = ts.image_paint
             
-        # Palette selector with new button
+        # Simple palette selector with new button
         row = box.row(align=True)
         row.template_ID(paint_settings, "palette", new="palette.new")
         
         if paint_settings and paint_settings.palette:
-            # Control buttons in their own column
-            controls_col = box.column()
-            row = controls_col.row(align=True)
-            row.alignment = 'LEFT'
-            row.operator("palette.colors_add", text="", icon='ADD')
-            row.operator("palette.colors_remove", text="", icon='REMOVE')
-            up_op = row.operator("palette.colors_move", text="", icon='TRIA_UP')
-            if up_op:
-                up_op.direction = 'UP'
-            down_op = row.operator("palette.colors_move", text="", icon='TRIA_DOWN')
-            if down_op:
-                down_op.direction = 'DOWN'
-            row.operator("palette.colors_filter", text="", icon='FILTER')
-            
-            # Separate boxed area for palette swatches
+            # Use Blender's native palette template
             palette_box = box.column()
             palette_box.template_palette(paint_settings, "palette", color=True)
 
@@ -70,7 +56,10 @@ class PALETTE_OT_select_color(bpy.types.Operator):
     )
     
     def execute(self, context):
+        print("\n=== PALETTE_OT_select_color execute ===")
+        print(f"Selected color: {self.color}")
         context.window_manager.coloraide_picker.mean = self.color
+        print("Mean color set")
         return {'FINISHED'}
 
 # Update the operator class
@@ -328,7 +317,7 @@ def draw_panel(layout, context):
 
     
 class IMAGE_PT_color_picker(Panel):
-    bl_label = "Coloraide 1.2.0"
+    bl_label = "Coloraide 1.2.4"
     bl_idname = 'IMAGE_PT_color_picker'
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -338,7 +327,7 @@ class IMAGE_PT_color_picker(Panel):
         draw_panel(self.layout, context)
 
 class VIEW_PT_color_picker(Panel):
-    bl_label = "Coloraide 1.2.0"
+    bl_label = "Coloraide 1.2.4"
     bl_idname = 'VIEW_PT_color_picker'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -348,7 +337,7 @@ class VIEW_PT_color_picker(Panel):
         draw_panel(self.layout, context)
 
 class CLIP_PT_color_picker(Panel):
-    bl_label = "Coloraide 1.2.0"
+    bl_label = "Coloraide 1.2.4"
     bl_idname = 'CLIP_PT_color_picker'
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'
