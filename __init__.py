@@ -66,6 +66,7 @@ classes = [
     ColoraideNormalPickerProperties,
     
     # Operators (register second)
+    COLOR_OT_monitor,
     PALETTE_OT_select_color,
     PAINT_OT_add_palette_color,  
     COLOR_OT_adjust_history_size,
@@ -82,6 +83,23 @@ classes = [
 
 # Keymap setup
 addon_keymaps = []
+
+def initialize_color_history():
+    """Separate function for color history initialization"""
+    try:
+        wm = bpy.context.window_manager
+        history = wm.color_history.items
+        if wm.color_dynamics.strength > 0:
+            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
+            
+        while len(history) > 0:
+            history.remove(0)
+            
+        for _ in range(wm.color_history.size):
+            color_item = history.add()
+            color_item.color = (0.0, 0.0, 0.0)
+    except Exception as e:
+        print("Error initializing color history:", e)
 
 def register_keymaps():
     wm = bpy.context.window_manager
@@ -108,9 +126,6 @@ def unregister_keymaps():
     addon_keymaps.clear()
 
 def register():
-    # Register monitor class first but don't start it yet
-    bpy.utils.register_class(COLOR_OT_monitor)
-
     # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -123,56 +138,37 @@ def register():
     window_manager.color_dynamics = PointerProperty(type=ColoraideDynamicsProperties)
     window_manager.color_history = PointerProperty(type=ColoraideHistoryProperties)
     window_manager.normal_picker = PointerProperty(type=ColoraideNormalPickerProperties)
-    window_manager.custom_size = IntProperty(
-        default=10,
-        min=1,
-        soft_max=100,
-        soft_min=5,
-        name='Quickpick Size',
-        description='Custom tile size for Quickpicker (Backlash \\ by default)'
-    )
 
     # Register keymaps
     register_keymaps()
 
     # Initialize color history
-    try:
-        wm = bpy.context.window_manager
-        history = wm.color_history.items
-        if wm.color_dynamics.strength > 0:
-            bpy.ops.brush.color_dynamics('INVOKE_DEFAULT')
-            
-        while len(history) > 0:
-            history.remove(0)
-            
-        for _ in range(wm.color_history.size):
-            color_item = history.add()
-            color_item.color = (0.0, 0.0, 0.0)
-    except Exception as e:
-        print("Error initializing color history:", e)
+    initialize_color_history()
 
-    # Start the monitor AFTER everything else is set up
+    # Start the monitor using a timer
+    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
+
+# Add this new function
+def start_color_monitor():
+    """Start the color monitor with a delay to ensure context is ready"""
     try:
-        print("\nStarting color monitor...")
-        bpy.ops.color.monitor('INVOKE_DEFAULT')
-        print("Color monitor started successfully")
+        if bpy.context and bpy.context.window_manager:
+            bpy.ops.color.monitor('INVOKE_DEFAULT')
+            return None  # Unregister the timer
+        return 0.1  # Try again in 0.1 seconds
     except Exception as e:
         print(f"Error starting color monitor: {e}")
+        return None  # Unregister the timer on error
+
+
 
 def unregister():
-    # Unregister monitor first
-    try:
-        bpy.utils.unregister_class(COLOR_OT_monitor)
-        print("Color monitor unregistered")
-    except Exception as e:
-        print(f"Error unregistering color monitor: {e}")
 
     # Unregister keymaps
     unregister_keymaps()
     
     # Remove properties
     window_manager = bpy.types.WindowManager
-    del window_manager.custom_size
     del window_manager.color_history
     del window_manager.color_dynamics
     del window_manager.coloraide_wheel

@@ -335,6 +335,15 @@ class ColoraidePickerProperties(PropertyGroup):
         finally:
             end_user_edit()
     
+    custom_size: IntProperty(
+        default=10,
+        min=1,
+        soft_max=100,
+        soft_min=5,
+        name='Quickpick Size',
+        description='Custom tile size for Quickpicker (Backlash \\ by default)'
+    )
+    
     mean: FloatVectorProperty(
         name="Mean Color",
         default=(0.5, 0.5, 0.5),

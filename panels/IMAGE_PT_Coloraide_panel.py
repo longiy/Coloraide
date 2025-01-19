@@ -302,14 +302,14 @@ def draw_panel(layout, context):
     # Quick pick size
     row = layout.row(align=True)
     split = row.split(factor=1)
-    split.prop(wm, 'custom_size', slider=True)
+    row.prop(wm.coloraide_picker, 'custom_size', slider=True)
     
     # Quick pick operators
     row = layout.row(align=True)
     row.operator('image.screen_picker', 
-        text=f"{wm.custom_size}x{wm.custom_size} Quickpick", 
+        text=f"{wm.coloraide_picker.custom_size}x{wm.coloraide_picker.custom_size} Quickpick", 
         icon='EYEDROPPER'
-    ).sqrt_length = wm.custom_size
+    ).sqrt_length = wm.coloraide_picker.custom_size
     
     row = layout.row(align=True) 
     row.operator('image.screen_picker', text='1x1', icon='EYEDROPPER').sqrt_length = 1
