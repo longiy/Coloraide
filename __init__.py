@@ -29,7 +29,7 @@ from .properties import (
     ColoraideNormalPickerProperties,
 
 )
-
+from .operators.COLOR_OT_monitor import COLOR_OT_monitor
 from .operators.BRUSH_OT_normal_color_picker import BRUSH_OT_normal_color_picker  
 from .operators.IMAGE_OT_screen_picker import IMAGE_OT_screen_picker
 from .operators.IMAGE_OT_quickpick import IMAGE_OT_quickpick
@@ -108,6 +108,9 @@ def unregister_keymaps():
     addon_keymaps.clear()
 
 def register():
+    # Register monitor class first but don't start it yet
+    bpy.utils.register_class(COLOR_OT_monitor)
+
     # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -148,7 +151,21 @@ def register():
     except Exception as e:
         print("Error initializing color history:", e)
 
+    # Start the monitor AFTER everything else is set up
+    try:
+        print("\nStarting color monitor...")
+        bpy.ops.color.monitor('INVOKE_DEFAULT')
+        print("Color monitor started successfully")
+    except Exception as e:
+        print(f"Error starting color monitor: {e}")
+
 def unregister():
+    # Unregister monitor first
+    try:
+        bpy.utils.unregister_class(COLOR_OT_monitor)
+        print("Color monitor unregistered")
+    except Exception as e:
+        print(f"Error unregistering color monitor: {e}")
 
     # Unregister keymaps
     unregister_keymaps()
@@ -169,3 +186,4 @@ def unregister():
 
 if __name__ == '__main__':
     register()
+
