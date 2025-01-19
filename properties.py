@@ -250,27 +250,27 @@ def update_picker_color(self, context):
     """Update handler for picker color changes"""
     global _updating_lab, _updating_rgb, _updating_picker, _updating_hex, _updating_wheel
     
-    print("\n=== update_picker_color called ===")
-    print(f"Update flags status:")
-    print(f"_updating_lab: {_updating_lab}")
-    print(f"_updating_rgb: {_updating_rgb}")
-    print(f"_updating_picker: {_updating_picker}")
-    print(f"_updating_hex: {_updating_hex}")
-    print(f"_updating_wheel: {_updating_wheel}")
+    # print("\n=== update_picker_color called ===")
+    # print(f"Update flags status:")
+    # print(f"_updating_lab: {_updating_lab}")
+    # print(f"_updating_rgb: {_updating_rgb}")
+    # print(f"_updating_picker: {_updating_picker}")
+    # print(f"_updating_hex: {_updating_hex}")
+    # print(f"_updating_wheel: {_updating_wheel}")
     
     if _updating_lab or _updating_rgb or _updating_hex or _updating_wheel:
-        print("Update blocked by existing update in progress")
+        # print("Update blocked by existing update in progress")
         return
     
     _updating_picker = True
     try:
-        print(f"Processing mean color: {self.mean}")
+        # print(f"Processing mean color: {self.mean}")
         rgb_float = tuple(max(0, min(1, c)) for c in self.mean)
         rgb_bytes = rgb_float_to_byte(rgb_float)
         
-        print("Updating values:")
-        print(f"rgb_float: {rgb_float}")
-        print(f"rgb_bytes: {rgb_bytes}")
+        # print("Updating values:")
+        # print(f"rgb_float: {rgb_float}")
+        # print(f"rgb_bytes: {rgb_bytes}")
         
         # Update values
         self.current = rgb_float
@@ -278,11 +278,11 @@ def update_picker_color(self, context):
         self.mean_g = rgb_bytes[1]
         self.mean_b = rgb_bytes[2]
         
-        print("Values updated successfully")
+        # print("Values updated successfully")
         
     finally:
         _updating_picker = False
-        print("update_picker_color complete")
+        # print("update_picker_color complete")
 
 class ColoraideNormalPickerProperties(PropertyGroup):
     enabled: BoolProperty(
@@ -369,8 +369,8 @@ class ColoraideHistoryProperties(PropertyGroup):
 class ColoraidePickerProperties(PropertyGroup):
     def _update_mean(self, context):
         """Combined update handler for mean color changes"""
-        print("\n=== _update_mean called ===")
-        print(f"Color being set: {self.mean}")
+        # print("\n=== _update_mean called ===")
+        # print(f"Color being set: {self.mean}")
         start_user_edit()
         try:
             update_picker_color(self, context)

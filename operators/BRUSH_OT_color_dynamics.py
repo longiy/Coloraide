@@ -40,6 +40,21 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
             return {'CANCELLED'}
 
         if event.type == 'LEFTMOUSE':
+            # print(f"\nColor Dynamics Event:")
+            # print(f"Event type: {event.type}")
+            # print(f"Event value: {event.value}")
+            # if hasattr(context, 'region'):
+            #     print(f"Region type: {context.region.type}")
+            # else:
+            #     print("No region in context")
+            
+            # Try to get region through active area
+            area = context.area
+            # if area:
+            #     for region in area.regions:
+            #         if region.type == 'WINDOW':
+            #             print("Found WINDOW region in area")
+                        
             if event.value == 'PRESS':
                 # Apply new random colors at stroke start using current color
                 ts = context.tool_settings

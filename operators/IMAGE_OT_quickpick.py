@@ -114,7 +114,7 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
 
         elif event.type in {'MOUSEMOVE'} or (event.type == self._key_pressed):
             # Update color picking
-            self.sqrt_length = wm.custom_size
+            self.sqrt_length = wm.coloraide_picker.custom_size
             distance = self.sqrt_length // 2
             start_x = max(event.mouse_x - distance, 0)
             start_y = max(event.mouse_y - distance, 0)

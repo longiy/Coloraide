@@ -1,5 +1,4 @@
 import bpy
-
 from ..properties import is_update_in_progress, sync_picker_from_brush
 
 class COLOR_OT_monitor(bpy.types.Operator):

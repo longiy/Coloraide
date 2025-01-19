@@ -56,10 +56,10 @@ class PALETTE_OT_select_color(bpy.types.Operator):
     )
     
     def execute(self, context):
-        print("\n=== PALETTE_OT_select_color execute ===")
-        print(f"Selected color: {self.color}")
+        # print("\n=== PALETTE_OT_select_color execute ===")
+        # print(f"Selected color: {self.color}")
         context.window_manager.coloraide_picker.mean = self.color
-        print("Mean color set")
+        # print("Mean color set")
         return {'FINISHED'}
 
 # Update the operator class
