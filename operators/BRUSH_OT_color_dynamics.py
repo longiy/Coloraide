@@ -16,6 +16,25 @@ def apply_color_dynamics(original_color, strength):
         for original, random in zip(original_color, random_color)
     )
 
+def is_mouse_in_ui(context, event):
+    """Check if mouse is over any UI regions"""
+    if not context.area:
+        return False
+        
+    # Get mouse position relative to area
+    x, y = event.mouse_x, event.mouse_y
+    
+    # Check each region in the current area
+    for region in context.area.regions:
+        # Check if mouse is within region bounds
+        if (region.x <= x <= region.x + region.width and 
+            region.y <= y <= region.y + region.height):
+            # Only consider UI regions (not the 3D view or image editor main region)
+            if region.type in {'TOOLS', 'UI', 'HEADER', 'TOOL_HEADER', 'NAV_BAR', 'TOOL_PROPS'}:
+                return True
+                
+    return False
+
 class BRUSH_OT_color_dynamics(bpy.types.Operator):
     bl_idname = "brush.color_dynamics"
     bl_label = "Color Dynamics"
@@ -27,6 +46,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         return context.window_manager.color_dynamics.strength > 0
 
     def invoke(self, context, event):
+        print("\nStarting color dynamics operator")
         wm = context.window_manager
         wm.modal_handler_add(self)
         wm.color_dynamics.running = True
@@ -36,27 +56,19 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
         wm = context.window_manager
         
         if wm.color_dynamics.strength <= 0:
+            print("\nStopping color dynamics - strength is 0")
             self.cleanup(context)
             return {'CANCELLED'}
 
         if event.type == 'LEFTMOUSE':
-            # print(f"\nColor Dynamics Event:")
-            # print(f"Event type: {event.type}")
-            # print(f"Event value: {event.value}")
-            # if hasattr(context, 'region'):
-            #     print(f"Region type: {context.region.type}")
-            # else:
-            #     print("No region in context")
-            
-            # Try to get region through active area
-            area = context.area
-            # if area:
-            #     for region in area.regions:
-            #         if region.type == 'WINDOW':
-            #             print("Found WINDOW region in area")
-                        
+            # If mouse is over UI, pass through the event without processing color dynamics
+            if is_mouse_in_ui(context, event):
+                print("\nSkipping color dynamics - mouse is over UI")
+                return {'PASS_THROUGH'}
+                
+            # Only process color dynamics when mouse is not over UI
             if event.value == 'PRESS':
-                # Apply new random colors at stroke start using current color
+                print("\nApplying color dynamics - mouse is outside UI")
                 ts = context.tool_settings
                 base_color = tuple(wm.coloraide_picker.mean)
                 
@@ -76,7 +88,6 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
                         ts.unified_paint_settings.color = new_color
 
             elif event.value == 'RELEASE':
-                # Reset to current picker color
                 ts = context.tool_settings
                 base_color = tuple(wm.coloraide_picker.mean)
                 
@@ -92,6 +103,7 @@ class BRUSH_OT_color_dynamics(bpy.types.Operator):
 
     def cleanup(self, context):
         """Reset state and colors"""
+        print("\nCleaning up color dynamics operator")
         wm = context.window_manager
         wm.color_dynamics.running = False
         
