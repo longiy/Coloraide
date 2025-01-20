@@ -123,16 +123,16 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
             self.y = event.mouse_region_y
 
             fb = gpu.state.active_framebuffer_get()
+            
+            # Get area sample for mean color
             screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
             channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
-
-            # Get current pixel color
-            curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
-            current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
-            
-            # Calculate mean color and update window manager properties
             mean_color = np.mean(channels, axis=0)
             
+            # Get current pixel color (1x1 sample)
+            curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
+            current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
+
             # Update both mean and current colors
             wm.coloraide_picker.mean = tuple(mean_color)
             wm.coloraide_picker.current = tuple(current_color)
@@ -150,7 +150,7 @@ class IMAGE_OT_quickpick(bpy.types.Operator):
             update_color_pickers(mean_color, save_to_history=False)
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
-            # Cancel operation without saving to history
+            # Cancel operation without saving
             context.window.cursor_modal_restore()
             if self._handler:
                 space = getattr(bpy.types, self.space_type)

@@ -100,6 +100,7 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
     y: bpy.props.IntProperty()
     _handler = None
 
+
     def modal(self, context, event):
         context.area.tag_redraw()
         wm = context.window_manager
@@ -114,32 +115,30 @@ class IMAGE_OT_screen_picker(bpy.types.Operator):
 
             fb = gpu.state.active_framebuffer_get()
             
-            # Get the area sample for mean color
+            # Get area sample for mean color
             screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
             channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
-
-            # Get current pixel color
-            curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
-            current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
-
-            # Calculate mean color
             mean_color = np.mean(channels, axis=0)
             
-            # Update window manager properties
-            wm.coloraide_picker.mean = tuple(mean_color)
-            wm.coloraide_picker.current = tuple(current_color)
-
+            # Get current pixel color (1x1 sample)
+            curr_picker_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
+            current_color = np.array(curr_picker_buffer.to_list()).reshape(-1)
+            
+            # Update window manager properties separately
+            wm.coloraide_picker.mean = tuple(mean_color)  # Area average
+            wm.coloraide_picker.current = tuple(current_color)  # Single pixel
+            
             # Calculate statistics
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
             
-            # Update statistical properties
+            # Update other properties
             wm.coloraide_picker.max = tuple(channels[max_ind])
             wm.coloraide_picker.min = tuple(channels[min_ind])
             wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
 
-            # Update color pickers
+            # Update brush colors using mean color
             update_color_pickers(mean_color, save_to_history=False)
 
         if event.type == 'LEFTMOUSE':

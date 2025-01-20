@@ -41,9 +41,8 @@ def sync_picker_from_brush(context, brush_color):
     try:
         picker = context.window_manager.coloraide_picker
         
-        # Update RGB float values
+        # Update RGB float values - only update mean, not current
         picker.mean = brush_color
-        picker.current = brush_color
         
         # Update RGB byte values
         rgb_bytes = rgb_float_to_byte(brush_color)
@@ -109,9 +108,8 @@ def update_lab(self, context):
         rgb = lab_to_rgb(lab)
         rgb_bytes = rgb_float_to_byte(rgb)
         
-        # Update all values
+        # Update only mean values
         self.mean = rgb
-        self.current = rgb
         self.mean_r = rgb_bytes[0]
         self.mean_g = rgb_bytes[1]
         self.mean_b = rgb_bytes[2]
@@ -154,9 +152,8 @@ def update_from_hex(self, context):
             rgb_bytes = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
             rgb_float = rgb_byte_to_float(rgb_bytes)
         
-        # Update all values
+        # Update only mean values
         self.mean = rgb_float
-        self.current = rgb_float
         self.mean_r = rgb_bytes[0]
         self.mean_g = rgb_bytes[1]
         self.mean_b = rgb_bytes[2]
@@ -183,8 +180,8 @@ def update_from_wheel(self, context):
         rgb_bytes = rgb_float_to_byte(color)
         
         picker = context.window_manager.coloraide_picker
+        # Update only mean values
         picker.mean = color
-        picker.current = color
         picker.mean_r = rgb_bytes[0]
         picker.mean_g = rgb_bytes[1]
         picker.mean_b = rgb_bytes[2]
@@ -273,7 +270,7 @@ def update_picker_color(self, context):
         # print(f"rgb_bytes: {rgb_bytes}")
         
         # Update values
-        self.current = rgb_float
+        
         self.mean_r = rgb_bytes[0]
         self.mean_g = rgb_bytes[1]
         self.mean_b = rgb_bytes[2]
@@ -283,6 +280,14 @@ def update_picker_color(self, context):
     finally:
         _updating_picker = False
         # print("update_picker_color complete")
+
+def update_current_color(self, context):
+    """Separate update handler for current (1x1 sample) color changes"""
+    if is_update_in_progress():
+        return
+        
+    # Only update the current color display without affecting other values
+    pass  # The current color will update its UI display automatically
 
 class ColoraideNormalPickerProperties(PropertyGroup):
     enabled: BoolProperty(
@@ -376,6 +381,16 @@ class ColoraidePickerProperties(PropertyGroup):
             update_picker_color(self, context)
         finally:
             end_user_edit()
+            
+    def _update_current(self, context):
+        """Combined update handler for current color changes"""
+        start_user_edit()
+        try:
+            update_current_color(self, context)
+        finally:
+            end_user_edit()
+    
+    
     
     custom_size: IntProperty(
         default=10,
