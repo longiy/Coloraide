@@ -317,7 +317,7 @@ def draw_panel(layout, context):
 
     
 class IMAGE_PT_color_picker(Panel):
-    bl_label = "Coloraide 1.2.7"
+    bl_label = "Coloraide 1.2.8"
     bl_idname = 'IMAGE_PT_color_picker'
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -327,7 +327,7 @@ class IMAGE_PT_color_picker(Panel):
         draw_panel(self.layout, context)
 
 class VIEW_PT_color_picker(Panel):
-    bl_label = "Coloraide 1.2.7"
+    bl_label = "Coloraide 1.2.8"
     bl_idname = 'VIEW_PT_color_picker'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -337,7 +337,7 @@ class VIEW_PT_color_picker(Panel):
         draw_panel(self.layout, context)
 
 class CLIP_PT_color_picker(Panel):
-    bl_label = "Coloraide 1.2.7"
+    bl_label = "Coloraide 1.2.8"
     bl_idname = 'CLIP_PT_color_picker'
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'
