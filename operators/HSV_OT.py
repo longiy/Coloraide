@@ -4,7 +4,8 @@ Operator for handling HSV color updates and synchronization.
 
 import bpy
 from bpy.types import Operator
-from ..properties.HSV_properties import sync_hsv_from_rgb, is_hsv_update_in_progress
+from ..properties.HSV_properties import sync_hsv_from_rgb
+from ..COLORAIDE_utils import is_updating  # Changed import
 
 class COLOR_OT_sync_hsv(Operator):
     """Operator to sync HSV values with current color"""
@@ -18,7 +19,7 @@ class COLOR_OT_sync_hsv(Operator):
         return hasattr(context.window_manager, 'coloraide_hsv')
     
     def execute(self, context):
-        if not is_hsv_update_in_progress():
+        if not is_updating('hsv'):  # Changed check
             current_color = tuple(context.window_manager.coloraide_picker.mean)
             sync_hsv_from_rgb(context, current_color)
         return {'FINISHED'}

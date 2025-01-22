@@ -32,7 +32,7 @@ def draw_hsv_panel(layout, context):
             "color.sync_hsv",
             text="",
             icon='FILE_REFRESH'
-        ).index = 0  # Using index in case we need to identify which slider triggered sync
+        )
         
         # Saturation slider
         split = col.split(factor=0.1)

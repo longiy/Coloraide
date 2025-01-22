@@ -4,7 +4,8 @@ Operators for handling hex color updates and validation.
 
 import bpy
 from bpy.types import Operator
-from ..properties.HEX_properties import sync_hex_from_rgb, is_hex_update_in_progress
+from ..properties.HEX_properties import sync_hex_from_rgb
+from ..COLORAIDE_utils import is_updating
 
 class COLOR_OT_sync_hex(Operator):
     """Operator to sync hex value with current color"""
@@ -18,7 +19,7 @@ class COLOR_OT_sync_hex(Operator):
         return hasattr(context.window_manager, 'coloraide_hex')
     
     def execute(self, context):
-        if not is_hex_update_in_progress():
+        if not is_updating('hex'):
             current_color = tuple(context.window_manager.coloraide_picker.mean)
             sync_hex_from_rgb(context, current_color)
         return {'FINISHED'}
@@ -54,11 +55,3 @@ class COLOR_OT_validate_hex(Operator):
             
         hex_props.value = value
         return {'FINISHED'}
-
-def register():
-    bpy.utils.register_class(COLOR_OT_sync_hex)
-    bpy.utils.register_class(COLOR_OT_validate_hex)
-
-def unregister():
-    bpy.utils.unregister_class(COLOR_OT_validate_hex)
-    bpy.utils.unregister_class(COLOR_OT_sync_hex)

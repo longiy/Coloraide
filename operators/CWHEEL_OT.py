@@ -4,7 +4,9 @@ Operators for handling color wheel updates and interactions.
 
 import bpy
 from bpy.types import Operator
-from ..properties.CWHEEL_properties import sync_wheel_from_color, is_update_in_progress
+from ..properties.CWHEEL_properties import sync_wheel_from_color
+from ..properties.CWHEEL_properties import sync_wheel_from_color
+from ..COLORAIDE_utils import is_any_update_in_progress as is_update_in_progress
 from ..COLORAIDE_utils import (
     rgb_float_to_bytes,
     rgb_bytes_to_float,

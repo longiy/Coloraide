@@ -4,7 +4,8 @@ Operator for handling LAB color updates and synchronization.
 
 import bpy
 from bpy.types import Operator
-from ..properties.LAB_properties import sync_lab_from_rgb, is_lab_update_in_progress
+from ..properties.LAB_properties import sync_lab_from_rgb
+from ..COLORAIDE_utils import is_updating
 
 class COLOR_OT_sync_lab(Operator):
     """Operator to sync LAB values with current color"""
@@ -18,14 +19,7 @@ class COLOR_OT_sync_lab(Operator):
         return hasattr(context.window_manager, 'coloraide_lab')
     
     def execute(self, context):
-        if not is_lab_update_in_progress():
+        if not is_updating('lab'):
             current_color = tuple(context.window_manager.coloraide_picker.mean)
             sync_lab_from_rgb(context, current_color)
         return {'FINISHED'}
-
-
-def register():
-    bpy.utils.register_class(COLOR_OT_sync_lab)
-
-def unregister():
-    bpy.utils.unregister_class(COLOR_OT_sync_lab)

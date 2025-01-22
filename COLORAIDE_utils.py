@@ -6,6 +6,37 @@ Contains shared color conversion and helper functions.
 import numpy as np
 from math import pow
 
+"""Centralized color update flag management"""
+
+# Global update flags for all possible components
+UPDATE_FLAGS = {
+    'picker': False,
+    'rgb': False,
+    'hsv': False,
+    'lab': False, 
+    'hex': False,
+    'wheel': False
+}
+
+def is_any_update_in_progress():
+    """Check if any color component is currently updating"""
+    return any(UPDATE_FLAGS.values())
+
+def is_updating(component_name):
+    """Check if specific component is updating"""
+    return UPDATE_FLAGS.get(component_name, False)
+
+class UpdateFlags:
+    """Context manager for handling update flags"""
+    def __init__(self, component_name):
+        self.component_name = component_name
+        
+    def __enter__(self):
+        UPDATE_FLAGS[self.component_name] = True
+        
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        UPDATE_FLAGS[self.component_name] = False
+
 def rgb_to_hsv(rgb):
     """Convert RGB values in range 0-1 to HSV values in range 0-1"""
     r, g, b = rgb

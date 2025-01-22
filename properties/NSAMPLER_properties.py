@@ -21,7 +21,7 @@ class ColoraideNormalProperties(PropertyGroup):
         items=[
             ('OBJECT', "Object Space", "Use object space normals"),
             ('TANGENT', "Tangent Space", "Use tangent space normals (requires UV map)"),
+            ('UV', "UV Space", "Use UV space normals (Image Editor only)")
         ],
-        default='OBJECT'
+        default='TANGENT'
     )
-

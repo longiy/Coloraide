@@ -39,29 +39,12 @@ class ColorHistoryItemProperties(PropertyGroup):
 class ColoraideHistoryProperties(PropertyGroup):
     """Properties for color history management"""
     
-    def get_size(self):
-        return self.get("size", 8)
-        
-    def set_size(self, value):
-        old_size = self.size
-        self["size"] = value
-        
-        # Adjust collection size if needed
-        if value < old_size:
-            while len(self.items) > value:
-                self.items.remove(len(self.items) - 1)
-        elif value > old_size:
-            while len(self.items) < value:
-                self.items.add()
-    
     size: IntProperty(
         name="History Size",
         description="Number of color history slots",
         default=8,
         min=8,
-        max=80,
-        get=get_size,
-        set=set_size
+        max=80
     )
     
     items: CollectionProperty(
@@ -69,6 +52,11 @@ class ColoraideHistoryProperties(PropertyGroup):
         name="Color History",
         description="History of recently picked colors"
     )
+
+    def initialize_history(self):
+        """Initialize empty history slots"""
+        for _ in range(self.size):
+            self.items.add()
     
     def add_color(self, color):
         """Add a new color to history, avoiding duplicates"""
@@ -79,14 +67,10 @@ class ColoraideHistoryProperties(PropertyGroup):
                 abs(item.color[2] - color[2]) < 0.001):
                 return
         
-        # Remove oldest color if we've reached size limit
-        if len(self.items) >= self.size:
-            self.items.remove(len(self.items) - 1)
-        
-        # Add new color at the beginning
-        new_color = self.items.add()
-        new_color.color = color
-        
-        # Move new color to start
+        # Move all colors down
         for i in range(len(self.items) - 1, 0, -1):
-            self.items.move(i, i - 1)
+            self.items[i].color = self.items[i-1].color
+        
+        # Add new color at start
+        if len(self.items) > 0:
+            self.items[0].color = color

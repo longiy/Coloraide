@@ -66,7 +66,7 @@ class VIEW3D_PT_coloraide(Panel):
     
     @classmethod
     def poll(cls, context):
-        return context.mode in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_GPENCIL'}
+        return context.mode in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_GPENCIL','EDIT', 'OBJECT', 'SCULPT'}
     
     def draw(self, context):
         draw_coloraide_panels(self, context)

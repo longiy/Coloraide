@@ -8,6 +8,13 @@ def draw_normal_panel(layout, context):
     """Draw normal sampling controls in the given layout"""
     wm = context.window_manager
     
+    # Check if we're in a valid context
+    is_valid = (context.mode in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_GPENCIL'} and
+                (context.area.type in {'VIEW_3D', 'IMAGE_EDITOR'}))
+    
+    if not is_valid:
+        return
+        
     # Normal sampler box with toggle
     box = layout.box()
     row = box.row()
@@ -32,9 +39,8 @@ def draw_normal_panel(layout, context):
             row = box.row()
             row.prop(wm.coloraide_normal, "space")
             
-            # Help text
-            if wm.coloraide_normal.space == 'TANGENT':
-                box.label(text="Note: Requires UV map", icon='INFO')
+            if context.area.type == 'IMAGE_EDITOR':
+                row.enabled = False  # Force UV space in Image Editor
 
 class NORMAL_PT_panel:
     """Class containing panel drawing methods for normal sampling"""
