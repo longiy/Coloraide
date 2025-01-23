@@ -5,12 +5,12 @@ import bpy
 
 # First utilities and sync system from root
 from .COLORAIDE_utils import *
-from .COLORAIDE_sync import sync_all, update_manager 
+from .COLORAIDE_sync import sync_all, is_updating, update_lock
 
 # Import all properties
 from .properties.CPICKER_properties import ColoraidePickerProperties
 from .properties.CWHEEL_properties import ColoraideWheelProperties 
-from .properties.HEX_properties import ColoraideHexProperties
+# from .properties.HEX_properties import ColoraideHexProperties
 from .properties.RGB_properties import ColoraideRGBProperties
 from .properties.LAB_properties import ColoraideLABProperties
 from .properties.HSV_properties import ColoraideHSVProperties
@@ -21,21 +21,20 @@ from .COLORAIDE_properties import ColoraideDisplayProperties
 
 # Import all operators
 from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick
-from .operators.HEX_OT import COLOR_OT_sync_hex, COLOR_OT_validate_hex
 from .operators.HSV_OT import COLOR_OT_sync_hsv  
 from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
-from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history, COLOR_OT_remove_history_color
+from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
 from .operators.NSAMPLER_OT import BRUSH_OT_sample_normal
 from .operators.CDYNAMICS_OT import BRUSH_OT_color_dynamics
-from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color, PALETTE_OT_remove_color
+from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 
 # Import all panels
 from .panels.CPICKER_panel import draw_picker_panel
 from .panels.CWHEEL_panel import draw_wheel_panel  
-from .panels.HEX_panel import draw_hex_panel
+# from .panels.HEX_panel import draw_hex_panel
 from .panels.RGB_panel import draw_rgb_panel
 from .panels.LAB_panel import draw_lab_panel
 from .panels.HSV_panel import draw_hsv_panel
@@ -92,7 +91,7 @@ classes = [
     ColoraideDisplayProperties,
     ColoraidePickerProperties,
     ColoraideWheelProperties,
-    ColoraideHexProperties,
+    # ColoraideHexProperties,
     ColoraideRGBProperties,
     ColoraideLABProperties,
     ColoraideHSVProperties,
@@ -104,8 +103,7 @@ classes = [
     # Operators
     IMAGE_OT_screen_picker,
     IMAGE_OT_quickpick,
-    COLOR_OT_sync_hex,
-    COLOR_OT_validate_hex,
+    # COLOR_OT_sync_hex,
     COLOR_OT_sync_hsv,
     COLOR_OT_sync_rgb,
     COLOR_OT_sync_lab,
@@ -113,12 +111,10 @@ classes = [
     COLOR_OT_reset_wheel_scale,
     COLOR_OT_adjust_history_size,
     COLOR_OT_clear_history,
-    COLOR_OT_remove_history_color,
     BRUSH_OT_sample_normal,
     BRUSH_OT_color_dynamics,
     PALETTE_OT_add_color,
     PALETTE_OT_select_color,
-    PALETTE_OT_remove_color,
     COLOR_OT_monitor,
     
     # Panels
@@ -147,7 +143,7 @@ def register():
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
     bpy.types.WindowManager.coloraide_picker = bpy.props.PointerProperty(type=ColoraidePickerProperties)
     bpy.types.WindowManager.coloraide_wheel = bpy.props.PointerProperty(type=ColoraideWheelProperties)
-    bpy.types.WindowManager.coloraide_hex = bpy.props.PointerProperty(type=ColoraideHexProperties)
+    # bpy.types.WindowManager.coloraide_hex = bpy.props.PointerProperty(type=ColoraideHexProperties)
     bpy.types.WindowManager.coloraide_rgb = bpy.props.PointerProperty(type=ColoraideRGBProperties)
     bpy.types.WindowManager.coloraide_lab = bpy.props.PointerProperty(type=ColoraideLABProperties)
     bpy.types.WindowManager.coloraide_hsv = bpy.props.PointerProperty(type=ColoraideHSVProperties)
@@ -172,7 +168,7 @@ def unregister():
     del bpy.types.WindowManager.coloraide_hsv
     del bpy.types.WindowManager.coloraide_lab
     del bpy.types.WindowManager.coloraide_rgb
-    del bpy.types.WindowManager.coloraide_hex
+    # del bpy.types.WindowManager.coloraide_hex
     del bpy.types.WindowManager.coloraide_wheel
     del bpy.types.WindowManager.coloraide_picker
     del bpy.types.WindowManager.coloraide_display
