@@ -1,9 +1,9 @@
 """
 Central color synchronization system for Coloraide addon.
-Manages bidirectional updates between all color representations.
 """
 
 import bpy
+from contextlib import contextmanager
 from .COLORAIDE_utils import (
     rgb_to_lab,
     lab_to_rgb,
@@ -11,159 +11,105 @@ from .COLORAIDE_utils import (
     hsv_to_rgb,
     rgb_to_hex,
     hex_to_rgb,
-    rgb_float_to_bytes,
-    UpdateFlags,
-    is_updating
+    rgb_float_to_bytes
 )
 
-class ColorUpdateManager:
-    """Manages color updates and synchronization across all components"""
-    
-    def __init__(self):
-        self._current_update = None
+# Global update state
+_UPDATING = False
+
+def is_updating():
+    """Check if any update is in progress"""
+    return _UPDATING
+
+@contextmanager
+def update_lock():
+    """Context manager to prevent recursive updates"""
+    global _UPDATING
+    if _UPDATING:
+        yield False
+        return
+    _UPDATING = True
+    try:
+        yield True
+    finally:
+        _UPDATING = False
+
+def sync_all(context, source, color):
+    """Synchronize all color spaces from source"""
+    if is_updating():
+        return
         
-    def sync_from_picker(self, context, color):
-        """Synchronize all components from picker color (RGB float values)"""
-        wm = context.window_manager
-        
-        # Bypass all updates if being updated from elsewhere
-        if is_updating('picker'):
+    with update_lock() as acquired:
+        if not acquired:
             return
             
-        with UpdateFlags('picker'):
+        wm = context.window_manager
+        
+        try:
+            # Convert input to RGB float (0-1)
+            if source == 'rgb':
+                rgb_float = tuple(c / 255.0 for c in color)
+            elif source == 'lab': 
+                rgb_float = lab_to_rgb(color)
+            elif source == 'hsv':
+                hsv_norm = (color[0]/360.0, color[1]/100.0, color[2]/100.0)
+                rgb_float = hsv_to_rgb(hsv_norm)
+            elif source == 'hex':
+                rgb_float = hex_to_rgb(color)
+            else:
+                rgb_float = tuple(color[:3])  # For picker/wheel
+
+            # Update picker (source of truth)
+            wm.coloraide_picker.suppress_updates = True
+            wm.coloraide_picker.mean = rgb_float
+            wm.coloraide_picker.current = rgb_float
+            wm.coloraide_picker.suppress_updates = False
+
             # Update RGB
-            rgb_bytes = rgb_float_to_bytes(color)
+            rgb_bytes = rgb_float_to_bytes(rgb_float)
+            wm.coloraide_rgb.suppress_updates = True
             wm.coloraide_rgb.red = rgb_bytes[0]
             wm.coloraide_rgb.green = rgb_bytes[1]
             wm.coloraide_rgb.blue = rgb_bytes[2]
-            
+            wm.coloraide_rgb.suppress_updates = False
+
             # Update LAB
-            lab = rgb_to_lab(color)
+            lab = rgb_to_lab(rgb_float)
+            wm.coloraide_lab.suppress_updates = True
             wm.coloraide_lab.lightness = lab[0]
             wm.coloraide_lab.a = lab[1]
             wm.coloraide_lab.b = lab[2]
-            
+            wm.coloraide_lab.suppress_updates = False
+
             # Update HSV
-            hsv = rgb_to_hsv(color)
+            hsv = rgb_to_hsv(rgb_float)
+            wm.coloraide_hsv.suppress_updates = True
             wm.coloraide_hsv.hue = hsv[0] * 360.0
             wm.coloraide_hsv.saturation = hsv[1] * 100.0
             wm.coloraide_hsv.value = hsv[2] * 100.0
-            
+            wm.coloraide_hsv.suppress_updates = False
+
             # Update Hex
-            wm.coloraide_hex.value = rgb_to_hex(color)
-            
+            wm.coloraide_hex.suppress_updates = True
+            wm.coloraide_hex.value = rgb_to_hex(rgb_float)
+            wm.coloraide_hex.suppress_updates = False
+
             # Update Wheel
-            wm.coloraide_wheel.color = (*color, 1.0)
-            
+            wm.coloraide_wheel.suppress_updates = True
+            wm.coloraide_wheel.color = (*rgb_float, 1.0)
+            wm.coloraide_wheel.suppress_updates = False
+
             # Update brush colors
             ts = context.tool_settings
             if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                ts.gpencil_paint.brush.color = color
-            
+                ts.gpencil_paint.brush.color = rgb_float
+
             if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                ts.image_paint.brush.color = color
+                ts.image_paint.brush.color = rgb_float
                 if ts.unified_paint_settings.use_unified_color:
-                    ts.unified_paint_settings.color = color
-    
-    def sync_from_rgb(self, context, rgb_bytes):
-        """Synchronize from RGB byte values (0-255)"""
-        if is_updating('rgb'):
-            return
-            
-        with UpdateFlags('rgb'):
-            rgb_float = tuple(c / 255.0 for c in rgb_bytes)
-            self.sync_from_picker(context, rgb_float)
-    
-    def sync_from_lab(self, context, lab_values):
-        """Synchronize from LAB values"""
-        if is_updating('lab'):
-            return
-            
-        with UpdateFlags('lab'):
-            rgb_float = lab_to_rgb(lab_values)
-            self.sync_from_picker(context, rgb_float)
-    
-    def sync_from_hsv(self, context, hsv_values):
-        """Synchronize from HSV values (H: 0-360, S/V: 0-100)"""
-        if is_updating('hsv'):
-            return
-            
-        with UpdateFlags('hsv'):
-            hsv_normalized = (
-                hsv_values[0] / 360.0,
-                hsv_values[1] / 100.0,
-                hsv_values[2] / 100.0
-            )
-            rgb_float = hsv_to_rgb(hsv_normalized)
-            self.sync_from_picker(context, rgb_float)
-    
-    def sync_from_hex(self, context, hex_value):
-        """Synchronize from hex color string"""
-        if is_updating('hex'):
-            return
-            
-        with UpdateFlags('hex'):
-            rgb_float = hex_to_rgb(hex_value)
-            self.sync_from_picker(context, rgb_float)
-    
-    def sync_from_wheel(self, context, wheel_color):
-        """Synchronize from color wheel (RGBA)"""
-        if is_updating('wheel'):
-            return
-            
-        with UpdateFlags('wheel'):
-            rgb_float = tuple(wheel_color[:3])
-            self.sync_from_picker(context, rgb_float)
-    
-    def sync_from_history(self, context, history_color):
-        """Synchronize from history color selection"""
-        if is_updating('history'):
-            return
-            
-        with UpdateFlags('history'):
-            self.sync_from_picker(context, history_color)
-    
-    def sync_from_brush(self, context, brush_color):
-        """Synchronize from brush color changes"""
-        if is_updating('brush'):
-            return
-            
-        with UpdateFlags('brush'):
-            self.sync_from_picker(context, brush_color)
+                    ts.unified_paint_settings.color = rgb_float
 
-# Global instance
-update_manager = ColorUpdateManager()
+        except Exception as e:
+            print(f"Error in sync_all: {e}")
 
-def sync_all(context, source, color):
-    """
-    Main synchronization function called by components.
-    
-    Args:
-        context: Blender context
-        source: String identifying update source ('picker', 'rgb', etc.)
-        color: New color value in source's format
-    """
-    if is_updating(source):
-        return
-        
-    try:
-        if source == 'picker':
-            update_manager.sync_from_picker(context, color)
-        elif source == 'rgb':
-            update_manager.sync_from_rgb(context, color)
-        elif source == 'lab':
-            update_manager.sync_from_lab(context, color)
-        elif source == 'hsv':
-            update_manager.sync_from_hsv(context, color)
-        elif source == 'hex':
-            update_manager.sync_from_hex(context, color)
-        elif source == 'wheel':
-            update_manager.sync_from_wheel(context, color)
-        elif source == 'history':
-            update_manager.sync_from_history(context, color)
-        elif source == 'brush':
-            update_manager.sync_from_brush(context, color)
-    except Exception as e:
-        print(f"Error in sync_all: {e}")
-
-__all__ = ['sync_all', 'update_manager']
+__all__ = ['sync_all', 'is_updating']

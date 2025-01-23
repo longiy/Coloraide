@@ -66,10 +66,7 @@ class IMAGE_OT_screen_picker(Operator):
         distance = self.sqrt_length // 2
         start_x = max(event.mouse_x - distance, 0)
         start_y = max(event.mouse_y - distance, 0)
-        
-        self.x = event.mouse_region_x
-        self.y = event.mouse_region_y
-        
+
         fb = gpu.state.active_framebuffer_get()
         
         # Sample area for mean color
@@ -86,12 +83,8 @@ class IMAGE_OT_screen_picker(Operator):
         max_ind = np.argmax(dot, axis=0)
         min_ind = np.argmin(dot, axis=0)
         
+        # Update properties using sync system
         wm = context.window_manager
-        wm.coloraide_picker.max = tuple(channels[max_ind])
-        wm.coloraide_picker.min = tuple(channels[min_ind])
-        wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
-        
-        # Update picker values using sync system
         wm.coloraide_picker.current = tuple(current_color)
         sync_all(context, 'picker', tuple(mean_color))
     

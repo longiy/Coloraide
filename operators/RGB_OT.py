@@ -1,14 +1,10 @@
-"""
-Operator for handling RGB color updates and synchronization.
-"""
+"""Operator for RGB synchronization"""
 
 import bpy
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating, UpdateFlags
+from ..COLORAIDE_sync import sync_all, is_updating
 
 class COLOR_OT_sync_rgb(Operator):
-    """Operator to sync RGB values with current color"""
     bl_idname = "color.sync_rgb"
     bl_label = "Sync RGB Values"
     bl_description = "Synchronize RGB sliders with current color"
@@ -19,7 +15,10 @@ class COLOR_OT_sync_rgb(Operator):
         return hasattr(context.window_manager, 'coloraide_rgb')
     
     def execute(self, context):
-        if not is_updating('rgb'):
-            current_color = tuple(context.window_manager.coloraide_picker.mean)
-            sync_rgb_from_brush(context, current_color)
+        if is_updating():
+            return {'FINISHED'}
+            
+        current_color = tuple(context.window_manager.coloraide_picker.mean)
+        rgb_bytes = tuple(int(c * 255) for c in current_color)
+        sync_all(context, 'rgb', rgb_bytes)
         return {'FINISHED'}

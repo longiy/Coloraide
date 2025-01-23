@@ -4,11 +4,9 @@ Operators for handling color wheel updates and interactions.
 
 import bpy
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating, UpdateFlags
+from ..COLORAIDE_sync import sync_all, is_updating
 
 class COLOR_OT_sync_wheel(Operator):
-    """Operator to sync color wheel with current color"""
     bl_idname = "color.sync_wheel"
     bl_label = "Sync Color Wheel"
     bl_description = "Synchronize color wheel with current color"
@@ -19,9 +17,10 @@ class COLOR_OT_sync_wheel(Operator):
         return hasattr(context.window_manager, 'coloraide_wheel')
     
     def execute(self, context):
-        if not is_updating('wheel'):
-            current_color = tuple(context.window_manager.coloraide_picker.mean)
-            sync_all(context, 'wheel', current_color)
+        if is_updating():
+            return {'FINISHED'}
+        current_color = tuple(context.window_manager.coloraide_picker.mean)
+        sync_all(context, 'wheel', current_color)
         return {'FINISHED'}
 
 class COLOR_OT_reset_wheel_scale(Operator):

@@ -1,25 +1,17 @@
-"""
-Operator for handling LAB color updates and synchronization.
-"""
-
+# LAB_OT.py 
 import bpy
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating, UpdateFlags
+from ..COLORAIDE_sync import sync_all, is_updating
 
 class COLOR_OT_sync_lab(Operator):
-    """Operator to sync LAB values with current color"""
     bl_idname = "color.sync_lab"
     bl_label = "Sync LAB Values"
-    bl_description = "Synchronize LAB sliders with current color"
     bl_options = {'INTERNAL'}
     
-    @classmethod
-    def poll(cls, context):
-        return hasattr(context.window_manager, 'coloraide_lab')
-    
     def execute(self, context):
-        if not is_updating('lab'):
-            current_color = tuple(context.window_manager.coloraide_picker.mean)
-            sync_lab_from_rgb(context, current_color)
+        if is_updating():
+            return {'FINISHED'}
+        current_color = tuple(context.window_manager.coloraide_picker.mean)
+        lab_values = rgb_to_lab(current_color)
+        sync_all(context, 'lab', lab_values)
         return {'FINISHED'}

@@ -1,31 +1,18 @@
-"""
-Operator for handling HSV color updates and synchronization.
-"""
-
+# HSV_OT.py
 import bpy
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating, UpdateFlags
+from ..COLORAIDE_sync import sync_all, is_updating
 
 class COLOR_OT_sync_hsv(Operator):
-    """Operator to sync HSV values with current color"""
     bl_idname = "color.sync_hsv"
     bl_label = "Sync HSV Values"
-    bl_description = "Synchronize HSV sliders with current color"
     bl_options = {'INTERNAL'}
     
-    @classmethod
-    def poll(cls, context):
-        return hasattr(context.window_manager, 'coloraide_hsv')
-    
     def execute(self, context):
-        if not is_updating('hsv'):  # Changed check
-            current_color = tuple(context.window_manager.coloraide_picker.mean)
-            sync_hsv_from_rgb(context, current_color)
+        if is_updating():
+            return {'FINISHED'}
+        current_color = tuple(context.window_manager.coloraide_picker.mean)
+        hsv_values = rgb_to_hsv(current_color)
+        hsv_display = (hsv_values[0]*360.0, hsv_values[1]*100.0, hsv_values[2]*100.0)
+        sync_all(context, 'hsv', hsv_display)
         return {'FINISHED'}
-
-def register():
-    bpy.utils.register_class(COLOR_OT_sync_hsv)
-
-def unregister():
-    bpy.utils.unregister_class(COLOR_OT_sync_hsv)

@@ -1,33 +1,22 @@
-"""
-Property definitions for color wheel functionality.
-"""
-
 import bpy
-from bpy.props import FloatProperty, FloatVectorProperty
+from bpy.props import FloatProperty, FloatVectorProperty, BoolProperty
 from bpy.types import PropertyGroup
-from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import UpdateFlags, is_updating
-
-def update_wheel_color(self, context):
-    """Update handler for color wheel changes"""
-    if is_updating('wheel'):
-        return
-        
-    # Extract RGB from wheel color (ignoring alpha)
-    color = tuple(self.color[:3])
-    sync_all(context, 'wheel', color)
+from ..COLORAIDE_sync import sync_all, is_updating
 
 class ColoraideWheelProperties(PropertyGroup):
-    """Properties for color wheel"""
+    suppress_updates: BoolProperty(default=False)
     
+    def update_wheel_color(self, context):
+        if is_updating() or self.suppress_updates:
+            return
+        color = tuple(self.color[:3])
+        sync_all(context, 'wheel', color)
+
     scale: FloatProperty(
         name="Wheel Size",
-        description="Adjust the size of the color wheel",
         min=1.0,
         max=3.0,
-        default=1.5,
-        step=10,
-        precision=1
+        default=1.5
     )
     
     color: FloatVectorProperty(
