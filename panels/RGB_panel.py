@@ -12,8 +12,8 @@ def draw_rgb_panel(layout, context):
     box = layout.box()
     row = box.row()
     row.prop(wm.coloraide_display, "show_rgb_sliders", 
-        text="RGB", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_rgb_sliders else 'TRIA_RIGHT', 
+        text="RGBA", 
+        icon='TRIA_DOWN' if wm.coloraide_display.show_rgb_sliders else 'TRIA_RIGHT',
         emboss=False
     )
     
@@ -21,25 +21,31 @@ def draw_rgb_panel(layout, context):
         col = box.column(align=True)
         
         # Red slider
-        split = col.split(factor=0.1)
+        split = col.split(factor=0.15)
         split.label(text="R:")
-        row = split.row(align=True)
-        row.prop(wm.coloraide_rgb, "red", text="", slider=True)
-        row.operator(
-            "color.sync_rgb",
-            text="",
-            icon='FILE_REFRESH'
-        )
+        split.prop(wm.coloraide_rgb, "red", text="", slider=True)
         
         # Green slider
-        split = col.split(factor=0.1)
+        split = col.split(factor=0.15)
         split.label(text="G:")
         split.prop(wm.coloraide_rgb, "green", text="", slider=True)
         
         # Blue slider
-        split = col.split(factor=0.1)
+        split = col.split(factor=0.15)
         split.label(text="B:")
         split.prop(wm.coloraide_rgb, "blue", text="", slider=True)
+        
+        # Alpha slider
+        split = col.split(factor=0.15)
+        split.label(text="A:")
+        row = split.row(align=True)
+        row.prop(wm.coloraide_rgb, "alpha", text="", slider=True)
+        
+        # Numeric display row
+        row = box.row(align=True)
+        row.alignment = 'CENTER'
+        row.label(text=f"({wm.coloraide_rgb.red}, {wm.coloraide_rgb.green}, "
+                      f"{wm.coloraide_rgb.blue}, {wm.coloraide_rgb.alpha:.3f})")
 
 class RGB_PT_panel:
     """Class containing panel drawing methods for RGB controls"""
@@ -54,6 +60,7 @@ class RGB_PT_panel:
             row.prop(wm.coloraide_rgb, "red", text="R")
             row.prop(wm.coloraide_rgb, "green", text="G")
             row.prop(wm.coloraide_rgb, "blue", text="B")
+            row.prop(wm.coloraide_rgb, "alpha", text="A")
     
     @staticmethod
     def draw_expanded(layout, context):
@@ -69,6 +76,7 @@ class RGB_PT_panel:
             col.prop(wm.coloraide_rgb, "red", text="")
             col.prop(wm.coloraide_rgb, "green", text="")
             col.prop(wm.coloraide_rgb, "blue", text="")
+            col.prop(wm.coloraide_rgb, "alpha", text="")
 
 def register():
     """Register any classes specific to the RGB panel"""

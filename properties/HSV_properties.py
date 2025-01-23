@@ -1,47 +1,21 @@
 """
-HSV color space properties with bidirectional synchronization.
+HSV color slider properties with synchronization using central sync system.
 """
 
 import bpy
 from bpy.props import FloatProperty
 from bpy.types import PropertyGroup
-from ..COLORAIDE_utils import (
-    hsv_to_rgb,
-    rgb_to_hsv,
-    UpdateFlags
-)
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating
 
-def sync_hsv_from_rgb(context, rgb_color):
-    """
-    Synchronize HSV values from RGB color.
-    
-    Args:
-        context: Blender context
-        rgb_color: Tuple of RGB values (0-1)
-    """
-    with UpdateFlags('hsv'):
-        wm = context.window_manager
-        if hasattr(wm, 'coloraide_hsv'):
-            # Use rgb_to_hsv from COLORAIDE_utils
-            hsv_values = rgb_to_hsv(rgb_color)
-            wm.coloraide_hsv.hue = hsv_values[0] * 360.0
-            wm.coloraide_hsv.saturation = hsv_values[1] * 100.0
-            wm.coloraide_hsv.value = hsv_values[2] * 100.0
-
-def update_hsv(self, context):
-    """Update handler for HSV slider changes"""
-    with UpdateFlags('hsv'):
-        # Convert HSV to RGB using COLORAIDE_utils
-        hsv = (
-            self.hue / 360.0,
-            self.saturation / 100.0,
-            self.value / 100.0
-        )
-        rgb = hsv_to_rgb(hsv)
+def update_hsv_values(self, context):
+    """Update handler for HSV value changes"""
+    if is_updating('hsv'):
+        return
         
-        # Update picker.mean (will trigger sync of other inputs)
-        picker = context.window_manager.coloraide_picker
-        picker.mean = rgb
+    # Package HSV values as a tuple (keeping original ranges)
+    hsv_values = (self.hue, self.saturation, self.value)
+    sync_all(context, 'hsv', hsv_values)
 
 class ColoraideHSVProperties(PropertyGroup):
     """Properties for HSV color sliders"""
@@ -53,7 +27,7 @@ class ColoraideHSVProperties(PropertyGroup):
         min=0.0,
         max=360.0,
         precision=1,
-        update=update_hsv
+        update=update_hsv_values
     )
     
     saturation: FloatProperty(
@@ -63,15 +37,17 @@ class ColoraideHSVProperties(PropertyGroup):
         min=0.0,
         max=100.0,
         precision=1,
-        update=update_hsv
+        subtype='PERCENTAGE',
+        update=update_hsv_values
     )
     
     value: FloatProperty(
         name="V",
-        description="Value (0-100%)",
+        description="Value/Brightness (0-100%)",
         default=100.0,
         min=0.0,
         max=100.0,
         precision=1,
-        update=update_hsv
+        subtype='PERCENTAGE',
+        update=update_hsv_values
     )

@@ -8,34 +8,27 @@ from math import pow
 
 """Centralized color update flag management"""
 
-# Global update flags for all possible components
-UPDATE_FLAGS = {
-    'picker': False,
-    'rgb': False,
-    'hsv': False,
-    'lab': False, 
-    'hex': False,
-    'wheel': False
-}
-
-def is_any_update_in_progress():
-    """Check if any color component is currently updating"""
-    return any(UPDATE_FLAGS.values())
+# Global update state
+_UPDATING_FROM = None
 
 def is_updating(component_name):
-    """Check if specific component is updating"""
-    return UPDATE_FLAGS.get(component_name, False)
+    """Check if an update is in progress and prevent cycles"""
+    return _UPDATING_FROM is not None and _UPDATING_FROM != component_name
 
 class UpdateFlags:
     """Context manager for handling update flags"""
-    def __init__(self, component_name):
-        self.component_name = component_name
+    def __init__(self, source):
+        self.source = source
+        self.previous = None
         
     def __enter__(self):
-        UPDATE_FLAGS[self.component_name] = True
+        global _UPDATING_FROM
+        self.previous = _UPDATING_FROM
+        _UPDATING_FROM = self.source
         
     def __exit__(self, exc_type, exc_val, exc_tb):
-        UPDATE_FLAGS[self.component_name] = False
+        global _UPDATING_FROM
+        _UPDATING_FROM = self.previous
 
 def rgb_to_hsv(rgb):
     """Convert RGB values in range 0-1 to HSV values in range 0-1"""
@@ -204,7 +197,6 @@ def xyz_to_rgb(xyz):
     
     return (r, g, b)
 
-# Color space conversion convenience functions
 def rgb_to_lab(rgb):
     """Convert RGB to LAB"""
     xyz = rgb_to_xyz(rgb)
@@ -215,7 +207,6 @@ def lab_to_rgb(lab):
     xyz = lab_to_xyz(lab)
     return xyz_to_rgb(xyz)
 
-# Utility functions for color manipulation
 def rgb_bytes_to_float(rgb_bytes):
     """Convert RGB bytes (0-255) to float values (0-1)"""
     return tuple(c / 255 for c in rgb_bytes)
@@ -240,7 +231,6 @@ def rgb_to_hex(rgb_float):
     rgb_bytes = rgb_float_to_bytes(rgb_float)
     return "#{:02X}{:02X}{:02X}".format(*rgb_bytes)
 
-# Color statistics functions
 def color_statistics(colors):
     """Calculate color statistics for an array of colors"""
     if not colors.size:

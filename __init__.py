@@ -4,6 +4,10 @@ Main initialization file for Coloraide addon.
 
 import bpy
 
+# First utilities and sync system
+from .COLORAIDE_utils import *  # Your utility functions
+from .COLORAIDE_sync import sync_all, update_manager
+
 # Import all properties
 from .properties.CPICKER_properties import ColoraidePickerProperties
 from .properties.CWHEEL_properties import ColoraideWheelProperties 

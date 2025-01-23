@@ -18,11 +18,9 @@ def draw_wheel_panel(layout, context):
     )
     
     if wm.coloraide_display.show_wheel:
-        # Scale the color wheel based on user preference
+        # Add the main color wheel with dynamic scaling
         col = box.column()
         col.scale_y = wm.coloraide_wheel.scale
-        
-        # Add the main color wheel
         col.template_color_picker(
             wm.coloraide_wheel, 
             "color", 
@@ -30,7 +28,7 @@ def draw_wheel_panel(layout, context):
             lock_luminosity=False
         )
         
-        # Add scale control and reset button
+        # Scale control with reset button
         row = box.row(align=True)
         split = row.split(factor=0.85, align=True)
         split.prop(wm.coloraide_wheel, "scale", text="Size", slider=True)
@@ -40,44 +38,21 @@ def draw_wheel_panel(layout, context):
             icon='LOOP_BACK'
         )
 
-class WHEEL_PT_panel:
-    """Class containing panel drawing methods for color wheel"""
+# Optional: Add operator for resetting wheel scale
+class COLOR_OT_reset_wheel_scale(bpy.types.Operator):
+    """Reset color wheel scale to default value"""
+    bl_idname = "color.reset_wheel_scale"
+    bl_label = "Reset Wheel Scale"
+    bl_description = "Reset the color wheel size to default"
+    bl_options = {'INTERNAL'}
     
-    @staticmethod
-    def draw_compact(layout, context):
-        """Draw a compact version of the color wheel"""
-        wm = context.window_manager
-        if wm.coloraide_display.show_wheel:
-            col = layout.column()
-            col.scale_y = wm.coloraide_wheel.scale
-            col.template_color_picker(
-                wm.coloraide_wheel,
-                "color",
-                value_slider=True,
-                lock_luminosity=False
-            )
-    
-    @staticmethod
-    def draw_expanded(layout, context):
-        """Draw the full color wheel panel"""
-        draw_wheel_panel(layout, context)
-    
-    @staticmethod
-    def draw_minimal(layout, context):
-        """Draw minimal color wheel without controls"""
-        wm = context.window_manager
-        if wm.coloraide_display.show_wheel:
-            layout.template_color_picker(
-                wm.coloraide_wheel,
-                "color",
-                value_slider=False,
-                lock_luminosity=False
-            )
+    def execute(self, context):
+        context.window_manager.coloraide_wheel.scale = 1.5
+        return {'FINISHED'}
 
+# Registration
 def register():
-    """Register any classes specific to the wheel panel"""
-    pass
+    bpy.utils.register_class(COLOR_OT_reset_wheel_scale)
 
 def unregister():
-    """Unregister any classes specific to the wheel panel"""
-    pass
+    bpy.utils.unregister_class(COLOR_OT_reset_wheel_scale)

@@ -1,43 +1,21 @@
 """
-LAB color space properties with bidirectional synchronization.
+LAB color slider properties with synchronization using central sync system.
 """
 
 import bpy
 from bpy.props import FloatProperty
 from bpy.types import PropertyGroup
-from ..COLORAIDE_utils import (
-    lab_to_rgb,
-    rgb_to_lab,
-    UpdateFlags
-)
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating
 
-def sync_lab_from_rgb(context, rgb_color):
-    """
-    Synchronize LAB values from RGB color.
-    
-    Args:
-        context: Blender context
-        rgb_color: Tuple of RGB values (0-1)
-    """
-    with UpdateFlags('lab'):
-        wm = context.window_manager
-        if hasattr(wm, 'coloraide_lab'):
-            # Use rgb_to_lab from COLORAIDE_utils
-            lab_values = rgb_to_lab(rgb_color)
-            wm.coloraide_lab.lightness = lab_values[0]
-            wm.coloraide_lab.a = lab_values[1]
-            wm.coloraide_lab.b = lab_values[2]
-
-def update_lab(self, context):
-    """Update handler for LAB slider changes"""
-    with UpdateFlags('lab'):
-        # Convert LAB to RGB using COLORAIDE_utils
-        lab = (self.lightness, self.a, self.b)
-        rgb = lab_to_rgb(lab)
+def update_lab_values(self, context):
+    """Update handler for LAB value changes"""
+    if is_updating('lab'):
+        return
         
-        # Update picker.mean (will trigger sync of other inputs)
-        picker = context.window_manager.coloraide_picker
-        picker.mean = rgb
+    # Package LAB values as a tuple
+    lab_values = (self.lightness, self.a, self.b)
+    sync_all(context, 'lab', lab_values)
 
 class ColoraideLABProperties(PropertyGroup):
     """Properties for LAB color sliders"""
@@ -49,7 +27,7 @@ class ColoraideLABProperties(PropertyGroup):
         min=0.0,
         max=100.0,
         precision=1,
-        update=update_lab
+        update=update_lab_values
     )
     
     a: FloatProperty(
@@ -59,7 +37,7 @@ class ColoraideLABProperties(PropertyGroup):
         min=-128.0,
         max=127.0,
         precision=1,
-        update=update_lab
+        update=update_lab_values
     )
     
     b: FloatProperty(
@@ -69,5 +47,5 @@ class ColoraideLABProperties(PropertyGroup):
         min=-128.0,
         max=127.0,
         precision=1,
-        update=update_lab
+        update=update_lab_values
     )

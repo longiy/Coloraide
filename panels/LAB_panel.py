@@ -13,7 +13,7 @@ def draw_lab_panel(layout, context):
     row = box.row()
     row.prop(wm.coloraide_display, "show_lab_sliders", 
         text="LAB", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_lab_sliders else 'TRIA_RIGHT', 
+        icon='TRIA_DOWN' if wm.coloraide_display.show_lab_sliders else 'TRIA_RIGHT',
         emboss=False
     )
     
@@ -21,25 +21,40 @@ def draw_lab_panel(layout, context):
         col = box.column(align=True)
         
         # Lightness slider
-        split = col.split(factor=0.1)
+        split = col.split(factor=0.15)
         split.label(text="L:")
-        row = split.row(align=True)
-        row.prop(wm.coloraide_lab, "lightness", text="", slider=True)
-        row.operator(
-            "color.sync_lab",
-            text="",
-            icon='FILE_REFRESH'
-        )
+        split.prop(wm.coloraide_lab, "lightness", text="", slider=True)
         
         # a slider
-        split = col.split(factor=0.1)
+        split = col.split(factor=0.15)
         split.label(text="a:")
-        split.prop(wm.coloraide_lab, "a", text="", slider=True)
+        row = split.row(align=True)
+        row.prop(wm.coloraide_lab, "a", text="", slider=True)
         
         # b slider
-        split = col.split(factor=0.1)
+        split = col.split(factor=0.15)
         split.label(text="b:")
-        split.prop(wm.coloraide_lab, "b", text="", slider=True)
+        row = split.row(align=True)
+        row.prop(wm.coloraide_lab, "b", text="", slider=True)
+        
+        # Numerical display
+        row = box.row(align=True)
+        row.alignment = 'CENTER'
+        row.label(text=f"L: {wm.coloraide_lab.lightness:.1f}, "
+                      f"a: {wm.coloraide_lab.a:.1f}, "
+                      f"b: {wm.coloraide_lab.b:.1f}")
+        
+        # Description labels
+        col = box.column(align=True)
+        row = col.row(align=True)
+        row.alignment = 'CENTER'
+        row.label(text="L: Black (0) to White (100)")
+        row = col.row(align=True)
+        row.alignment = 'CENTER'
+        row.label(text="a: Green (-) to Red (+)")
+        row = col.row(align=True)
+        row.alignment = 'CENTER'
+        row.label(text="b: Blue (-) to Yellow (+)")
 
 class LAB_PT_panel:
     """Class containing panel drawing methods for LAB controls"""
@@ -49,8 +64,7 @@ class LAB_PT_panel:
         """Draw a compact version of the LAB controls"""
         wm = context.window_manager
         if wm.coloraide_display.show_lab_sliders:
-            col = layout.column(align=True)
-            row = col.row(align=True)
+            row = layout.row(align=True)
             row.prop(wm.coloraide_lab, "lightness", text="L")
             row.prop(wm.coloraide_lab, "a", text="a")
             row.prop(wm.coloraide_lab, "b", text="b")

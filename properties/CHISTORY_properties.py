@@ -1,30 +1,22 @@
 """
-Standalone property definitions for color history management.
+Property definitions for color history functionality.
 """
 
 import bpy
 from bpy.props import IntProperty, FloatVectorProperty, CollectionProperty
 from bpy.types import PropertyGroup
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating
 
 class ColorHistoryItemProperties(PropertyGroup):
     """Individual color history item properties"""
     
-    def update_color(self, context):
+    def update_history_color(self, context):
         """Update handler for when a history color is selected"""
-        wm = context.window_manager
-        # Update picker colors
-        wm.coloraide_picker.mean = self.color
-        wm.coloraide_picker.current = self.color
-        
-        # Update brush colors
-        ts = context.tool_settings
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-            ts.gpencil_paint.brush.color = self.color
-        
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-            ts.image_paint.brush.color = self.color
-            if ts.unified_paint_settings.use_unified_color:
-                ts.unified_paint_settings.color = self.color
+        if is_updating('history'):
+            return
+            
+        sync_all(context, 'history', self.color)
     
     color: FloatVectorProperty(
         name="Color",
@@ -33,7 +25,7 @@ class ColorHistoryItemProperties(PropertyGroup):
         min=0.0,
         max=1.0,
         default=(1.0, 1.0, 1.0),
-        update=update_color
+        update=update_history_color
     )
 
 class ColoraideHistoryProperties(PropertyGroup):
@@ -73,4 +65,5 @@ class ColoraideHistoryProperties(PropertyGroup):
         
         # Add new color at start
         if len(self.items) > 0:
-            self.items[0].color = color
+            with UpdateFlags('history'):
+                self.items[0].color = color

@@ -5,34 +5,24 @@ Core property definitions for color picker functionality.
 import bpy
 from bpy.props import IntProperty, FloatVectorProperty
 from bpy.types import PropertyGroup
-from ..COLORAIDE_utils import UpdateFlags
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating
 
-def sync_picker_from_brush(context, brush_color=None):
-    """
-    Synchronize picker colors from the current brush color.
-    If brush_color is provided, use that instead of reading from the brush.
-    """
-    with UpdateFlags('picker'):
-        wm = context.window_manager
-        if not hasattr(wm, 'coloraide_picker'):
-            return
-            
-        # If no color provided, get from brush
-        if brush_color is None:
-            ts = context.tool_settings
-            if context.mode == 'PAINT_GPENCIL' and ts.gpencil_paint.brush:
-                brush_color = tuple(ts.gpencil_paint.brush.color)
-            elif hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                brush_color = tuple(ts.image_paint.brush.color)
-                if ts.unified_paint_settings.use_unified_color:
-                    brush_color = tuple(ts.unified_paint_settings.color)
+def update_mean_color(self, context):
+    """Update handler for mean color changes"""
+    if is_updating('picker'):
+        return
         
-        # Update picker colors
-        if brush_color:
-            wm.coloraide_picker.mean = brush_color
-            wm.coloraide_picker.current = brush_color
+    sync_all(context, 'picker', self.mean)
 
-# Rest of the ColoraidePickerProperties class definition remains the same
+def update_current_color(self, context):
+    """Update handler for current (1x1 sample) color changes"""
+    if is_updating('picker'):  
+        return
+        
+    # Only update the current display without affecting other values
+    pass  
+
 class ColoraidePickerProperties(PropertyGroup):
     """Properties for core color picker functionality"""
     
@@ -52,7 +42,8 @@ class ColoraidePickerProperties(PropertyGroup):
         subtype='COLOR_GAMMA',
         min=0.0,
         max=1.0,
-        default=(0.5, 0.5, 0.5)
+        default=(0.5, 0.5, 0.5),
+        update=update_mean_color
     )
     
     current: FloatVectorProperty(
@@ -62,7 +53,8 @@ class ColoraidePickerProperties(PropertyGroup):
         subtype='COLOR_GAMMA',
         min=0.0,
         max=1.0,
-        default=(1.0, 1.0, 1.0)
+        default=(1.0, 1.0, 1.0),
+        update=update_current_color
     )
     
     max: FloatVectorProperty(

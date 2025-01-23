@@ -1,43 +1,29 @@
 """
-Property definitions for RGB color sliders with improved synchronization.
+RGB color slider properties with synchronization using central sync system.
 """
 
 import bpy
-from bpy.props import IntProperty
+from bpy.props import IntProperty, FloatProperty
 from bpy.types import PropertyGroup
-from ..COLORAIDE_utils import (
-    rgb_bytes_to_float,
-    rgb_float_to_bytes,
-    UpdateFlags
-)
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating
 
-def sync_rgb_from_brush(context, rgb_color):
-    """
-    Synchronize RGB values from brush color.
-    
-    Args:
-        context: Blender context
-        rgb_color: Tuple of RGB float values (0-1)
-    """
-    with UpdateFlags('rgb'):
-        wm = context.window_manager
-        if hasattr(wm, 'coloraide_rgb'):
-            # Convert float RGB to bytes using utility function
-            rgb_bytes = rgb_float_to_bytes(rgb_color)
-            wm.coloraide_rgb.red = rgb_bytes[0]
-            wm.coloraide_rgb.green = rgb_bytes[1]
-            wm.coloraide_rgb.blue = rgb_bytes[2]
-
-def update_rgb_byte(self, context):
+def update_rgb_bytes(self, context):
     """Update handler for RGB byte value changes"""
-    with UpdateFlags('rgb'):
-        # Convert byte RGB to float using utility function
-        rgb_float = rgb_bytes_to_float((self.red, self.green, self.blue))
+    if is_updating('rgb'):
+        return
         
-        # Update picker values (this will trigger synchronization of other inputs)
-        picker = context.window_manager.coloraide_picker
-        picker.mean = rgb_float
-        picker.current = rgb_float
+    # Package RGB values as a tuple of bytes (0-255)
+    rgb_bytes = (self.red, self.green, self.blue)
+    sync_all(context, 'rgb', rgb_bytes)
+
+def update_alpha(self, context):
+    """Update handler for alpha value changes"""
+    if is_updating('rgb'):
+        return
+        
+    # Store alpha value for use in mixing/blending
+    context.window_manager.coloraide_picker.alpha = self.alpha
 
 class ColoraideRGBProperties(PropertyGroup):
     """Properties for RGB color sliders"""
@@ -48,7 +34,7 @@ class ColoraideRGBProperties(PropertyGroup):
         min=0,
         max=255,
         default=128,
-        update=update_rgb_byte
+        update=update_rgb_bytes
     )
     
     green: IntProperty(
@@ -57,7 +43,7 @@ class ColoraideRGBProperties(PropertyGroup):
         min=0,
         max=255,
         default=128,
-        update=update_rgb_byte
+        update=update_rgb_bytes
     )
     
     blue: IntProperty(
@@ -66,5 +52,15 @@ class ColoraideRGBProperties(PropertyGroup):
         min=0,
         max=255,
         default=128,
-        update=update_rgb_byte
+        update=update_rgb_bytes
+    )
+    
+    alpha: FloatProperty(
+        name="A",
+        description="Alpha (0-1)",
+        min=0.0,
+        max=1.0,
+        default=1.0,
+        precision=3,
+        update=update_alpha
     )

@@ -4,7 +4,7 @@ Operator for handling HSV color updates and synchronization.
 
 import bpy
 from bpy.types import Operator
-from ..properties.HSV_properties import sync_hsv_from_rgb
+from ..COLORAIDE_sync import sync_all
 from ..COLORAIDE_utils import is_updating  # Changed import
 
 class COLOR_OT_sync_hsv(Operator):
