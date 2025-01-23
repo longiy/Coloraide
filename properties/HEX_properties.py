@@ -6,7 +6,7 @@ import bpy
 from bpy.props import StringProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating
+from ..COLORAIDE_utils import UpdateFlags, is_updating
 
 def update_hex_value(self, context):
     """Update handler for hex color changes"""

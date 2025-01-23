@@ -4,6 +4,8 @@ Operators for color history management.
 
 import bpy
 from bpy.types import Operator
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating, UpdateFlags
 
 class COLOR_OT_adjust_history_size(Operator):
     """Adjust the size of the color history"""

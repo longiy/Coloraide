@@ -5,6 +5,8 @@ Operators for palette management and color operations.
 import bpy
 from bpy.types import Operator
 from bpy.props import FloatVectorProperty
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating, UpdateFlags
 
 class PALETTE_OT_add_color(Operator):
     """Add current color to active palette"""

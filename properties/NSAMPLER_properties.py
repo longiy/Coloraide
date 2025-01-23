@@ -6,7 +6,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating
+from ..COLORAIDE_utils import UpdateFlags, is_updating
 
 class ColoraideNormalProperties(PropertyGroup):
     """Properties for normal color sampling"""

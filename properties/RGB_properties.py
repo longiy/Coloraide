@@ -6,7 +6,7 @@ import bpy
 from bpy.props import IntProperty, FloatProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating
+from ..COLORAIDE_utils import UpdateFlags, is_updating
 
 def update_rgb_bytes(self, context):
     """Update handler for RGB byte value changes"""

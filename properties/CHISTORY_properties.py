@@ -6,7 +6,7 @@ import bpy
 from bpy.props import IntProperty, FloatVectorProperty, CollectionProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating
+from ..COLORAIDE_utils import UpdateFlags, is_updating
 
 class ColorHistoryItemProperties(PropertyGroup):
     """Individual color history item properties"""

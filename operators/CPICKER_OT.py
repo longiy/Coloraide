@@ -7,7 +7,8 @@ import gpu
 import numpy as np
 from bpy.types import Operator
 from gpu_extras.batch import batch_for_shader
-from ..properties.CPICKER_properties import sync_picker_from_brush
+from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import is_updating, UpdateFlags
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
@@ -59,6 +60,9 @@ class IMAGE_OT_screen_picker(Operator):
     
     def sample_colors(self, context, event):
         """Sample colors from screen and update properties"""
+        if is_updating('picker'):
+            return
+            
         distance = self.sqrt_length // 2
         start_x = max(event.mouse_x - distance, 0)
         start_y = max(event.mouse_y - distance, 0)
@@ -77,21 +81,22 @@ class IMAGE_OT_screen_picker(Operator):
         curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
         current_color = np.array(curr_buffer.to_list()).reshape(-1)
         
-        # Update picker properties
-        wm = context.window_manager
-        wm.coloraide_picker.mean = tuple(mean_color)
-        wm.coloraide_picker.current = tuple(current_color)
-        
         # Update statistics
         dot = np.sum(channels, axis=1)
         max_ind = np.argmax(dot, axis=0)
         min_ind = np.argmin(dot, axis=0)
         
+        wm = context.window_manager
         wm.coloraide_picker.max = tuple(channels[max_ind])
         wm.coloraide_picker.min = tuple(channels[min_ind])
         wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
+        
+        # Update picker values using sync system
+        wm.coloraide_picker.current = tuple(current_color)
+        sync_all(context, 'picker', tuple(mean_color))
     
     def cleanup(self, context):
+        """Clean up handlers and restore cursor"""
         context.window.cursor_modal_restore()
         if self._handler:
             space = getattr(bpy.types, self.space_type)
@@ -144,6 +149,7 @@ class IMAGE_OT_quickpick(Operator):
     _handler = None
     
     def cleanup(self, context, add_to_history=True):
+        """Clean up handlers and optionally add to history"""
         context.window.cursor_modal_restore()
         if self._handler:
             space = getattr(bpy.types, self.space_type)
@@ -163,6 +169,9 @@ class IMAGE_OT_quickpick(Operator):
             return {'FINISHED'}
         
         elif event.type in {'MOUSEMOVE'} or (event.type == self._key_pressed):
+            if is_updating('picker'):
+                return {'PASS_THROUGH'}
+                
             # Use custom size from picker properties
             self.sqrt_length = context.window_manager.coloraide_picker.custom_size
             distance = self.sqrt_length // 2
@@ -182,19 +191,19 @@ class IMAGE_OT_quickpick(Operator):
             curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
             current_color = np.array(curr_buffer.to_list()).reshape(-1)
             
-            # Update picker values
-            wm = context.window_manager
-            wm.coloraide_picker.mean = tuple(mean_color)
-            wm.coloraide_picker.current = tuple(current_color)
-            
             # Update statistics
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
             
+            wm = context.window_manager
             wm.coloraide_picker.max = tuple(channels[max_ind])
             wm.coloraide_picker.min = tuple(channels[min_ind])
             wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
+            
+            # Update picker values using sync system
+            wm.coloraide_picker.current = tuple(current_color)
+            sync_all(context, 'picker', tuple(mean_color))
         
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             self.cleanup(context, add_to_history=False)

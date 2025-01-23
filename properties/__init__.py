@@ -1,4 +1,3 @@
-# Import all property classes
 from .RGB_properties import ColoraideRGBProperties
 from .LAB_properties import ColoraideLABProperties
 from .HSV_properties import ColoraideHSVProperties
@@ -9,10 +8,9 @@ from .CHISTORY_properties import ColoraideHistoryProperties, ColorHistoryItemPro
 from .NSAMPLER_properties import ColoraideNormalProperties
 from .CDYNAMICS_properties import ColoraideDynamicsProperties
 
-# Export all classes
 __all__ = [
     'ColoraideRGBProperties',
-    'ColoraideLABProperties',
+    'ColoraideLABProperties', 
     'ColoraideHSVProperties',
     'ColoraideHexProperties',
     'ColoraidePickerProperties',
@@ -20,5 +18,5 @@ __all__ = [
     'ColoraideHistoryProperties',
     'ColorHistoryItemProperties',
     'ColoraideNormalProperties',
-    'ColoraideDynamicsProperties',
+    'ColoraideDynamicsProperties'
 ]

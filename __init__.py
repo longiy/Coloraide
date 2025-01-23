@@ -1,12 +1,11 @@
 """
 Main initialization file for Coloraide addon.
 """
-
 import bpy
 
-# First utilities and sync system
-from .COLORAIDE_utils import *  # Your utility functions
-from .COLORAIDE_sync import sync_all, update_manager
+# First utilities and sync system from root
+from .COLORAIDE_utils import *
+from .COLORAIDE_sync import sync_all, update_manager 
 
 # Import all properties
 from .properties.CPICKER_properties import ColoraidePickerProperties
@@ -23,7 +22,7 @@ from .COLORAIDE_properties import ColoraideDisplayProperties
 # Import all operators
 from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick
 from .operators.HEX_OT import COLOR_OT_sync_hex, COLOR_OT_validate_hex
-from .operators.HSV_OT import COLOR_OT_sync_hsv
+from .operators.HSV_OT import COLOR_OT_sync_hsv  
 from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
@@ -35,7 +34,7 @@ from .COLORAIDE_monitor import COLOR_OT_monitor
 
 # Import all panels
 from .panels.CPICKER_panel import draw_picker_panel
-from .panels.CWHEEL_panel import draw_wheel_panel
+from .panels.CWHEEL_panel import draw_wheel_panel  
 from .panels.HEX_panel import draw_hex_panel
 from .panels.RGB_panel import draw_rgb_panel
 from .panels.LAB_panel import draw_lab_panel

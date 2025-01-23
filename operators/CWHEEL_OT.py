@@ -5,7 +5,7 @@ Operators for handling color wheel updates and interactions.
 import bpy
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating
+from ..COLORAIDE_utils import is_updating, UpdateFlags
 
 class COLOR_OT_sync_wheel(Operator):
     """Operator to sync color wheel with current color"""

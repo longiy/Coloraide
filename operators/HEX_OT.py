@@ -5,7 +5,7 @@ Operators for handling hex color updates and validation.
 import bpy
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating
+from ..COLORAIDE_utils import is_updating, UpdateFlags
 
 class COLOR_OT_sync_hex(Operator):
     """Operator to sync hex value with current color"""

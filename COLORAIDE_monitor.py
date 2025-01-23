@@ -1,11 +1,11 @@
 """
 Color monitor system for Coloraide addon.
-Keeps all color components synchronized and monitors brush color changes.
 """
 
 import bpy
 from bpy.types import Operator
-from .COLORAIDE_utils import UpdateFlags
+from .COLORAIDE_sync import sync_all
+from .COLORAIDE_utils import is_updating
 
 class COLOR_OT_monitor(Operator):
     """Monitor color changes and keep all components synchronized"""
@@ -30,9 +30,9 @@ class COLOR_OT_monitor(Operator):
             
             # If color changed and not from our own updates
             if curr_color != self.old_color and curr_color is not None:
-                # Update through picker.mean (this will trigger synchronization)
-                with UpdateFlags('monitor'):
-                    context.window_manager.coloraide_picker.mean = curr_color
+                if not is_updating('brush'):
+                    # Use central sync system
+                    sync_all(context, 'brush', curr_color)
                     self.old_color = curr_color
                     
         except Exception as e:
