@@ -73,6 +73,7 @@ class DYNAMICS_PT_panel:
 
 def register():
     bpy.utils.register_class(BRUSH_OT_reset_dynamics)
+    
 
 def unregister():
     bpy.utils.unregister_class(BRUSH_OT_reset_dynamics)

@@ -25,6 +25,28 @@ class PALETTE_OT_add_color(Operator):
             return {'FINISHED'}
         return {'CANCELLED'}
 
+class PALETTE_OT_remove_color(bpy.types.Operator):
+    bl_idname = "palette.remove_color"
+    bl_label = "Remove Color"
+    bl_description = "Remove selected color from palette"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    @classmethod
+    def poll(cls, context):
+        ts = context.tool_settings
+        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        return (paint_settings and paint_settings.palette 
+                and paint_settings.palette.colors.active)
+    
+    def execute(self, context):
+        ts = context.tool_settings
+        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        
+        if paint_settings and paint_settings.palette:
+            paint_settings.palette.colors.remove(paint_settings.palette.colors.active)
+            return {'FINISHED'}
+        return {'CANCELLED'}
+
 class PALETTE_OT_select_color(Operator):
     bl_idname = "palette.select_color" 
     bl_label = "Select Color"

@@ -35,6 +35,18 @@ def is_mouse_in_ui(context, event):
                 return True
     return False
 
+class BRUSH_OT_reset_dynamics(bpy.types.Operator):
+    bl_idname = "brush.reset_dynamics"
+    bl_label = "Reset Dynamics"
+    bl_description = "Reset color dynamics settings to default"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        dynamics = context.window_manager.coloraide_dynamics
+        dynamics.strength = 0
+        dynamics.running = False
+        return {'FINISHED'}
+
 class BRUSH_OT_color_dynamics(Operator):
     """Apply random color variations during brush strokes"""
     bl_idname = "brush.color_dynamics"

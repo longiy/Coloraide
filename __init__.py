@@ -27,8 +27,8 @@ from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
 # from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
 from .operators.NSAMPLER_OT import BRUSH_OT_sample_normal
-from .operators.CDYNAMICS_OT import BRUSH_OT_color_dynamics
-from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color
+from .operators.CDYNAMICS_OT import BRUSH_OT_color_dynamics, BRUSH_OT_reset_dynamics
+from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color, PALETTE_OT_remove_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 
 # Import all panels
@@ -113,7 +113,9 @@ classes = [
     # COLOR_OT_clear_history,
     BRUSH_OT_sample_normal,
     BRUSH_OT_color_dynamics,
+    BRUSH_OT_reset_dynamics,
     PALETTE_OT_add_color,
+    PALETTE_OT_remove_color,
     PALETTE_OT_select_color,
     COLOR_OT_monitor,
     
