@@ -6,6 +6,7 @@ import bpy
 # First utilities and sync system from root
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
+from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
 
 # Import all properties
 from .properties.CPICKER_properties import ColoraidePickerProperties
@@ -18,6 +19,8 @@ from .properties.HSV_properties import ColoraideHSVProperties
 from .properties.NSAMPLER_properties import ColoraideNormalProperties
 from .properties.CDYNAMICS_properties import ColoraideDynamicsProperties
 from .COLORAIDE_properties import ColoraideDisplayProperties
+
+
 
 # Import all operators
 from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick

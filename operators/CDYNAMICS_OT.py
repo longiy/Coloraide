@@ -5,8 +5,8 @@ Operator for applying random color variations during brush strokes.
 import bpy
 import random
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating, UpdateFlags
+from ..COLORAIDE_brush_sync import update_brush_color
+from ..COLORAIDE_utils import is_updating
 
 def apply_color_variation(original_color, strength):
     """Apply random color variation to a brush color"""
@@ -15,7 +15,6 @@ def apply_color_variation(original_color, strength):
     
     random_color = (random.random(), random.random(), random.random())
     strength_factor = strength / 100.0
-    
     return tuple(
         original + (random - original) * strength_factor
         for original, random in zip(original_color, random_color)
@@ -48,11 +47,12 @@ class BRUSH_OT_reset_dynamics(bpy.types.Operator):
         return {'FINISHED'}
 
 class BRUSH_OT_color_dynamics(Operator):
-    """Apply random color variations during brush strokes"""
     bl_idname = "brush.color_dynamics"
     bl_label = "Color Dynamics"
     bl_description = "Apply random color variation during brush strokes"
     bl_options = {'REGISTER'}
+
+    _base_color = None
 
     @classmethod
     def poll(cls, context):
@@ -72,21 +72,24 @@ class BRUSH_OT_color_dynamics(Operator):
             if mouse_in_ui:
                 return {'PASS_THROUGH'}
             
-            base_color = tuple(wm.coloraide_picker.mean)
-            
             if event.value == 'PRESS':
-                # Generate new random color
+                # Store base color on first press
+                if not self._base_color:
+                    self._base_color = tuple(wm.coloraide_picker.mean)
+
+                # Generate new random color based on original base color
                 if not is_updating('dynamics'):
                     new_color = apply_color_variation(
-                        base_color,
+                        self._base_color,
                         dynamics.strength
                     )
-                    sync_all(context, 'dynamics', new_color)
+                    update_brush_color(context, new_color)
                     
             elif event.value == 'RELEASE':
-                # Restore original color
-                if not is_updating('dynamics'):
-                    sync_all(context, 'dynamics', base_color)
+                # Restore original base color
+                if not is_updating('dynamics') and self._base_color:
+                    update_brush_color(context, self._base_color)
+                self._base_color = None
 
         return {'PASS_THROUGH'}
 
@@ -96,9 +99,9 @@ class BRUSH_OT_color_dynamics(Operator):
         wm.coloraide_dynamics.running = False
         
         # Restore base color
-        if not is_updating('dynamics'):
-            base_color = tuple(wm.coloraide_picker.mean)
-            sync_all(context, 'dynamics', base_color)
+        if not is_updating('dynamics') and self._base_color:
+            update_brush_color(context, self._base_color)
+        self._base_color = None
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -108,6 +111,8 @@ class BRUSH_OT_color_dynamics(Operator):
 
 def register():
     bpy.utils.register_class(BRUSH_OT_color_dynamics)
+    bpy.utils.register_class(BRUSH_OT_reset_dynamics)
 
 def unregister():
+    bpy.utils.unregister_class(BRUSH_OT_reset_dynamics)
     bpy.utils.unregister_class(BRUSH_OT_color_dynamics)
