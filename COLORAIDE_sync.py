@@ -9,8 +9,8 @@ from .COLORAIDE_utils import (
     lab_to_rgb,
     rgb_to_hsv,
     hsv_to_rgb,
-    # rgb_to_hex,
-    # hex_to_rgb,
+    hex_to_rgb,
+    rgb_to_hex,
     rgb_float_to_bytes
 )
 
@@ -88,8 +88,14 @@ def sync_all(context, source, color):
         wm.coloraide_wheel.suppress_updates = True
         wm.coloraide_wheel.color = (*rgb_float, 1.0)
         wm.coloraide_wheel.suppress_updates = False
+        
+        # Update hex
+        wm.coloraide_hex.suppress_updates = True
+        hex_value = rgb_to_hex(rgb_float)
+        wm.coloraide_hex.value = hex_value
+        wm.coloraide_hex.suppress_updates = False
 
-        # Update brush colors without mode check
+        # Update brush colors
         ts = context.tool_settings
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = rgb_float
