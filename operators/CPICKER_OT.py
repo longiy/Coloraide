@@ -62,28 +62,20 @@ class IMAGE_OT_screen_picker(Operator):
         """Sample colors from screen and update properties"""
         if is_updating('picker'):
             return
-            
+                
         distance = self.sqrt_length // 2
         start_x = max(event.mouse_x - distance, 0)
         start_y = max(event.mouse_y - distance, 0)
 
         fb = gpu.state.active_framebuffer_get()
         
-        # Sample area for mean color
         screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
         channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
         mean_color = np.mean(channels, axis=0)
         
-        # Sample current pixel
         curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
         current_color = np.array(curr_buffer.to_list()).reshape(-1)
         
-        # Update statistics
-        dot = np.sum(channels, axis=1)
-        max_ind = np.argmax(dot, axis=0)
-        min_ind = np.argmin(dot, axis=0)
-        
-        # Update properties using sync system
         wm = context.window_manager
         wm.coloraide_picker.current = tuple(current_color)
         sync_all(context, 'picker', tuple(mean_color))

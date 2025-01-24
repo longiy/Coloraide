@@ -12,8 +12,8 @@ from .panels.CWHEEL_panel import draw_wheel_panel
 from .panels.RGB_panel import draw_rgb_panel
 from .panels.LAB_panel import draw_lab_panel
 from .panels.HSV_panel import draw_hsv_panel
-from .panels.HEX_panel import draw_hex_panel
-from .panels.CHISTORY_panel import draw_history_panel
+# from .panels.HEX_panel import draw_hex_panel
+# from .panels.CHISTORY_panel import draw_history_panel
 from .panels.CDYNAMICS_panel import draw_dynamics_panel
 from .panels.NSAMPLER_panel import draw_normal_panel
 from .panels.PALETTE_panel import draw_palette_panel
@@ -31,16 +31,16 @@ def draw_coloraide_panels(self, context):
     # Draw color wheel
     draw_wheel_panel(layout, context)
     
-    # Draw hex input
-    draw_hex_panel(layout, context)
+    # # Draw hex input
+    # draw_hex_panel(layout, context)
     
     # Draw color spaces
     draw_rgb_panel(layout, context)
     draw_lab_panel(layout, context)
     draw_hsv_panel(layout, context)
     
-    # Draw color history
-    draw_history_panel(layout, context)
+    # # Draw color history
+    # draw_history_panel(layout, context)
     
     # Draw features
     draw_dynamics_panel(layout, context)
