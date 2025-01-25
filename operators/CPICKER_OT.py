@@ -59,7 +59,6 @@ class IMAGE_OT_screen_picker(Operator):
     _handler = None
     
     def sample_colors(self, context, event):
-        """Sample colors from screen and update properties"""
         if is_updating('picker'):
             return
                 
@@ -69,10 +68,12 @@ class IMAGE_OT_screen_picker(Operator):
 
         fb = gpu.state.active_framebuffer_get()
         
+        # Sample area for mean color
         screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
         channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
         mean_color = np.mean(channels, axis=0)
         
+        # Sample single pixel for current color
         curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
         current_color = np.array(curr_buffer.to_list()).reshape(-1)
         

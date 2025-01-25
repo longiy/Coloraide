@@ -26,6 +26,7 @@ class ColoraidePickerProperties(PropertyGroup):
    )
    
    mean: FloatVectorProperty(
+       name="Mean Color",
        subtype='COLOR_GAMMA',
        size=3,
        min=0.0, max=1.0,
@@ -34,6 +35,7 @@ class ColoraidePickerProperties(PropertyGroup):
    )
    
    current: FloatVectorProperty(
+       name="Current Color",
        subtype='COLOR_GAMMA',
        size=3,
        min=0.0, max=1.0,

@@ -7,32 +7,32 @@ import bpy
 def draw_rgb_panel(layout, context):
     wm = context.window_manager
     
-    box = layout.box()
-    row = box.row()
-    row.prop(wm.coloraide_display, "show_rgb_sliders", 
-        text="RGB", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_rgb_sliders else 'TRIA_RIGHT',
-        emboss=False
-    )
+    # box = layout.box()
+    # row = box.row()
+    # row.prop(wm.coloraide_display, "show_rgb_sliders", 
+    #     text="RGB", 
+    #     icon='TRIA_DOWN' if wm.coloraide_display.show_rgb_sliders else 'TRIA_RIGHT',
+    #     emboss=False
+    # )
     
-    if wm.coloraide_display.show_rgb_sliders:
-        col = box.column(align=True)
-        
-        # RGB sliders
-        for channel, label in zip(['red', 'green', 'blue'], ['R:', 'G:', 'B:']):
-            split = col.split(factor=0.15)
-            split.label(text=label)
-            split.prop(wm.coloraide_rgb, channel, text="", slider=True)
-        
-        # Alpha slider
+    # if wm.coloraide_display.show_rgb_sliders:
+    col = box.column(align=True)
+    
+    # RGB sliders
+    for channel, label in zip(['red', 'green', 'blue'], ['R:', 'G:', 'B:']):
         split = col.split(factor=0.15)
-        split.label(text="A:")
-        split.prop(wm.coloraide_rgb, "alpha", text="", slider=True)
+        split.label(text=label)
+        split.prop(wm.coloraide_rgb, channel, text="", slider=True)
         
-        # Numeric display
-        row = box.row()
-        row.alignment = 'CENTER'
-        row.label(text=f"({wm.coloraide_rgb.red}, {wm.coloraide_rgb.green}, {wm.coloraide_rgb.blue})")
+        # # Alpha slider
+        # split = col.split(factor=0.15)
+        # split.label(text="A:")
+        # split.prop(wm.coloraide_rgb, "alpha", text="", slider=True)
+        
+        # # Numeric display
+        # row = box.row()
+        # row.alignment = 'CENTER'
+        # row.label(text=f"({wm.coloraide_rgb.red}, {wm.coloraide_rgb.green}, {wm.coloraide_rgb.blue})")
 
 
 class RGB_PT_panel:

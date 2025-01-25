@@ -54,6 +54,13 @@ class ColoraideDisplayProperties(PropertyGroup):
         default=True
     )
     
+    show_color_sliders: BoolProperty(
+        name="Show Color Sliders",
+        description="Show color space sliders",
+        default=True
+    )
+    
+    
     # Feature visibility
     show_history: BoolProperty(
         name="Show Color History",

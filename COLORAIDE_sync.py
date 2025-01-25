@@ -61,7 +61,6 @@ def sync_all(context, source, color):
         # Update all color spaces
         wm.coloraide_picker.suppress_updates = True
         wm.coloraide_picker.mean = rgb_float
-        wm.coloraide_picker.current = rgb_float
         wm.coloraide_picker.suppress_updates = False
 
         wm.coloraide_rgb.suppress_updates = True

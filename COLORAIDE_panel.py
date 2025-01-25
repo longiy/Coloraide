@@ -17,27 +17,49 @@ from .panels.CHISTORY_panel import draw_history_panel
 from .panels.PALETTE_panel import draw_palette_panel
 
 def draw_coloraide_panels(self, context):
+    """Draw all Coloraide panels in the specified order"""
     wm = context.window_manager
     if not hasattr(wm, 'coloraide_display'):
         return
-    """Draw all Coloraide panels in the specified order"""
-    layout = self.layout
     
-    # Draw core color picker
-    draw_picker_panel(layout, context)
+    layout = self.layout
     
     # Draw color wheel
     draw_wheel_panel(layout, context)
     
-    # Draw hex input
-    draw_hex_panel(layout, context)
+    # Draw core color picker
+    draw_picker_panel(layout, context)
     
-    # Draw color spaces
-    draw_rgb_panel(layout, context)
-    draw_lab_panel(layout, context)
-    draw_hsv_panel(layout, context)
+    # # Draw hex input
+    # draw_hex_panel(layout, context)
     
-    # # Draw color history
+     # Color spaces box
+    box = layout.box()
+    row = box.row()
+    row.prop(wm.coloraide_display, "show_color_sliders", 
+        text="Color Sliders", 
+        icon='TRIA_DOWN' if wm.coloraide_display.show_color_sliders else 'TRIA_RIGHT',
+        emboss=False
+    )
+    
+    if wm.coloraide_display.show_color_sliders:
+        # Color space toggles
+        row = box.row(align=True)
+        row.prop(wm.coloraide_display, "show_rgb_sliders", text="RGB", toggle=True)
+        row.prop(wm.coloraide_display, "show_lab_sliders", text="LAB", toggle=True)
+        row.prop(wm.coloraide_display, "show_hsv_sliders", text="HSV", toggle=True)
+        
+        # Draw slider panels directly without their boxes
+        col = box.column()
+        if wm.coloraide_display.show_rgb_sliders:
+            draw_rgb_panel(col, context)
+        if wm.coloraide_display.show_lab_sliders:
+            draw_lab_panel(col, context)
+        if wm.coloraide_display.show_hsv_sliders:
+            draw_hsv_panel(col, context)
+    
+    
+    # Draw color history
     draw_history_panel(layout, context)
     
     # Draw features

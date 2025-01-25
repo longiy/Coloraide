@@ -5,10 +5,8 @@ Core color picker panel UI implementation for Coloraide.
 import bpy
 
 def draw_picker_panel(layout, context):
-    """Draw core color picker controls in the given layout"""
     wm = context.window_manager
     
-    # Core color picker box with toggle
     box = layout.box()
     row = box.row()
     row.prop(wm.coloraide_display, "show_picker", 
@@ -20,24 +18,24 @@ def draw_picker_panel(layout, context):
     if wm.coloraide_display.show_picker:
         # Main color display row
         row = box.row(align=True)
-        row.scale_y = 2.0
+        row.scale_y = 1.5
         row.prop(wm.coloraide_picker, 'mean', text='')  # Area average
         row.prop(wm.coloraide_picker, 'current', text='')  # Current pixel
         
-        # Statistics (collapsible)
-        stats_box = box.box()
-        row = stats_box.row()
-        row.prop(wm.coloraide_display, "show_stats",
-            text="Color Statistics",
-            icon='TRIA_DOWN' if wm.coloraide_display.show_stats else 'TRIA_RIGHT',
-            emboss=False
-        )
+        # # Statistics (collapsible)
+        # stats_box = box.box()
+        # row = stats_box.row()
+        # row.prop(wm.coloraide_display, "show_stats",
+        #     text="Color Statistics",
+        #     icon='TRIA_DOWN' if wm.coloraide_display.show_stats else 'TRIA_RIGHT',
+        #     emboss=False
+        # )
         
-        if wm.coloraide_display.show_stats:
-            col = stats_box.column(align=True)
-            col.prop(wm.coloraide_picker, 'max', text='Maximum')
-            col.prop(wm.coloraide_picker, 'min', text='Minimum')
-            col.prop(wm.coloraide_picker, 'median', text='Median')
+        # if wm.coloraide_display.show_stats:
+        #     col = stats_box.column(align=True)
+        #     col.prop(wm.coloraide_picker, 'max', text='Maximum')
+        #     col.prop(wm.coloraide_picker, 'min', text='Minimum')
+        #     col.prop(wm.coloraide_picker, 'median', text='Median')
         
         # Quick pick size control
         row = box.row(align=True)

@@ -28,11 +28,17 @@ def draw_wheel_panel(layout, context):
             lock_luminosity=False
         )
         
-        # Scale control with reset button
+        # Scale control with reset button and hex input
         row = box.row(align=True)
-        split = row.split(factor=0.85, align=True)
-        split.prop(wm.coloraide_wheel, "scale", text="Size", slider=True)
-        split.operator(
+        split = row.split(factor=0.4, align=True)
+
+        # Hex input on left
+        split.prop(wm.coloraide_hex, "value", text="")
+
+        # Scale and reset on right
+        right_split = split.split(factor=0.85, align=True) 
+        right_split.prop(wm.coloraide_wheel, "scale", text="Size", slider=True)
+        right_split.operator(
             "color.reset_wheel_scale",
             text="",
             icon='LOOP_BACK'
