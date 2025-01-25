@@ -67,14 +67,3 @@ class ColoraideDisplayProperties(PropertyGroup):
         default=True
     )
     
-    show_dynamics: BoolProperty(
-        name="Show Color Dynamics",
-        description="Show color dynamics controls",
-        default=True
-    )
-    
-    show_normal_sampler: BoolProperty(
-        name="Show Normal Sampler",
-        description="Show normal color sampling controls",
-        default=True
-    )

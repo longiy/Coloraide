@@ -46,7 +46,7 @@ def sync_picker_from_brush(context, brush_color):
         
         # Update RGB values
         wm.coloraide_rgb.suppress_updates = True
-        rgb_bytes = rgb_float_to_bytes(brush_color) 
+        rgb_bytes = rgb_float_to_bytes(brush_color)
         wm.coloraide_rgb.red = rgb_bytes[0]
         wm.coloraide_rgb.green = rgb_bytes[1]
         wm.coloraide_rgb.blue = rgb_bytes[2]
@@ -56,7 +56,7 @@ def sync_picker_from_brush(context, brush_color):
         wm.coloraide_lab.suppress_updates = True
         lab = rgb_to_lab(brush_color)
         wm.coloraide_lab.lightness = lab[0]
-        wm.coloraide_lab.a = lab[1] 
+        wm.coloraide_lab.a = lab[1]
         wm.coloraide_lab.b = lab[2]
         wm.coloraide_lab.suppress_updates = False
         

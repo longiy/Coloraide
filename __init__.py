@@ -15,9 +15,7 @@ from .properties.HEX_properties import ColoraideHexProperties
 from .properties.RGB_properties import ColoraideRGBProperties
 from .properties.LAB_properties import ColoraideLABProperties
 from .properties.HSV_properties import ColoraideHSVProperties
-# from .properties.CHISTORY_properties import ColoraideHistoryProperties, ColorHistoryItemProperties
-# from .properties.NSAMPLER_properties import ColoraideNormalProperties
-from .properties.CDYNAMICS_properties import ColoraideDynamicsProperties
+from .properties.CHISTORY_properties import ColoraideHistoryProperties, ColorHistoryItemProperties
 from .COLORAIDE_properties import ColoraideDisplayProperties
 
 
@@ -28,9 +26,7 @@ from .operators.HSV_OT import COLOR_OT_sync_hsv
 from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
-# from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
-# from .operators.NSAMPLER_OT import BRUSH_OT_sample_normal
-from .operators.CDYNAMICS_OT import BRUSH_OT_color_dynamics, BRUSH_OT_reset_dynamics
+from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
 from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color, PALETTE_OT_remove_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 from .operators.HEX_OT import COLOR_OT_sync_hex
@@ -42,9 +38,7 @@ from .panels.HEX_panel import draw_hex_panel
 from .panels.RGB_panel import draw_rgb_panel
 from .panels.LAB_panel import draw_lab_panel
 from .panels.HSV_panel import draw_hsv_panel
-# from .panels.CHISTORY_panel import draw_history_panel
-# from .panels.NSAMPLER_panel import draw_normal_panel
-from .panels.CDYNAMICS_panel import draw_dynamics_panel
+from .panels.CHISTORY_panel import draw_history_panel
 from .panels.PALETTE_panel import draw_palette_panel
 from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_coloraide
 
@@ -99,10 +93,8 @@ classes = [
     ColoraideRGBProperties,
     ColoraideLABProperties,
     ColoraideHSVProperties,
-    # ColorHistoryItemProperties,  # Register before ColoraideHistoryProperties
-    # ColoraideHistoryProperties,
-    # ColoraideNormalProperties,
-    ColoraideDynamicsProperties,
+    ColorHistoryItemProperties,  # Register before ColoraideHistoryProperties
+    ColoraideHistoryProperties,
     
     # Operators
     IMAGE_OT_screen_picker,
@@ -113,11 +105,8 @@ classes = [
     COLOR_OT_sync_lab,
     COLOR_OT_sync_wheel,
     COLOR_OT_reset_wheel_scale,
-    # COLOR_OT_adjust_history_size,
-    # COLOR_OT_clear_history,
-    # BRUSH_OT_sample_normal,
-    BRUSH_OT_color_dynamics,
-    BRUSH_OT_reset_dynamics,
+    COLOR_OT_adjust_history_size,
+    COLOR_OT_clear_history,
     PALETTE_OT_add_color,
     PALETTE_OT_remove_color,
     PALETTE_OT_select_color,
@@ -133,8 +122,8 @@ def initialize_addon(context):
     """Initialize addon state after registration"""
     if context and context.window_manager:
         # # Initialize color history
-        # if hasattr(context.window_manager, 'coloraide_history'):
-        #     context.window_manager.coloraide_history.initialize_history()
+        if hasattr(context.window_manager, 'coloraide_history'):
+            context.window_manager.coloraide_history.initialize_history()
             
         # Start color monitor
         bpy.ops.color.monitor('INVOKE_DEFAULT')
@@ -153,9 +142,7 @@ def register():
     bpy.types.WindowManager.coloraide_rgb = bpy.props.PointerProperty(type=ColoraideRGBProperties)
     bpy.types.WindowManager.coloraide_lab = bpy.props.PointerProperty(type=ColoraideLABProperties)
     bpy.types.WindowManager.coloraide_hsv = bpy.props.PointerProperty(type=ColoraideHSVProperties)
-    # bpy.types.WindowManager.coloraide_history = bpy.props.PointerProperty(type=ColoraideHistoryProperties)
-    # bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
-    bpy.types.WindowManager.coloraide_dynamics = bpy.props.PointerProperty(type=ColoraideDynamicsProperties)
+    bpy.types.WindowManager.coloraide_history = bpy.props.PointerProperty(type=ColoraideHistoryProperties)
     
     # Register keymaps
     register_keymaps()
@@ -168,9 +155,7 @@ def unregister():
     unregister_keymaps()
     
     # Unregister property groups
-    del bpy.types.WindowManager.coloraide_dynamics
-    # del bpy.types.WindowManager.coloraide_normal
-    # del bpy.types.WindowManager.coloraide_history
+    del bpy.types.WindowManager.coloraide_history
     del bpy.types.WindowManager.coloraide_hsv
     del bpy.types.WindowManager.coloraide_lab
     del bpy.types.WindowManager.coloraide_rgb
