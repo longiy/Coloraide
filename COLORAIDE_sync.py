@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from .COLORAIDE_utils import (
     rgb_to_lab, 
     lab_to_rgb,
+    rgb_to_hsv,
+    hsv_to_rgb,
     rgb_float_to_bytes,
     rgb_bytes_to_float,
     rgb_to_hex,
@@ -34,7 +36,6 @@ def is_updating(source=None):
     return _UPDATING
 
 def sync_all(context, source, color):
-    """Synchronize all color spaces from source"""
     if is_updating(source):
         return
         
@@ -48,25 +49,25 @@ def sync_all(context, source, color):
         if source == 'rgb':
             rgb_float = rgb_bytes_to_float(color)
         elif source == 'lab':
-            # Keep other LAB components stable
             current_lab = [
-                wm.coloraide_lab.lightness,
-                wm.coloraide_lab.a,
-                wm.coloraide_lab.b
+                float(wm.coloraide_lab.lightness),
+                float(wm.coloraide_lab.a),
+                float(wm.coloraide_lab.b)
             ]
-            
-            # Only update changed component
             for i, val in enumerate(color):
-                if abs(val - current_lab[i]) > 0.0001:
-                    current_lab[i] = val
-                    
+                if abs(float(val) - current_lab[i]) > 0.0001:
+                    current_lab[i] = float(val)
             rgb_float = lab_to_rgb(tuple(current_lab))
+        elif source == 'hsv':
+            # Convert from display values to normalized HSV
+            hsv_norm = (color[0]/360.0, color[1]/100.0, color[2]/100.0)
+            rgb_float = hsv_to_rgb(hsv_norm)
         elif source == 'hex':
             rgb_float = hex_to_rgb(color)
         else:
             rgb_float = tuple(color[:3])
             
-        # Update RGB properties first
+        # Update RGB properties
         wm.coloraide_rgb.suppress_updates = True
         rgb_bytes = rgb_float_to_bytes(rgb_float)
         wm.coloraide_rgb.red = rgb_bytes[0]
@@ -74,14 +75,23 @@ def sync_all(context, source, color):
         wm.coloraide_rgb.blue = rgb_bytes[2]
         wm.coloraide_rgb.suppress_updates = False
         
-        # Update LAB only if source is not LAB
+        # Update LAB with rounded integers
         if source != 'lab':
             wm.coloraide_lab.suppress_updates = True
             lab = rgb_to_lab(rgb_float)
-            wm.coloraide_lab.lightness = lab[0]
-            wm.coloraide_lab.a = lab[1]
-            wm.coloraide_lab.b = lab[2]
+            wm.coloraide_lab.lightness = round(lab[0])
+            wm.coloraide_lab.a = round(lab[1])
+            wm.coloraide_lab.b = round(lab[2])
             wm.coloraide_lab.suppress_updates = False
+            
+        # Update HSV with display values
+        if source != 'hsv':
+            wm.coloraide_hsv.suppress_updates = True
+            hsv = rgb_to_hsv(rgb_float)
+            wm.coloraide_hsv.hue = round(hsv[0] * 360.0)
+            wm.coloraide_hsv.saturation = round(hsv[1] * 100.0)
+            wm.coloraide_hsv.value = round(hsv[2] * 100.0)
+            wm.coloraide_hsv.suppress_updates = False
             
         # Update picker
         wm.coloraide_picker.suppress_updates = True
