@@ -1,4 +1,4 @@
-"""LAB Properties with integer display"""
+"""LAB Properties with fast response"""
 
 import bpy
 from bpy.props import FloatProperty, BoolProperty
@@ -17,30 +17,30 @@ class ColoraideLABProperties(PropertyGroup):
 
     lightness: FloatProperty(
         name="L",
-        description="Lightness (0-100)",
         min=0.0,
         max=100.0,
         default=50.0,
         precision=0,
+        step=100,
         update=update_lab_values
     )
     
     a: FloatProperty(
         name="a",
-        description="Green (-) to Red (+)",
         min=-128.0,
         max=127.0,
         default=0.0,
         precision=0,
+        step=100,
         update=update_lab_values
     )
     
     b: FloatProperty(
         name="b",
-        description="Blue (-) to Yellow (+)",
         min=-128.0,
         max=127.0,
         default=0.0,
         precision=0,
+        step=100,
         update=update_lab_values
     )

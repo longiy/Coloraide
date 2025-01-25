@@ -8,12 +8,12 @@ def draw_lab_panel(layout, context):
     
     split = col.split(factor=0.15)
     split.label(text="L:")
-    split.prop(wm.coloraide_lab, "lightness", text="")
+    split.prop(wm.coloraide_lab, "lightness", text="", slider=True)
     
     split = col.split(factor=0.15)
     split.label(text="a:")
-    split.prop(wm.coloraide_lab, "a", text="")
+    split.prop(wm.coloraide_lab, "a", text="", slider=True)
     
     split = col.split(factor=0.15)
     split.label(text="b:")
-    split.prop(wm.coloraide_lab, "b", text="")
+    split.prop(wm.coloraide_lab, "b", text="", slider=True)
