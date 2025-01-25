@@ -48,7 +48,7 @@ class PALETTE_OT_remove_color(bpy.types.Operator):
         return {'CANCELLED'}
 
 class PALETTE_OT_select_color(Operator):
-    bl_idname = "palette.select_color" 
+    bl_idname = "palette.select_color"
     bl_label = "Select Color"
     bl_options = {'REGISTER', 'UNDO'}
     
@@ -59,6 +59,6 @@ class PALETTE_OT_select_color(Operator):
     )
     
     def execute(self, context):
-        if not is_updating():
-            sync_all(context, 'palette', self.color)
+        if not is_brush_updating():
+            sync_picker_from_brush(context, self.color)
         return {'FINISHED'}
