@@ -1,4 +1,4 @@
-"""LAB Properties with fast response"""
+"""LAB Properties with fixed range handling"""
 
 import bpy
 from bpy.props import FloatProperty, BoolProperty
@@ -22,6 +22,8 @@ class ColoraideLABProperties(PropertyGroup):
         default=50.0,
         precision=0,
         step=100,
+        soft_min=0.0,
+        soft_max=100.0,
         update=update_lab_values
     )
     
@@ -32,6 +34,8 @@ class ColoraideLABProperties(PropertyGroup):
         default=0.0,
         precision=0,
         step=100,
+        soft_min=-128.0,
+        soft_max=127.0,
         update=update_lab_values
     )
     
@@ -42,5 +46,7 @@ class ColoraideLABProperties(PropertyGroup):
         default=0.0,
         precision=0,
         step=100,
+        soft_min=-128.0,
+        soft_max=127.0,
         update=update_lab_values
     )

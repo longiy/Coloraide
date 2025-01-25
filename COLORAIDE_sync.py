@@ -49,14 +49,18 @@ def sync_all(context, source, color):
         if source == 'rgb':
             rgb_float = rgb_bytes_to_float(color)
         elif source == 'lab':
+            # Round near-zero values to zero
             current_lab = [
-                float(wm.coloraide_lab.lightness),
-                float(wm.coloraide_lab.a),
-                float(wm.coloraide_lab.b)
+                0.0 if abs(wm.coloraide_lab.lightness) < 0.1 else float(wm.coloraide_lab.lightness),
+                0.0 if abs(wm.coloraide_lab.a) < 0.1 else float(wm.coloraide_lab.a),
+                0.0 if abs(wm.coloraide_lab.b) < 0.1 else float(wm.coloraide_lab.b)
             ]
+            
             for i, val in enumerate(color):
-                if abs(float(val) - current_lab[i]) > 0.0001:
-                    current_lab[i] = float(val)
+                val = 0.0 if abs(float(val)) < 0.1 else float(val)
+                if abs(val - current_lab[i]) > 0.0001:
+                    current_lab[i] = val
+                    
             rgb_float = lab_to_rgb(tuple(current_lab))
         elif source == 'hsv':
             # Convert from display values to normalized HSV
