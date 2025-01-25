@@ -48,8 +48,17 @@ def sync_all(context, source, color):
         # Convert input to RGB float (0-1)
         if source == 'rgb':
             rgb_float = tuple(c / 255.0 for c in color)
-        elif source == 'lab': 
-            rgb_float = lab_to_rgb(color)
+        elif source == 'lab':
+            current_lab = (
+                wm.coloraide_lab.lightness,
+                wm.coloraide_lab.a,
+                wm.coloraide_lab.b
+            )
+            lab_values = list(current_lab)
+            if len(color) == 3:
+                for i, val in enumerate(color):
+                    lab_values[i] = val
+            rgb_float = lab_to_rgb(tuple(lab_values))
         elif source == 'hsv':
             hsv_norm = (color[0]/360.0, color[1]/100.0, color[2]/100.0)
             rgb_float = hsv_to_rgb(hsv_norm)

@@ -59,6 +59,10 @@ def hsv_to_rgb(hsv):
     """Convert HSV values in range 0-1 to RGB values in range 0-1"""
     h, s, v = hsv
     
+    # Wrap 1.0 back to 0.0
+    if h == 1.0:
+        h = 0.0
+    
     if s == 0:
         return (v, v, v)
     
@@ -110,66 +114,59 @@ def rgb_to_xyz(rgb):
     return (x_d50, y_d50, z_d50)
 
 def xyz_to_lab(xyz):
-    """Convert XYZ values to LAB color space"""
-    x, y, z = xyz
+    """Convert XYZ to LAB using standard CIELAB conversion"""
+    X, Y, Z = xyz
     
-    # D50 reference white
-    ref_x = 0.96422
-    ref_y = 1.00000
-    ref_z = 0.82521
+    # Reference white point for D50
+    Xn = 96.4212
+    Yn = 100.0
+    Zn = 82.5188
     
-    # Constants
-    epsilon = 216/24389
-    kappa = 24389/27
+    # Conversion constants
+    delta = 6/29
     
-    # Scale by white point
-    xr = x / ref_x
-    yr = y / ref_y
-    zr = z / ref_z
-    
-    # Conversion function
     def f(t):
-        if t > epsilon:
-            return pow(t, 1/3)
-        return (kappa * t + 16) / 116
+        if t > delta**3:
+            return t**(1/3)
+        return t / (3 * delta**2) + 4/29
     
-    fx = f(xr)
-    fy = f(yr)
-    fz = f(zr)
+    fx = f(X / Xn)
+    fy = f(Y / Yn)
+    fz = f(Z / Zn)
     
-    L = max(0, min(100, 116 * fy - 16))
-    a = max(-128, min(127, 500 * (fx - fy)))
-    b = max(-128, min(127, 200 * (fy - fz)))
+    # Scale L to 0-100 range
+    L = 116 * fy - 16
+    a = 500 * (fx - fy)
+    b = 200 * (fy - fz)
     
     return (L, a, b)
 
 def lab_to_xyz(lab):
-    """Convert LAB values to XYZ color space"""
+    """Convert LAB to XYZ using standard CIELAB conversion"""
     L, a, b = lab
     
-    # Constants
-    epsilon = 216/24389
-    kappa = 24389/27
+    # Reference white point for D50
+    Xn = 96.4212
+    Yn = 100.0
+    Zn = 82.5188
     
-    # D50 reference white
-    ref_x = 0.96422
-    ref_y = 1.00000
-    ref_z = 0.82521
-    
-    fy = (L + 16) / 116
-    fx = a / 500 + fy
-    fz = fy - b / 200
+    # Conversion constants
+    delta = 6/29
     
     def f_inv(t):
-        if t**3 > epsilon:
+        if t > delta:
             return t**3
-        return (116 * t - 16) / kappa
+        return delta**2 * (t - 4/29)
     
-    x = ref_x * f_inv(fx)
-    y = ref_y * f_inv(fy)
-    z = ref_z * f_inv(fz)
+    fy = (L + 16) / 116
+    fx = fy + a / 500
+    fz = fy - b / 200
     
-    return (x, y, z)
+    X = Xn * f_inv(fx)
+    Y = Yn * f_inv(fy)
+    Z = Zn * f_inv(fz)
+    
+    return (X, Y, Z)
 
 def xyz_to_rgb(xyz):
     """Convert XYZ values to RGB color space"""

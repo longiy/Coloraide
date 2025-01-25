@@ -18,7 +18,8 @@ class ColoraideHSVProperties(PropertyGroup):
        min=0.0,
        max=360.0,
        default=0.0,
-       update=update_hsv_values
+       update=update_hsv_values,
+       
    )
    
    saturation: FloatProperty(
