@@ -31,14 +31,14 @@ def draw_palette_panel(layout, context):
         row.template_ID(paint_settings, "palette", new="palette.new")
         
         if paint_settings.palette:
-            # Add current color button
-            add_row = box.row(align=True)
-            op = add_row.operator(
-                "palette.add_color",
-                text="Add Current",
-                icon='ADD'
-            )
-            op.color = tuple(wm.coloraide_picker.mean)
+            # # Add current color button
+            # add_row = box.row(align=True)
+            # op = add_row.operator(
+            #     "palette.add_color",
+            #     text="Add Current",
+            #     icon='ADD'
+            # )
+            # op.color = tuple(wm.coloraide_picker.mean)
             
             # Palette colors
             palette_box = box.column()
@@ -48,14 +48,14 @@ def draw_palette_panel(layout, context):
                 color=True
             )
             
-            # Remove color button (only show if a color is selected)
-            if paint_settings.palette.colors.active:
-                remove_row = box.row()
-                remove_row.operator(
-                    "palette.remove_color",
-                    text="Remove Selected",
-                    icon='REMOVE'
-                )
+            # # Remove color button (only show if a color is selected)
+            # if paint_settings.palette.colors.active:
+            #     remove_row = box.row()
+            #     remove_row.operator(
+            #         "palette.remove_color",
+            #         text="Remove Selected",
+            #         icon='REMOVE'
+            #     )
 
 class PALETTE_PT_panel:
     """Class containing panel drawing methods for palettes"""
