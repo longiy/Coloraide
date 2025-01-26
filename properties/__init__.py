@@ -6,6 +6,7 @@ from .HEX_properties import ColoraideHexProperties
 from .CPICKER_properties import ColoraidePickerProperties
 from .CWHEEL_properties import ColoraideWheelProperties
 from .NORMAL_properties import ColoraideNormalProperties
+from .PALETTE_properties import ColoraidePaletteProperties
 
 __all__ = [
     'ColorHistoryItemProperties',
