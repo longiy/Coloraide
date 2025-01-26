@@ -7,6 +7,7 @@ from bpy.props import BoolProperty
 from bpy.types import Operator
 from bpy_extras import view3d_utils
 from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_UV_quadtree import UVQuadtree
 
 def normal_to_color(normal):
     """Convert normal vector to RGB color values"""
@@ -242,3 +243,50 @@ class NORMAL_OT_color_picker(Operator):
             return {'CANCELLED'}
 
         return {'PASS_THROUGH'}
+    
+       # Add quadtree storage
+    _uv_quadtree = None
+    _last_mesh_id = None
+
+    def ensure_quadtree(self, obj):
+        """Ensure quadtree is built for current mesh"""
+        mesh_id = (obj.name, obj.data.name, len(obj.data.vertices))
+        
+        if self._last_mesh_id != mesh_id:
+            self._uv_quadtree = UVQuadtree()
+            self._uv_quadtree.build_from_mesh(obj.data)
+            self._last_mesh_id = mesh_id
+
+    def sample_normal_from_uv_editor(self, context, event):
+        """Sample normal using quadtree optimization"""
+        obj = context.active_object
+        if not obj or not obj.data or obj.type != 'MESH':
+            return None
+
+        region = context.region
+        if not region:
+            return None
+
+        # Convert mouse to UV space
+        mouse_uv_x = (event.mouse_region_x - region.x) / region.width
+        mouse_uv_y = (event.mouse_region_y - region.y) / region.height
+
+        # Ensure quadtree is built
+        eval_obj = self.create_eval_obj(context, obj)
+        self.ensure_quadtree(eval_obj)
+        
+        if not self._uv_quadtree:
+            return None
+
+        # Fast lookup using quadtree
+        face_data = self._uv_quadtree.find_face(mouse_uv_x, mouse_uv_y)
+        if not face_data:
+            return None
+
+        face = eval_obj.data.polygons[face_data.face_index]
+        normal = face.normal
+
+        if context.window_manager.coloraide_normal.space == 'TANGENT':
+            normal = get_tangent_space_normal(eval_obj, face.loop_start, normal)
+
+        return normal_to_color(normal)
