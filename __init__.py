@@ -1,15 +1,13 @@
-"""
-Main initialization file for Coloraide addon.
-"""
+"""Main initialization file for Coloraide addon."""
 import bpy
 
-# First utilities and sync system from root
+# First utilities and sync system
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
-from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
+from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, 
+                                 update_brush_color, is_brush_updating)
 
 # Import all properties
-from .properties.PALETTE_properties import ColoraidePaletteProperties
 from .properties.NORMAL_properties import ColoraideNormalProperties
 from .properties.CDYNAMICS_properties import ColoraideDynamicsProperties
 from .properties.CPICKER_properties import ColoraidePickerProperties
@@ -21,9 +19,8 @@ from .properties.HSV_properties import ColoraideHSVProperties
 from .properties.CHISTORY_properties import ColoraideHistoryProperties, ColorHistoryItemProperties
 from .COLORAIDE_properties import ColoraideDisplayProperties
 
-
-
 # Import all operators
+from .operators.OVERRIDE_OT import WM_OT_context_set_id
 from .operators.NORMAL_OT import NORMAL_OT_color_picker
 from .operators.CDYNAMICS_OT import COLOR_OT_color_dynamics
 from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick
@@ -32,7 +29,7 @@ from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
 from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
-from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color, PALETTE_OT_remove_color
+from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_remove_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 from .operators.HEX_OT import COLOR_OT_sync_hex
 
@@ -65,7 +62,6 @@ bl_info = {
 addon_keymaps = []
 
 def register_keymaps():
-    """Register addon keymaps"""
     wm = bpy.context.window_manager
     kc = wm.keyconfigs.addon
     if kc:
@@ -85,15 +81,15 @@ def register_keymaps():
         addon_keymaps.append((km, kmi))
 
 def unregister_keymaps():
-    """Unregister addon keymaps"""
     for km, kmi in addon_keymaps:
         km.keymap_items.remove(kmi)
     addon_keymaps.clear()
 
-# Collect all classes that need registration
 classes = [
+    # Override operator first
+    WM_OT_context_set_id,
+    
     # Properties
-    ColoraidePaletteProperties,
     ColoraideNormalProperties,
     ColoraideDynamicsProperties,
     ColoraideDisplayProperties,
@@ -103,7 +99,7 @@ classes = [
     ColoraideRGBProperties,
     ColoraideLABProperties,
     ColoraideHSVProperties,
-    ColorHistoryItemProperties,  # Register before ColoraideHistoryProperties
+    ColorHistoryItemProperties,
     ColoraideHistoryProperties,
     
     # Operators
@@ -120,7 +116,6 @@ classes = [
     COLOR_OT_clear_history,
     PALETTE_OT_add_color,
     PALETTE_OT_remove_color,
-    PALETTE_OT_select_color,
     COLOR_OT_monitor,
     COLOR_OT_color_dynamics,
     
@@ -131,23 +126,16 @@ classes = [
 ]
 
 def initialize_addon(context):
-    """Initialize addon state after registration"""
     if context and context.window_manager:
-        # # Initialize color history
         if hasattr(context.window_manager, 'coloraide_history'):
             context.window_manager.coloraide_history.initialize_history()
-            
-        # Start color monitor
         bpy.ops.color.monitor('INVOKE_DEFAULT')
 
-
 def register():
-    # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
     
-    # Register property group assignments
-    bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
+    # Register property groups
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
     bpy.types.WindowManager.coloraide_dynamics = bpy.props.PointerProperty(type=ColoraideDynamicsProperties)
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
@@ -159,18 +147,12 @@ def register():
     bpy.types.WindowManager.coloraide_hsv = bpy.props.PointerProperty(type=ColoraideHSVProperties)
     bpy.types.WindowManager.coloraide_history = bpy.props.PointerProperty(type=ColoraideHistoryProperties)
     
-    # Register keymaps
     register_keymaps()
-    
-    # Use timer to initialize after context is ready
     bpy.app.timers.register(lambda: initialize_addon(bpy.context) if bpy.context else None, first_interval=0.1)
 
 def unregister():
-    # Unregister keymaps
     unregister_keymaps()
     
-    # Unregister property groups
-    del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal
     del bpy.types.WindowManager.coloraide_dynamics
     del bpy.types.WindowManager.coloraide_history
@@ -182,9 +164,5 @@ def unregister():
     del bpy.types.WindowManager.coloraide_picker
     del bpy.types.WindowManager.coloraide_display
     
-    # Unregister classes in reverse order
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
-if __name__ == "__main__":
-    register()

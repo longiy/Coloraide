@@ -7,6 +7,7 @@ from .CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
 from .PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color
 from .HEX_OT import COLOR_OT_sync_hex
 from .NORMAL_OT import NORMAL_OT_color_picker
+from .OVERRIDE_OT import WM_OT_context_set_id
 
 __all__ = [
     'IMAGE_OT_screen_picker', 'IMAGE_OT_quickpick',
@@ -18,4 +19,5 @@ __all__ = [
     'PALETTE_OT_add_color', 'PALETTE_OT_select_color', 'PALETTE_OT_remove_color',
     'COLOR_OT_sync_hex',
     'NORMAL_OT_color_picker',
+    'WM_OT_context_set_id'
 ]

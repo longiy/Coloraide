@@ -8,23 +8,36 @@ from ..COLORAIDE_sync import sync_all, is_updating
 
 class PALETTE_OT_add_color(Operator):
     bl_idname = "palette.add_color"
-    bl_label = "Add to Palette"
+    bl_label = "Add Color"
+    bl_description = "Add current color to palette"
     bl_options = {'REGISTER', 'UNDO'}
     
     color: FloatVectorProperty(
-        subtype='COLOR_GAMMA',
+        name="Color",
+        subtype='COLOR',
         size=3,
-        min=0.0, max=1.0
+        min=0.0,
+        max=1.0,
+        default=(1.0, 1.0, 1.0),
     )
+    
+    @classmethod
+    def poll(cls, context):
+        ts = context.tool_settings
+        settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        return settings and settings.palette
     
     def execute(self, context):
         ts = context.tool_settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
         
-        if paint_settings and paint_settings.palette:
-            color = paint_settings.palette.colors.new()
+        if settings.palette:
+            color = settings.palette.colors.new()
             color.color = self.color
+            color.weight = 1.0
+            settings.palette.colors.active = color
             return {'FINISHED'}
+            
         return {'CANCELLED'}
 
 class PALETTE_OT_remove_color(bpy.types.Operator):
