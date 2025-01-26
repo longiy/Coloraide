@@ -48,8 +48,11 @@ class COLOR_OT_color_dynamics(Operator):
         wm.coloraide_dynamics.running = True
         return {'RUNNING_MODAL'}
 
+# In COLOR_OT_color_dynamics.modal:
+
     def modal(self, context, event):
         wm = context.window_manager
+        ts = context.tool_settings
         
         if not wm.coloraide_dynamics.strength:
             self.cleanup(context)
@@ -58,24 +61,34 @@ class COLOR_OT_color_dynamics(Operator):
         if event.type == 'LEFTMOUSE':
             mouse_in_ui = is_mouse_in_ui(context, event)
             
-            # Handle UI clicks normally
             if mouse_in_ui:
                 return {'PASS_THROUGH'}
             
-            # Only apply color dynamics for non-UI clicks
             if not mouse_in_ui:
                 if event.value == 'PRESS':
-                    base_color = tuple(context.window_manager.coloraide_dynamics.base_color)
+                    base_color = tuple(wm.coloraide_picker.mean)
                     dynamic_color = apply_color_dynamics(
-                        base_color,  # Use stored base color
-                        context.window_manager.coloraide_dynamics.strength
+                        base_color,
+                        wm.coloraide_dynamics.strength
                     )
-                    update_brush_color(context, dynamic_color)
+                    
+                    # Direct brush color modification without sync
+                    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                        ts.gpencil_paint.brush.color = dynamic_color
+                    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                        ts.image_paint.brush.color = dynamic_color
+                        if ts.unified_paint_settings.use_unified_color:
+                            ts.unified_paint_settings.color = dynamic_color
 
                 elif event.value == 'RELEASE':
-                    # Restore original color
                     base_color = tuple(wm.coloraide_picker.mean)
-                    update_brush_color(context, base_color)
+                    # Direct brush color restore without sync
+                    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                        ts.gpencil_paint.brush.color = base_color
+                    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                        ts.image_paint.brush.color = base_color
+                        if ts.unified_paint_settings.use_unified_color:
+                            ts.unified_paint_settings.color = base_color
 
         return {'PASS_THROUGH'}
 
