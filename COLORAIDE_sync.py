@@ -12,7 +12,6 @@ from .COLORAIDE_utils import (
     rgb_to_hex,
     hex_to_rgb
 )
-from .COLORAIDE_palette_bridge import is_palette_locked
 
 _UPDATING = False
 _UPDATE_SOURCE = None
@@ -37,10 +36,6 @@ def is_updating(source=None):
     return _UPDATING
 
 def sync_all(context, source, color):
-    # Skip if palette is handling the sync
-    if source != 'palette' and is_palette_locked():
-        return
-        
     if is_updating(source):
         return
         
@@ -54,12 +49,21 @@ def sync_all(context, source, color):
         if source == 'rgb':
             rgb_float = rgb_bytes_to_float(color)
         elif source == 'lab':
-            lab_values = [
-                0.0 if abs(val) < 0.1 else float(val)
-                for val in (wm.coloraide_lab.lightness, wm.coloraide_lab.a, wm.coloraide_lab.b)
+            # Round near-zero values to zero
+            current_lab = [
+                0.0 if abs(wm.coloraide_lab.lightness) < 0.1 else float(wm.coloraide_lab.lightness),
+                0.0 if abs(wm.coloraide_lab.a) < 0.1 else float(wm.coloraide_lab.a),
+                0.0 if abs(wm.coloraide_lab.b) < 0.1 else float(wm.coloraide_lab.b)
             ]
-            rgb_float = lab_to_rgb(tuple(lab_values))
+            
+            for i, val in enumerate(color):
+                val = 0.0 if abs(float(val)) < 0.1 else float(val)
+                if abs(val - current_lab[i]) > 0.0001:
+                    current_lab[i] = val
+                    
+            rgb_float = lab_to_rgb(tuple(current_lab))
         elif source == 'hsv':
+            # Convert from display values to normalized HSV
             hsv_norm = (color[0]/360.0, color[1]/100.0, color[2]/100.0)
             rgb_float = hsv_to_rgb(hsv_norm)
         elif source == 'hex':
@@ -75,7 +79,7 @@ def sync_all(context, source, color):
         wm.coloraide_rgb.blue = rgb_bytes[2]
         wm.coloraide_rgb.suppress_updates = False
         
-        # Update LAB
+        # Update LAB with rounded integers
         if source != 'lab':
             wm.coloraide_lab.suppress_updates = True
             lab = rgb_to_lab(rgb_float)
@@ -84,7 +88,7 @@ def sync_all(context, source, color):
             wm.coloraide_lab.b = round(lab[2])
             wm.coloraide_lab.suppress_updates = False
             
-        # Update HSV
+        # Update HSV with display values
         if source != 'hsv':
             wm.coloraide_hsv.suppress_updates = True
             hsv = rgb_to_hsv(rgb_float)
@@ -110,13 +114,12 @@ def sync_all(context, source, color):
         wm.coloraide_hex.value = hex_value
         wm.coloraide_hex.suppress_updates = False
         
-        # Update brush colors only if not from palette
-        if source != 'palette':
-            ts = context.tool_settings
-            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                ts.gpencil_paint.brush.color = rgb_float
-                
-            if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                ts.image_paint.brush.color = rgb_float
-                if ts.unified_paint_settings.use_unified_color:
-                    ts.unified_paint_settings.color = rgb_float
+        # Update brush colors
+        ts = context.tool_settings
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = rgb_float
+            
+        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+            ts.image_paint.brush.color = rgb_float
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = rgb_float

@@ -7,7 +7,6 @@ import bpy
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
-from .COLORAIDE_palette_bridge import PaletteUpdateHandler  # Add this line
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
@@ -130,29 +129,14 @@ classes = [
     VIEW3D_PT_coloraide,
     CLIP_PT_coloraide,
 ]
+
 def initialize_addon(context):
     """Initialize addon state after registration"""
     if context and context.window_manager:
-        # Force a clean state
-        if hasattr(context.window_manager, 'coloraide_picker'):
-            context.window_manager.coloraide_picker.suppress_updates = True
-            context.window_manager.coloraide_picker.mean = (1.0, 1.0, 1.0)
-            context.window_manager.coloraide_picker.current = (1.0, 1.0, 1.0)
-            context.window_manager.coloraide_picker.suppress_updates = False
-            
-        # Initialize color history
+        # # Initialize color history
         if hasattr(context.window_manager, 'coloraide_history'):
             context.window_manager.coloraide_history.initialize_history()
             
-        # Ensure palette system is ready
-        if hasattr(context.window_manager, 'coloraide_palette'):
-            PaletteUpdateHandler.ensure_active_palette(context)
-            
-        # Force monitor restart
-        for window in context.window_manager.windows:
-            for area in window.screen.areas:
-                area.tag_redraw()
-                
         # Start color monitor
         bpy.ops.color.monitor('INVOKE_DEFAULT')
 
@@ -161,9 +145,6 @@ def register():
     # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
-    
-    from .COLORAIDE_palette_bridge import register as register_palette_bridge
-    register_palette_bridge()
     
     # Register property group assignments
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
@@ -185,10 +166,8 @@ def register():
     bpy.app.timers.register(lambda: initialize_addon(bpy.context) if bpy.context else None, first_interval=0.1)
 
 def unregister():
-    # Reset sync state
-
-    from .COLORAIDE_palette_bridge import unregister as unregister_palette_bridge
-    unregister_palette_bridge()
+    # Unregister keymaps
+    unregister_keymaps()
     
     # Unregister property groups
     del bpy.types.WindowManager.coloraide_palette
