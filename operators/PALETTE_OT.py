@@ -1,10 +1,7 @@
-# PALETTE_OT.py
 import bpy
-from bpy.types import Operator
 from bpy.props import FloatVectorProperty
-from ..COLORAIDE_sync import sync_all, is_updating
-
-
+from bpy.types import Operator
+from ..COLORAIDE_sync import sync_all
 
 class PALETTE_OT_add_color(Operator):
     bl_idname = "palette.add_color"
@@ -22,12 +19,36 @@ class PALETTE_OT_add_color(Operator):
         paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
         
         if paint_settings and paint_settings.palette:
-            color = paint_settings.palette.colors.new()
-            color.color = self.color
+            new_color = paint_settings.palette.colors.new()
+            new_color.color = self.color
             return {'FINISHED'}
         return {'CANCELLED'}
 
-class PALETTE_OT_remove_color(bpy.types.Operator):
+class PALETTE_OT_select_color(Operator):
+    bl_idname = "palette.select_color"
+    bl_label = "Select Color"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    color: FloatVectorProperty(
+        subtype='COLOR_GAMMA',
+        size=3,
+        min=0.0, max=1.0
+    )
+    
+    def execute(self, context):
+        wm = context.window_manager
+        
+        # Update picker directly first
+        wm.coloraide_picker.suppress_updates = True
+        wm.coloraide_picker.mean = self.color
+        wm.coloraide_picker.current = self.color
+        wm.coloraide_picker.suppress_updates = False
+        
+        # Then do full sync
+        sync_all(context, 'picker', self.color)
+        return {'FINISHED'}
+
+class PALETTE_OT_remove_color(Operator):
     bl_idname = "palette.remove_color"
     bl_label = "Remove Color"
     bl_description = "Remove selected color from palette"
@@ -48,18 +69,3 @@ class PALETTE_OT_remove_color(bpy.types.Operator):
             paint_settings.palette.colors.remove(paint_settings.palette.colors.active)
             return {'FINISHED'}
         return {'CANCELLED'}
-
-class PALETTE_OT_select_color(Operator):
-    bl_idname = "palette.select_color"
-    bl_label = "Select Color"
-    bl_options = {'REGISTER', 'UNDO'}
-    
-    color: FloatVectorProperty(
-        subtype='COLOR_GAMMA',
-        size=3,
-        min=0.0, max=1.0
-    )
-    
-    def execute(self, context):
-        sync_all(context, 'picker', self.color)
-        return {'FINISHED'}
