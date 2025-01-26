@@ -7,6 +7,7 @@ import bpy
 from bpy.types import Panel
 
 # Import all panel drawing functions
+from .panels.NORMAL_panel import draw_normal_panel
 from .panels.CDYNAMICS_panel import draw_dynamics_panel
 from .panels.CPICKER_panel import draw_picker_panel
 from .panels.CWHEEL_panel import draw_wheel_panel
@@ -24,6 +25,8 @@ def draw_coloraide_panels(self, context):
         return
     
     layout = self.layout
+    
+    draw_normal_panel(layout, context)
     
     # Draw color wheel
     draw_wheel_panel(layout, context)
