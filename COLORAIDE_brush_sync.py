@@ -4,7 +4,7 @@ Handles direct brush color updates and propagation to picker.
 """
 
 import bpy
-from .COLORAIDE_utils import rgb_to_lab, lab_to_rgb, rgb_float_to_bytes
+from .COLORAIDE_utils import rgb_to_lab, lab_to_rgb, hsv_to_rgb, rgb_to_hsv, rgb_float_to_bytes
 from contextlib import contextmanager
 
 # Update state flags
@@ -59,6 +59,15 @@ def sync_picker_from_brush(context, brush_color):
         wm.coloraide_lab.a = lab[1]
         wm.coloraide_lab.b = lab[2]
         wm.coloraide_lab.suppress_updates = False
+        
+        hsv = rgb_to_hsv(brush_color)
+        
+        # Manually update HSV
+        wm.coloraide_hsv.suppress_updates = True
+        wm.coloraide_hsv.hue = hsv[0] * 360.0
+        wm.coloraide_hsv.saturation = hsv[1] * 100.0
+        wm.coloraide_hsv.value = hsv[2] * 100.0
+        wm.coloraide_hsv.suppress_updates = False
         
         # Update wheel
         wm.coloraide_wheel.suppress_updates = True

@@ -4,6 +4,8 @@ from bpy.types import Operator
 from bpy.props import FloatVectorProperty
 from ..COLORAIDE_sync import sync_all, is_updating
 
+
+
 class PALETTE_OT_add_color(Operator):
     bl_idname = "palette.add_color"
     bl_label = "Add to Palette"
@@ -59,6 +61,5 @@ class PALETTE_OT_select_color(Operator):
     )
     
     def execute(self, context):
-        if not is_brush_updating():
-            sync_picker_from_brush(context, self.color)
+        sync_all(context, 'picker', self.color)
         return {'FINISHED'}
