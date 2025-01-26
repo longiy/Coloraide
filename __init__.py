@@ -9,6 +9,7 @@ from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
 
 # Import all properties
+from .properties.PALETTE_properties import ColoraidePaletteProperties
 from .properties.NORMAL_properties import ColoraideNormalProperties
 from .properties.CDYNAMICS_properties import ColoraideDynamicsProperties
 from .properties.CPICKER_properties import ColoraidePickerProperties
@@ -92,6 +93,7 @@ def unregister_keymaps():
 # Collect all classes that need registration
 classes = [
     # Properties
+    ColoraidePaletteProperties,
     ColoraideNormalProperties,
     ColoraideDynamicsProperties,
     ColoraideDisplayProperties,
@@ -145,6 +147,7 @@ def register():
         bpy.utils.register_class(cls)
     
     # Register property group assignments
+    bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
     bpy.types.WindowManager.coloraide_dynamics = bpy.props.PointerProperty(type=ColoraideDynamicsProperties)
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
@@ -167,6 +170,7 @@ def unregister():
     unregister_keymaps()
     
     # Unregister property groups
+    del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal
     del bpy.types.WindowManager.coloraide_dynamics
     del bpy.types.WindowManager.coloraide_history
