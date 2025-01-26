@@ -7,6 +7,7 @@ import bpy
 from bpy.types import Panel
 
 # Import all panel drawing functions
+from .panels.CDYNAMICS_panel import draw_dynamics_panel
 from .panels.CPICKER_panel import draw_picker_panel
 from .panels.CWHEEL_panel import draw_wheel_panel
 from .panels.RGB_panel import draw_rgb_panel
@@ -30,8 +31,8 @@ def draw_coloraide_panels(self, context):
     # Draw core color picker
     draw_picker_panel(layout, context)
     
-    # # Draw hex input
-    # draw_hex_panel(layout, context)
+
+    draw_dynamics_panel(layout, context)
     
      # Color spaces box
     box = layout.box()
