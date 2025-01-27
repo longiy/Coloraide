@@ -7,6 +7,7 @@ from bpy.app.handlers import persistent
 # First utilities and sync system from root
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
+from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
 from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
 
 # Import all properties
@@ -59,35 +60,6 @@ bl_info = {
     'doc_url': '',
     'category': 'Paint',
 }
-
-# Keymap storage
-addon_keymaps = []
-
-def register_keymaps():
-    """Register addon keymaps"""
-    wm = bpy.context.window_manager
-    kc = wm.keyconfigs.addon
-    if kc:
-        # 3D View keymap
-        km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
-        kmi = km.keymap_items.new("image.quickpick", "BACK_SLASH", "PRESS")
-        addon_keymaps.append((km, kmi))
-
-        # Image Editor keymap
-        km = kc.keymaps.new(name='Image', space_type='IMAGE_EDITOR')
-        kmi = km.keymap_items.new("image.quickpick", "BACK_SLASH", "PRESS")
-        addon_keymaps.append((km, kmi))
-
-        # Clip Editor keymap
-        km = kc.keymaps.new(name='Clip', space_type='CLIP_EDITOR')
-        kmi = km.keymap_items.new("image.quickpick", "BACK_SLASH", "PRESS")
-        addon_keymaps.append((km, kmi))
-
-def unregister_keymaps():
-    """Unregister addon keymaps"""
-    for km, kmi in addon_keymaps:
-        km.keymap_items.remove(kmi)
-    addon_keymaps.clear()
 
 # Collect all classes that need registration
 classes = [
@@ -146,7 +118,8 @@ def register():
     # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
-    
+     # Register keymaps
+    register_keymaps()  # Make sure this line is here
     # Register property group assignments
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
@@ -160,9 +133,6 @@ def register():
     bpy.types.WindowManager.coloraide_hsv = bpy.props.PointerProperty(type=ColoraideHSVProperties)
     bpy.types.WindowManager.coloraide_history = bpy.props.PointerProperty(type=ColoraideHistoryProperties)
     
-    # Register keymaps
-    register_keymaps()
-    
     # Add load handler
     bpy.app.handlers.load_post.append(load_handler)
     
@@ -175,9 +145,8 @@ def register():
 def unregister():
     # Remove load handler
     bpy.app.handlers.load_post.remove(load_handler)
-    
-    # Unregister keymaps
-    unregister_keymaps()
+     # Unregister keymaps
+    unregister_keymaps()  # Make sure this line is here
     
     # Unregister property groups
     del bpy.types.WindowManager.coloraide_palette

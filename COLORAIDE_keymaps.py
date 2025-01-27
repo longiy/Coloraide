@@ -25,35 +25,17 @@ def register_keymaps():
         )
         addon_keymaps.append((km, kmi))
         
-        # Screen picker in 3D View (optional)
-        kmi = km.keymap_items.new(
-            "image.screen_picker",
-            "C",
-            "PRESS",
-            alt=True
-        )
-        addon_keymaps.append((km, kmi))
-        
         # Image Editor keymap
         km = kc.keymaps.new(name='Image', space_type='IMAGE_EDITOR')
         
         # Quick pick in Image Editor
         kmi = km.keymap_items.new(
             "image.quickpick",
-            "BACK_SLASH",
+            "S",
             "PRESS"
         )
         addon_keymaps.append((km, kmi))
-        
-        # Screen picker in Image Editor (optional)
-        kmi = km.keymap_items.new(
-            "image.screen_picker",
-            "C",
-            "PRESS",
-            alt=True
-        )
-        addon_keymaps.append((km, kmi))
-        
+
         # Clip Editor keymap
         km = kc.keymaps.new(name='Clip', space_type='CLIP_EDITOR')
         
@@ -65,26 +47,7 @@ def register_keymaps():
         )
         addon_keymaps.append((km, kmi))
         
-        # Screen picker in Clip Editor (optional)
-        kmi = km.keymap_items.new(
-            "image.screen_picker",
-            "C",
-            "PRESS",
-            alt=True
-        )
-        addon_keymaps.append((km, kmi))
-        
-        # Additional feature hotkeys
-        
-        # Normal sampler toggle
-        km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
-        kmi = km.keymap_items.new(
-            "brush.sample_normal",
-            "N",
-            "PRESS",
-            alt=True
-        )
-        addon_keymaps.append((km, kmi))
+
 
 def unregister_keymaps():
     """Unregister and remove all addon keymaps"""
