@@ -2,6 +2,7 @@
 Main initialization file for Coloraide addon.
 """
 import bpy
+from bpy.app.handlers import persistent
 
 # First utilities and sync system from root
 from .COLORAIDE_utils import *
@@ -20,8 +21,6 @@ from .properties.LAB_properties import ColoraideLABProperties
 from .properties.HSV_properties import ColoraideHSVProperties
 from .properties.CHISTORY_properties import ColoraideHistoryProperties, ColorHistoryItemProperties
 from .COLORAIDE_properties import ColoraideDisplayProperties
-
-
 
 # Import all operators
 from .operators.NORMAL_OT import NORMAL_OT_color_picker
@@ -130,16 +129,18 @@ classes = [
     CLIP_PT_coloraide,
 ]
 
+@persistent
+def load_handler(dummy):
+    """Ensure color monitor is running after file load"""
+    # Small delay to ensure context is ready
+    bpy.app.timers.register(lambda: bpy.ops.color.monitor('INVOKE_DEFAULT'), first_interval=0.1)
+
 def initialize_addon(context):
     """Initialize addon state after registration"""
     if context and context.window_manager:
-        # # Initialize color history
+        # Initialize color history
         if hasattr(context.window_manager, 'coloraide_history'):
             context.window_manager.coloraide_history.initialize_history()
-            
-        # Start color monitor
-        bpy.ops.color.monitor('INVOKE_DEFAULT')
-
 
 def register():
     # Register classes
@@ -162,10 +163,19 @@ def register():
     # Register keymaps
     register_keymaps()
     
-    # Use timer to initialize after context is ready
-    bpy.app.timers.register(lambda: initialize_addon(bpy.context) if bpy.context else None, first_interval=0.1)
+    # Add load handler
+    bpy.app.handlers.load_post.append(load_handler)
+    
+    # Initialize addon
+    initialize_addon(bpy.context)
+    
+    # Start monitor after slight delay
+    bpy.app.timers.register(lambda: bpy.ops.color.monitor('INVOKE_DEFAULT'), first_interval=0.1)
 
 def unregister():
+    # Remove load handler
+    bpy.app.handlers.load_post.remove(load_handler)
+    
     # Unregister keymaps
     unregister_keymaps()
     
