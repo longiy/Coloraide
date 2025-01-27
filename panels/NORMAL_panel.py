@@ -1,10 +1,11 @@
-
 """Normal color picker panel implementation."""
-
 import bpy
 
 def draw_normal_panel(layout, context):
     """Draw normal picker controls"""
+    if context.area.type != 'VIEW_3D':
+        return
+        
     wm = context.window_manager
     
     # Normal picker box
@@ -17,8 +18,3 @@ def draw_normal_panel(layout, context):
         icon='NORMALS_VERTEX' if wm.coloraide_normal.enabled else 'NORMALS_VERTEX_FACE',
         depress=wm.coloraide_normal.enabled
     )
-    
-    # Show space dropdown when enabled
-    if wm.coloraide_normal.enabled:
-        sub = box.row()
-        sub.prop(wm.coloraide_normal, "space", text="Space")
