@@ -1,6 +1,7 @@
 # LAB_OT.py 
 import bpy
 from bpy.types import Operator
+from ..COLORAIDE_utils import rgb_to_hsv
 from ..COLORAIDE_sync import sync_all, is_updating
 
 class COLOR_OT_sync_lab(Operator):
