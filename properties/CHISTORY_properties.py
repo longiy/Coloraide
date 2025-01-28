@@ -4,16 +4,18 @@ from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all, is_updating
 
 class ColorHistoryItemProperties(PropertyGroup):
+    """Individual color history item with optimized update handling"""
     suppress_updates: BoolProperty(default=False)
     
     def update_history_color(self, context):
+        """Update handler with improved sync check"""
         if is_updating() or self.suppress_updates:
             return
         sync_all(context, 'history', self.color)
             
     color: FloatVectorProperty(
         name="Color",
-        subtype='COLOR',  # Changed from COLOR_GAMMA to COLOR
+        subtype='COLOR_GAMMA',
         size=3,
         min=0.0, max=1.0,
         default=(0.0, 0.0, 0.0),
@@ -21,43 +23,58 @@ class ColorHistoryItemProperties(PropertyGroup):
     )
 
 class ColoraideHistoryProperties(PropertyGroup):
+    """Color history management with optimized operations"""
     size: IntProperty(
         default=8,
         min=8,
         max=80
     )
+    
     items: CollectionProperty(
         type=ColorHistoryItemProperties
     )
     
     def initialize_history(self):
-        # Clear existing items
-        while len(self.items) > 0:
-            self.items.remove(0)
+        """Initialize history with optimized clearing"""
+        items = self.items
+        # Efficient batch removal
+        while items:
+            items.remove(0)
             
-        # Add initial items up to size
+        # Batch add initial items
         for _ in range(self.size):
-            item = self.items.add()
+            item = items.add()
             item.suppress_updates = True
             item.color = (0.0, 0.0, 0.0)
             item.suppress_updates = False
 
     def add_color(self, color):
-        # Check for duplicate colors
-        for item in self.items:
-            if all(abs(a - b) < 0.001 for a, b in zip(item.color, color)):
+        """Add color to history with optimized duplicate checking and shifting"""
+        if not color or not all(isinstance(c, float) for c in color):
+            return
+            
+        items = self.items
+        
+        # Quick duplicate check with early return
+        for item in items:
+            if all(abs(a - b) < 0.0001 for a, b in zip(item.color, color)):
                 return
                 
-        # Create new color at beginning
-        new_item = self.items.add()
-        new_item.suppress_updates = True
-        new_item.color = color
-        new_item.suppress_updates = False
-        
-        # Remove excess colors
-        while len(self.items) > self.size:
-            self.items.remove(len(self.items) - 1)
+        # Remove last item if at size limit
+        if len(items) >= self.size:
+            items.remove(len(items) - 1)
             
-        # Move new color to front
-        for i in range(len(self.items) - 1, 0, -1):
-            self.items.move(i, i - 1)
+        # Add new color at beginning
+        item = items.add()
+        item.suppress_updates = True
+        item.color = color
+        
+        # Efficient batch move to front
+        items.move(len(items) - 1, 0)
+        item.suppress_updates = False
+        
+    def get_color_at_index(self, index):
+        """Safely get color at specific index"""
+        if 0 <= index < len(self.items):
+            return self.items[index].color
+        return None
