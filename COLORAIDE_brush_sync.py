@@ -1,5 +1,7 @@
 """
 Brush color synchronization system for Coloraide addon.
+Handles direct brush color updates and propagation to picker.
+Updated for Blender 4.3+ API changes.
 """
 
 import bpy
@@ -74,7 +76,7 @@ def sync_picker_from_brush(context, brush_color):
         wm.coloraide_wheel.suppress_updates = False
 
 def sync_brush_from_picker(context, color):
-    """Update brush colors from picker"""
+    """Update brush colors directly from picker without full sync"""
     if is_brush_updating():
         return
         
@@ -84,18 +86,19 @@ def sync_brush_from_picker(context, color):
             
         ts = context.tool_settings
         
-        # Update Grease Pencil vertex paint brush
-        if context.mode == 'PAINT_GREASE_PENCIL':
-            if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
-                ts.gpencil_vertex_paint.brush.color = color
-                
-        # Update regular Grease Pencil brush
-        elif context.mode == 'PAINT_GPENCIL':
-            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+        # Handle Grease Pencil vertex paint mode (4.3+ API)
+        if (context.mode in {'PAINT_GREASE_PENCIL', 'VERTEX_GREASE_PENCIL'} and 
+            context.active_object and 
+            context.active_object.type == 'GREASEPENCIL'):
+            if ts.gpencil_paint and ts.gpencil_paint.brush:
+                # Update vertex paint color for active brush
                 ts.gpencil_paint.brush.color = color
+                # Also update vertex color if unified settings are used
+                if ts.unified_paint_settings.use_unified_color:
+                    ts.unified_paint_settings.color = color
                 
-        # Update texture paint brush
-        elif hasattr(ts, 'image_paint') and ts.image_paint.brush:
+        # Handle Image Paint mode
+        elif ts.image_paint and ts.image_paint.brush:
             ts.image_paint.brush.color = color
             if ts.unified_paint_settings.use_unified_color:
                 ts.unified_paint_settings.color = color
