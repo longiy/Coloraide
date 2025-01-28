@@ -24,30 +24,6 @@ class PALETTE_OT_add_color(Operator):
             return {'FINISHED'}
         return {'CANCELLED'}
 
-class PALETTE_OT_select_color(Operator):
-    bl_idname = "palette.select_color"
-    bl_label = "Select Color"
-    bl_options = {'REGISTER', 'UNDO'}
-    
-    color: FloatVectorProperty(
-        subtype='COLOR_GAMMA',
-        size=3,
-        min=0.0, max=1.0
-    )
-    
-    def execute(self, context):
-        wm = context.window_manager
-        
-        # Update picker directly first
-        wm.coloraide_picker.suppress_updates = True
-        wm.coloraide_picker.mean = self.color
-        wm.coloraide_picker.current = self.color
-        wm.coloraide_picker.suppress_updates = False
-        
-        # Then do full sync
-        sync_all(context, 'picker', self.color)
-        return {'FINISHED'}
-
 class PALETTE_OT_remove_color(Operator):
     bl_idname = "palette.remove_color"
     bl_label = "Remove Color"

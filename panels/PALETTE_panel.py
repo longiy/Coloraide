@@ -33,39 +33,25 @@ def draw_palette_panel(layout, context):
     )
     
     if wm.coloraide_display.show_palettes:
-        paint_settings_list = get_active_paint_settings(context)
+        ts = context.tool_settings
+        # Get correct paint settings based on context mode
+        if context.mode == 'PAINT_GPENCIL':
+            paint_settings = ts.gpencil_paint
+        else:
+            paint_settings = ts.image_paint
+            
+        # Palette selector
+        row = box.row(align=True)
+        row.template_ID(paint_settings, "palette", new="palette.new")
         
-        for mode, paint_settings in paint_settings_list:
-            # Draw mode label
-            row = box.row()
-            row.label(text=mode.replace("_", " ").title())
-            
-            # Palette selector
-            row = box.row(align=True)
-            row.template_ID(paint_settings, "palette", new="palette.new")
-            
-            if paint_settings.palette:
-                # Add sync button
-                if paint_settings.palette.colors.active:
-                    sync_row = box.row(align=True)
-                    op = sync_row.operator(
-                        "palette.select_color",
-                        text="Sync Color to Coloraide",
-                        icon='UV_SYNC_SELECT'
-                    )
-                    op.color = paint_settings.palette.colors.active.color
-                
-                # Color selector UI
-                palette_box = box.column()
-                palette_box.template_palette(
-                    paint_settings,
-                    "palette",
-                    color=True
-                )
-                
-            # Add separator between modes
-            if mode != paint_settings_list[-1][0]:
-                box.separator()
+        if paint_settings.palette:
+            # Color selector UI
+            palette_box = box.column()
+            palette_box.template_palette(
+                paint_settings,
+                "palette",
+                color=True
+            )
 
 class PALETTE_PT_panel:
     """Class containing panel drawing methods for palettes"""
