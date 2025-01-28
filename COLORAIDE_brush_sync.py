@@ -86,19 +86,14 @@ def sync_brush_from_picker(context, color):
             
         ts = context.tool_settings
         
-        # Handle Grease Pencil vertex paint mode (4.3+ API)
-        if (context.mode in {'PAINT_GREASE_PENCIL', 'VERTEX_GREASE_PENCIL'} and 
-            context.active_object and 
-            context.active_object.type == 'GREASEPENCIL'):
-            if ts.gpencil_paint and ts.gpencil_paint.brush:
-                # Update vertex paint color for active brush
-                ts.gpencil_paint.brush.color = color
-                # Also update vertex color if unified settings are used
-                if ts.unified_paint_settings.use_unified_color:
-                    ts.unified_paint_settings.color = color
+        # Update Grease Pencil brush if available
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = color
                 
-        # Handle Image Paint mode
-        elif ts.image_paint and ts.image_paint.brush:
+        # Update Image Paint brush if available
+        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
             ts.image_paint.brush.color = color
             if ts.unified_paint_settings.use_unified_color:
                 ts.unified_paint_settings.color = color

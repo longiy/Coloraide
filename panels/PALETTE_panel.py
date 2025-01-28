@@ -4,6 +4,21 @@ Palette panel UI implementation for Coloraide.
 
 import bpy
 
+def get_active_paint_settings(context):
+    """Get all active paint settings"""
+    ts = context.tool_settings
+    paint_settings = []
+    
+    # Check Grease Pencil paint settings
+    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint:
+        paint_settings.append(('GREASE_PENCIL', ts.gpencil_paint))
+        
+    # Check Image Paint settings    
+    if hasattr(ts, 'image_paint') and ts.image_paint:
+        paint_settings.append(('IMAGE_PAINT', ts.image_paint))
+        
+    return paint_settings
+
 def draw_palette_panel(layout, context):
     """Draw palette controls in the given layout"""
     wm = context.window_manager
@@ -18,27 +33,39 @@ def draw_palette_panel(layout, context):
     )
     
     if wm.coloraide_display.show_palettes:
-        ts = context.tool_settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
-            
-        # Palette selector
-        row = box.row(align=True)
-        row.template_ID(paint_settings, "palette", new="palette.new")
+        paint_settings_list = get_active_paint_settings(context)
         
-        if paint_settings.palette:
-            # Add sync button right after palette selector
-            if paint_settings.palette.colors.active:
-                sync_row = box.row(align=True)
-                op = sync_row.operator("palette.select_color", text="Sync Color to Coloraide", icon='UV_SYNC_SELECT')
-                op.color = paint_settings.palette.colors.active.color
+        for mode, paint_settings in paint_settings_list:
+            # Draw mode label
+            row = box.row()
+            row.label(text=mode.replace("_", " ").title())
             
-            # Color selector UI
-            palette_box = box.column()
-            palette_box.template_palette(
-                paint_settings,
-                "palette",
-                color=True
-            )
+            # Palette selector
+            row = box.row(align=True)
+            row.template_ID(paint_settings, "palette", new="palette.new")
+            
+            if paint_settings.palette:
+                # Add sync button
+                if paint_settings.palette.colors.active:
+                    sync_row = box.row(align=True)
+                    op = sync_row.operator(
+                        "palette.select_color",
+                        text="Sync Color to Coloraide",
+                        icon='UV_SYNC_SELECT'
+                    )
+                    op.color = paint_settings.palette.colors.active.color
+                
+                # Color selector UI
+                palette_box = box.column()
+                palette_box.template_palette(
+                    paint_settings,
+                    "palette",
+                    color=True
+                )
+                
+            # Add separator between modes
+            if mode != paint_settings_list[-1][0]:
+                box.separator()
 
 class PALETTE_PT_panel:
     """Class containing panel drawing methods for palettes"""

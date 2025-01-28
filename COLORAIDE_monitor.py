@@ -8,37 +8,58 @@ class COLOR_OT_monitor(Operator):
     bl_label = "Monitor Color Changes"
     bl_options = {'INTERNAL'}
     
-    old_color = None
+    old_gp_color = None
+    old_image_color = None
+    
+    def check_color_change(self, context, paint_settings, old_color):
+        """Check for color changes in paint settings"""
+        if not paint_settings or not paint_settings.brush:
+            return None, old_color
+            
+        curr_color = None
+        ts = context.tool_settings
+        
+        if ts.unified_paint_settings.use_unified_color:
+            curr_color = tuple(ts.unified_paint_settings.color)
+        else:
+            curr_color = tuple(paint_settings.brush.color)
+            
+        if curr_color != old_color:
+            return curr_color, curr_color
+            
+        return None, old_color
     
     def modal(self, context, event):
         try:
             ts = context.tool_settings
-            curr_color = None
+            color_changed = False
+            update_color = None
             
-            # Handle Grease Pencil paint and vertex paint modes (4.3+ API)
-            if (context.mode in {'PAINT_GREASE_PENCIL', 'VERTEX_GREASE_PENCIL'} and 
-                context.active_object and 
-                context.active_object.type == 'GREASEPENCIL'):
-                if ts.gpencil_paint and ts.gpencil_paint.brush:
-                    curr_color = tuple(ts.gpencil_paint.brush.color)
-                    # Also check unified settings
-                    if ts.unified_paint_settings.use_unified_color:
-                        unified_color = tuple(ts.unified_paint_settings.color)
-                        # Use unified color if it differs from brush color
-                        if unified_color != curr_color:
-                            curr_color = unified_color
+            # Monitor Grease Pencil colors
+            if hasattr(ts, 'gpencil_paint'):
+                new_color, self.old_gp_color = self.check_color_change(
+                    context, 
+                    ts.gpencil_paint,
+                    self.old_gp_color
+                )
+                if new_color:
+                    color_changed = True
+                    update_color = new_color
             
-            # Handle Image Paint mode
-            elif ts.image_paint and ts.image_paint.brush:
-                if ts.unified_paint_settings.use_unified_color:
-                    curr_color = tuple(ts.unified_paint_settings.color)
-                else:
-                    curr_color = tuple(ts.image_paint.brush.color)
+            # Monitor Image Paint colors
+            if hasattr(ts, 'image_paint'):
+                new_color, self.old_image_color = self.check_color_change(
+                    context, 
+                    ts.image_paint,
+                    self.old_image_color
+                )
+                if new_color:
+                    color_changed = True
+                    update_color = new_color
             
-            if curr_color != self.old_color and curr_color is not None:
-                if not is_brush_updating():
-                    sync_picker_from_brush(context, curr_color)
-                self.old_color = curr_color
+            # Update Coloraide if any color changed
+            if color_changed and update_color and not is_brush_updating():
+                sync_picker_from_brush(context, update_color)
                 
         except Exception as e:
             print(f"Color monitor error: {e}")
@@ -46,5 +67,13 @@ class COLOR_OT_monitor(Operator):
         return {'PASS_THROUGH'}
 
     def invoke(self, context, event):
+        # Initialize tracking colors
+        ts = context.tool_settings
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
+            self.old_gp_color = tuple(ts.gpencil_paint.brush.color)
+            
+        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
+            self.old_image_color = tuple(ts.image_paint.brush.color)
+            
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
