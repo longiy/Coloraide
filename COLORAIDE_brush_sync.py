@@ -1,6 +1,5 @@
 """
 Brush color synchronization system for Coloraide addon.
-Handles direct brush color updates and propagation to picker.
 """
 
 import bpy
@@ -62,7 +61,7 @@ def sync_picker_from_brush(context, brush_color):
         
         hsv = rgb_to_hsv(brush_color)
         
-        # Manually update HSV
+        # Update HSV
         wm.coloraide_hsv.suppress_updates = True
         wm.coloraide_hsv.hue = hsv[0] * 360.0
         wm.coloraide_hsv.saturation = hsv[1] * 100.0
@@ -75,7 +74,7 @@ def sync_picker_from_brush(context, brush_color):
         wm.coloraide_wheel.suppress_updates = False
 
 def sync_brush_from_picker(context, color):
-    """Update brush colors directly from picker without full sync"""
+    """Update brush colors from picker"""
     if is_brush_updating():
         return
         
@@ -85,11 +84,18 @@ def sync_brush_from_picker(context, color):
             
         ts = context.tool_settings
         
-        # Update all relevant brushes directly
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-            ts.gpencil_paint.brush.color = color
-            
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+        # Update Grease Pencil vertex paint brush
+        if context.mode == 'PAINT_GREASE_PENCIL':
+            if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+                ts.gpencil_vertex_paint.brush.color = color
+                
+        # Update regular Grease Pencil brush
+        elif context.mode == 'PAINT_GPENCIL':
+            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                ts.gpencil_paint.brush.color = color
+                
+        # Update texture paint brush
+        elif hasattr(ts, 'image_paint') and ts.image_paint.brush:
             ts.image_paint.brush.color = color
             if ts.unified_paint_settings.use_unified_color:
                 ts.unified_paint_settings.color = color
