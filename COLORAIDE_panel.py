@@ -26,16 +26,11 @@ def draw_coloraide_panels(self, context):
     
     layout = self.layout
     
-    draw_normal_panel(layout, context)
-    
     # Draw color wheel
     draw_wheel_panel(layout, context)
     
     # Draw core color picker
     draw_picker_panel(layout, context)
-    
-
-    draw_dynamics_panel(layout, context)
     
      # Color spaces box
     box = layout.box()
@@ -49,9 +44,10 @@ def draw_coloraide_panels(self, context):
     if wm.coloraide_display.show_color_sliders:
         # Color space toggles
         row = box.row(align=True)
+        row.prop(wm.coloraide_display, "show_hsv_sliders", text="HSV", toggle=True)
         row.prop(wm.coloraide_display, "show_rgb_sliders", text="RGB", toggle=True)
         row.prop(wm.coloraide_display, "show_lab_sliders", text="LAB", toggle=True)
-        row.prop(wm.coloraide_display, "show_hsv_sliders", text="HSV", toggle=True)
+        
         
         # Draw slider panels directly without their boxes
         col = box.column()

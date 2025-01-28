@@ -28,14 +28,14 @@ def draw_wheel_panel(layout, context):
             lock_luminosity=False
         )
         
-        # Scale control with reset button and hex input
-        row = box.row(align=True)
+       
+        # Create a single aligned column for all controls
+        col = box.column(align=True)
+
+        # First row: Hex input, scale and reset
+        row = col.row(align=True)
         split = row.split(factor=0.4, align=True)
-
-        # Hex input on left
         split.prop(wm.coloraide_hex, "value", text="")
-
-        # Scale and reset on right
         right_split = split.split(factor=0.85, align=True) 
         right_split.prop(wm.coloraide_wheel, "scale", text="Size", slider=True)
         right_split.operator(
@@ -43,6 +43,14 @@ def draw_wheel_panel(layout, context):
             text="",
             icon='LOOP_BACK'
         )
+
+        # Second row: Color dynamics directly below without gap
+        row = col.row(align=True)
+        row.prop(wm.coloraide_dynamics, "strength", text="Color Dynamics", slider=True)
+            
+        
+        
+        
 
 # Optional: Add operator for resetting wheel scale
 class COLOR_OT_reset_wheel_scale(bpy.types.Operator):

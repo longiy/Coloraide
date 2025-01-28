@@ -14,21 +14,26 @@ def register_keymaps():
     kc = wm.keyconfigs.addon
     
     if kc:
-        # 3D View keymap
-        km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
-        
-        # Quick pick in 3D View
+        # Texture Paint keymap
+        km = kc.keymaps.new(name='Image Paint', space_type='VIEW_3D', region_type='WINDOW')
         kmi = km.keymap_items.new(
             "image.quickpick",
-            "BACK_SLASH",
+            "S",  # S key for texture paint
             "PRESS"
         )
         addon_keymaps.append((km, kmi))
         
+        # Regular 3D View keymap
+        km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
+        kmi = km.keymap_items.new(
+            "image.quickpick",
+            "BACK_SLASH",  # Backslash for regular 3D view
+            "PRESS"
+        )
+        addon_keymaps.append((km, kmi))
+
         # Image Editor keymap
         km = kc.keymaps.new(name='Image', space_type='IMAGE_EDITOR')
-        
-        # Quick pick in Image Editor
         kmi = km.keymap_items.new(
             "image.quickpick",
             "S",
@@ -38,8 +43,6 @@ def register_keymaps():
 
         # Clip Editor keymap
         km = kc.keymaps.new(name='Clip', space_type='CLIP_EDITOR')
-        
-        # Quick pick in Clip Editor
         kmi = km.keymap_items.new(
             "image.quickpick",
             "BACK_SLASH",
@@ -47,7 +50,6 @@ def register_keymaps():
         )
         addon_keymaps.append((km, kmi))
         
-
 
 def unregister_keymaps():
     """Unregister and remove all addon keymaps"""

@@ -18,8 +18,10 @@ def draw_history_panel(layout, context):
     )
     
     if wm.coloraide_display.show_history:
+        main_col = box.column(align=True)
+        
         # Size adjustment row
-        size_row = box.row(align=True)
+        size_row = main_col.row(align=True)
         minus = size_row.operator("color.adjust_history_size", text="-")
         minus.increase = False
         plus = size_row.operator("color.adjust_history_size", text="+")
@@ -36,11 +38,8 @@ def draw_history_panel(layout, context):
         visible_history = history[:wm.coloraide_history.size]
         num_rows = (len(visible_history) + colors_per_row - 1) // colors_per_row
         
-        # Create column for swatch rows
-        col = box.column(align=True)
-        
         for row_idx in range(num_rows):
-            history_row = col.row(align=True)
+            history_row = main_col.row(align=True)
             
             start_idx = row_idx * colors_per_row
             end_idx = min(start_idx + colors_per_row, len(visible_history))

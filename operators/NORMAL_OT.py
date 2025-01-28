@@ -24,7 +24,8 @@ class NORMAL_OT_color_picker(Operator):
             return False
         if not context.active_object or not context.active_object.type == 'MESH':
             return False
-        if context.mode not in {'PAINT_VERTEX', 'PAINT_WEIGHT'}:
+        # Allow in texture paint mode
+        if context.mode not in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_WEIGHT'}:
             return False
         return True
 

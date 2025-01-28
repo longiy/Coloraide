@@ -133,6 +133,9 @@ class IMAGE_OT_quickpick(Operator):
     bl_description = "Press and hold to activate color picker, release to select color"
     bl_options = {'REGISTER', 'UNDO'}
     
+    
+    mode: bpy.props.StringProperty(default='DEFAULT')  # Add this line
+    
     _key_pressed = None
     sqrt_length: bpy.props.IntProperty(default=3)
     x: bpy.props.IntProperty()

@@ -26,7 +26,7 @@ class ColoraideDynamicsProperties(PropertyGroup):
     )
     
     strength: IntProperty(
-        name="Strength",
+        name="Color Dynamics",
         description="Amount of random color variation during strokes",
         min=0,
         max=100,
