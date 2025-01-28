@@ -37,19 +37,8 @@ class PALETTE_OT_select_color(Operator):
     
     def execute(self, context):
         wm = context.window_manager
-        ts = context.tool_settings
         
-        # Update brush color directly first
-        if context.mode == 'VERTEX_GPENCIL':
-            if ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
-                ts.gpencil_vertex_paint.brush.color = self.color
-        elif context.mode == 'PAINT_GPENCIL':
-            if ts.gpencil_paint and ts.gpencil_paint.brush:
-                ts.gpencil_paint.brush.color = self.color
-        elif ts.image_paint and ts.image_paint.brush:
-            ts.image_paint.brush.color = self.color
-        
-        # Update picker
+        # Update picker directly first
         wm.coloraide_picker.suppress_updates = True
         wm.coloraide_picker.mean = self.color
         wm.coloraide_picker.current = self.color

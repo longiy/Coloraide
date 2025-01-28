@@ -9,7 +9,7 @@ from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
 from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
-from .COLORAIDE_gpencil_handler import register_gpencil_handlers, unregister_gpencil_handlers
+
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
 from .properties.NORMAL_properties import ColoraideNormalProperties
@@ -120,10 +120,6 @@ def register():
         bpy.utils.register_class(cls)
      # Register keymaps
     register_keymaps()  # Make sure this line is here
-    
-    # Register Grease Pencil handlers
-    bpy.app.handlers.load_post.append(register_gpencil_handlers)
-    register_gpencil_handlers(None)  # Register handlers immediately
     # Register property group assignments
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
@@ -151,10 +147,7 @@ def unregister():
     bpy.app.handlers.load_post.remove(load_handler)
      # Unregister keymaps
     unregister_keymaps()  # Make sure this line is here
-      # Remove Grease Pencil handlers
-    if register_gpencil_handlers in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.remove(register_gpencil_handlers)
-    unregister_gpencil_handlers()
+    
     # Unregister property groups
     del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal

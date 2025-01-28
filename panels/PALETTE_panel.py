@@ -3,7 +3,6 @@ Palette panel UI implementation for Coloraide.
 """
 
 import bpy
-from bpy.types import ImagePaint
 
 def draw_palette_panel(layout, context):
     """Draw palette controls in the given layout"""
@@ -20,13 +19,7 @@ def draw_palette_panel(layout, context):
     
     if wm.coloraide_display.show_palettes:
         ts = context.tool_settings
-        
-        # Initialize image paint if not already set up
-        if not hasattr(ts, "image_paint"):
-            ts.image_paint = ImagePaint()
-            
-        # Get appropriate paint settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GREASE_PENCIL' else ts.image_paint
+        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
             
         # Palette selector
         row = box.row(align=True)
@@ -56,12 +49,10 @@ class PALETTE_PT_panel:
         wm = context.window_manager
         if wm.coloraide_display.show_palettes:
             ts = context.tool_settings
-            
-            # Initialize image paint if needed
-            if not hasattr(ts, "image_paint"):
-                ts.image_paint = ImagePaint()
-                
-            paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+            if context.mode == 'PAINT_GPENCIL':
+                paint_settings = ts.gpencil_paint
+            else:
+                paint_settings = ts.image_paint
                 
             row = layout.row(align=True)
             row.template_ID(paint_settings, "palette", new="palette.new")
@@ -84,12 +75,10 @@ class PALETTE_PT_panel:
         wm = context.window_manager
         if wm.coloraide_display.show_palettes:
             ts = context.tool_settings
-            
-            # Initialize image paint if needed
-            if not hasattr(ts, "image_paint"):
-                ts.image_paint = ImagePaint()
-                
-            paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+            if context.mode == 'PAINT_GPENCIL':
+                paint_settings = ts.gpencil_paint
+            else:
+                paint_settings = ts.image_paint
                 
             if paint_settings.palette:
                 layout.template_palette(
@@ -97,7 +86,7 @@ class PALETTE_PT_panel:
                     "palette",
                     color=True
                 )
-                
+
 def register():
     """Register any classes specific to the palette panel"""
     pass
