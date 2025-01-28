@@ -14,12 +14,13 @@ def register_keymaps():
     kc = wm.keyconfigs.addon
     
     if kc:
-        # Texture Paint keymap
+    # Texture Paint keymap
         km = kc.keymaps.new(name='Image Paint', space_type='VIEW_3D', region_type='WINDOW')
         kmi = km.keymap_items.new(
             "image.quickpick",
-            "S",  # S key for texture paint
-            "PRESS"
+            "E",  # Changed from S
+            "PRESS",
+            shift=True  # Added shift modifier
         )
         addon_keymaps.append((km, kmi))
         
@@ -27,8 +28,9 @@ def register_keymaps():
         km = kc.keymaps.new(name='3D View', space_type='VIEW_3D')
         kmi = km.keymap_items.new(
             "image.quickpick",
-            "BACK_SLASH",  # Backslash for regular 3D view
-            "PRESS"
+            "E",  # Changed from BACK_SLASH
+            "PRESS",
+            shift=True  # Added shift modifier
         )
         addon_keymaps.append((km, kmi))
 
@@ -36,8 +38,9 @@ def register_keymaps():
         km = kc.keymaps.new(name='Image', space_type='IMAGE_EDITOR')
         kmi = km.keymap_items.new(
             "image.quickpick",
-            "S",
-            "PRESS"
+            "E",  # Changed from S
+            "PRESS",
+            shift=True  # Added shift modifier
         )
         addon_keymaps.append((km, kmi))
 
@@ -45,8 +48,9 @@ def register_keymaps():
         km = kc.keymaps.new(name='Clip', space_type='CLIP_EDITOR')
         kmi = km.keymap_items.new(
             "image.quickpick",
-            "BACK_SLASH",
-            "PRESS"
+            "E",  # Changed from BACK_SLASH
+            "PRESS",
+            shift=True  # Added shift modifier
         )
         addon_keymaps.append((km, kmi))
         
