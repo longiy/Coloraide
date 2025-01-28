@@ -40,7 +40,6 @@ class ColoraidePickerProperties(PropertyGroup):
        size=3,
        min=0.0, max=1.0,
        default=(1.0, 1.0, 1.0),
-       update=update_current_color
    )
 
    max: FloatVectorProperty(
