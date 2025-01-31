@@ -113,12 +113,20 @@ def sync_all(context, source, color):
         wm.coloraide_hex.value = hex_value
         wm.coloraide_hex.suppress_updates = False
         
-        # Update brush colors
+        # Update all brush colors
         ts = context.tool_settings
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+        # Update Grease Pencil brush if available
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = rgb_float
             
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+        # Update Image Paint brush if available
+        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
             ts.image_paint.brush.color = rgb_float
-            if ts.unified_paint_settings.use_unified_color:
-                ts.unified_paint_settings.color = rgb_float
+            
+        # Update Vertex Paint brush if available
+        if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
+            ts.vertex_paint.brush.color = rgb_float
+            
+        # Update unified settings if enabled
+        if ts.unified_paint_settings.use_unified_color:
+            ts.unified_paint_settings.color = rgb_float
