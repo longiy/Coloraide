@@ -16,11 +16,23 @@ class PALETTE_OT_add_color(Operator):
     
     def execute(self, context):
         ts = context.tool_settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        paint_settings = None
         
+        # Get correct paint settings based on mode
+        if context.mode == 'PAINT_GPENCIL':
+            paint_settings = ts.gpencil_paint
+        elif context.mode == 'PAINT_VERTEX':
+            paint_settings = ts.vertex_paint
+        else:
+            paint_settings = ts.image_paint
+            
         if paint_settings and paint_settings.palette:
             new_color = paint_settings.palette.colors.new()
             new_color.color = self.color
+            # Make the new color active
+            paint_settings.palette.colors.active = new_color
+            # Sync to Coloraide
+            sync_all(context, 'palette', self.color)
             return {'FINISHED'}
         return {'CANCELLED'}
 
@@ -33,13 +45,28 @@ class PALETTE_OT_remove_color(Operator):
     @classmethod
     def poll(cls, context):
         ts = context.tool_settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        paint_settings = None
+        if context.mode == 'PAINT_GPENCIL':
+            paint_settings = ts.gpencil_paint
+        elif context.mode == 'PAINT_VERTEX':
+            paint_settings = ts.vertex_paint
+        else:
+            paint_settings = ts.image_paint
+            
         return (paint_settings and paint_settings.palette 
                 and paint_settings.palette.colors.active)
     
     def execute(self, context):
         ts = context.tool_settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        paint_settings = None
+        
+        # Get correct paint settings based on mode
+        if context.mode == 'PAINT_GPENCIL':
+            paint_settings = ts.gpencil_paint
+        elif context.mode == 'PAINT_VERTEX':
+            paint_settings = ts.vertex_paint
+        else:
+            paint_settings = ts.image_paint
         
         if paint_settings and paint_settings.palette:
             paint_settings.palette.colors.remove(paint_settings.palette.colors.active)

@@ -28,6 +28,21 @@ def is_brush_updating():
     """Check if brush update is in progress"""
     return _UPDATING_BRUSH
 
+def check_brush_color(context, paint_settings):
+    """Get current brush color from paint settings"""
+    if not paint_settings or not paint_settings.brush:
+        return None
+        
+    ts = context.tool_settings
+    if ts.unified_paint_settings.use_unified_color:
+        return tuple(ts.unified_paint_settings.color)
+    
+    if paint_settings.palette and paint_settings.palette.colors.active:
+        # If active palette color exists, use it
+        return tuple(paint_settings.palette.colors.active.color)
+        
+    return tuple(paint_settings.brush.color)
+
 def sync_picker_from_brush(context, brush_color):
     """Update picker properties from brush color without triggering sync_all"""
     if is_brush_updating():
