@@ -1,6 +1,7 @@
 """
 Brush color synchronization system for Coloraide addon.
 Handles direct brush color updates and propagation to picker.
+Updated for Blender 4.3+ API changes.
 """
 
 import bpy
@@ -26,6 +27,21 @@ def brush_update_lock():
 def is_brush_updating():
     """Check if brush update is in progress"""
     return _UPDATING_BRUSH
+
+def check_brush_color(context, paint_settings):
+    """Get current brush color from paint settings"""
+    if not paint_settings or not paint_settings.brush:
+        return None
+        
+    ts = context.tool_settings
+    if ts.unified_paint_settings.use_unified_color:
+        return tuple(ts.unified_paint_settings.color)
+    
+    if paint_settings.palette and paint_settings.palette.colors.active:
+        # If active palette color exists, use it
+        return tuple(paint_settings.palette.colors.active.color)
+        
+    return tuple(paint_settings.brush.color)
 
 def sync_picker_from_brush(context, brush_color):
     """Update picker properties from brush color without triggering sync_all"""
@@ -60,10 +76,9 @@ def sync_picker_from_brush(context, brush_color):
         wm.coloraide_lab.b = lab[2]
         wm.coloraide_lab.suppress_updates = False
         
-        hsv = rgb_to_hsv(brush_color)
-        
-        # Manually update HSV
+        # Update HSV
         wm.coloraide_hsv.suppress_updates = True
+        hsv = rgb_to_hsv(brush_color)
         wm.coloraide_hsv.hue = hsv[0] * 360.0
         wm.coloraide_hsv.saturation = hsv[1] * 100.0
         wm.coloraide_hsv.value = hsv[2] * 100.0
@@ -85,12 +100,21 @@ def sync_brush_from_picker(context, color):
             
         ts = context.tool_settings
         
-        # Update all relevant brushes directly
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+        # Update Grease Pencil brush if available
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = color
-            
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = color
+                
+        # Update Image Paint brush if available  
+        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
             ts.image_paint.brush.color = color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = color
+                
+        # Update Vertex Paint brush if available
+        if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
+            ts.vertex_paint.brush.color = color
             if ts.unified_paint_settings.use_unified_color:
                 ts.unified_paint_settings.color = color
 

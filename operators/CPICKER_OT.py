@@ -68,17 +68,22 @@ class IMAGE_OT_screen_picker(Operator):
 
         fb = gpu.state.active_framebuffer_get()
         
-        # Sample area for mean color
+        # Sample area for mean color (the one we sync)
         screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
         channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
         mean_color = np.mean(channels, axis=0)
         
-        # Sample single pixel for current color
+        # Sample single pixel for current color (just display)
         curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
         current_color = np.array(curr_buffer.to_list()).reshape(-1)
         
         wm = context.window_manager
+        # Update current color directly without sync
+        wm.coloraide_picker.suppress_updates = True
         wm.coloraide_picker.current = tuple(current_color)
+        wm.coloraide_picker.suppress_updates = False
+        
+        # Only sync mean color
         sync_all(context, 'picker', tuple(mean_color))
     
     def cleanup(self, context):
@@ -127,6 +132,9 @@ class IMAGE_OT_quickpick(Operator):
     bl_label = "Quick Color Picker"
     bl_description = "Press and hold to activate color picker, release to select color"
     bl_options = {'REGISTER', 'UNDO'}
+    
+    
+    mode: bpy.props.StringProperty(default='DEFAULT')  # Add this line
     
     _key_pressed = None
     sqrt_length: bpy.props.IntProperty(default=3)

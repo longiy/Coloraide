@@ -39,7 +39,8 @@ class COLOR_OT_color_dynamics(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.window_manager.coloraide_dynamics.strength > 0
+        return (context.window_manager.coloraide_dynamics.strength > 0 and
+                context.mode in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_GPENCIL'})
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -47,8 +48,6 @@ class COLOR_OT_color_dynamics(Operator):
         wm.modal_handler_add(self)
         wm.coloraide_dynamics.running = True
         return {'RUNNING_MODAL'}
-
-# In COLOR_OT_color_dynamics.modal:
 
     def modal(self, context, event):
         wm = context.window_manager
@@ -73,22 +72,41 @@ class COLOR_OT_color_dynamics(Operator):
                     )
                     
                     # Direct brush color modification without sync
+                    # Grease Pencil brush
                     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                         ts.gpencil_paint.brush.color = dynamic_color
+                        
+                    # Image paint brush
                     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
                         ts.image_paint.brush.color = dynamic_color
-                        if ts.unified_paint_settings.use_unified_color:
-                            ts.unified_paint_settings.color = dynamic_color
+                        
+                    # Vertex paint brush
+                    if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
+                        ts.vertex_paint.brush.color = dynamic_color
+                        
+                    # Handle unified color settings
+                    if ts.unified_paint_settings.use_unified_color:
+                        ts.unified_paint_settings.color = dynamic_color
 
                 elif event.value == 'RELEASE':
                     base_color = tuple(wm.coloraide_picker.mean)
-                    # Direct brush color restore without sync
+                    # Restore original colors on release
+                    
+                    # Grease Pencil brush
                     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                         ts.gpencil_paint.brush.color = base_color
+                        
+                    # Image paint brush
                     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
                         ts.image_paint.brush.color = base_color
-                        if ts.unified_paint_settings.use_unified_color:
-                            ts.unified_paint_settings.color = base_color
+                        
+                    # Vertex paint brush
+                    if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
+                        ts.vertex_paint.brush.color = base_color
+                        
+                    # Handle unified color settings
+                    if ts.unified_paint_settings.use_unified_color:
+                        ts.unified_paint_settings.color = base_color
 
         return {'PASS_THROUGH'}
 
@@ -100,7 +118,6 @@ class COLOR_OT_color_dynamics(Operator):
         # Restore base color
         base_color = tuple(wm.coloraide_picker.mean)
         update_brush_color(context, base_color)
-
 def register():
     bpy.utils.register_class(COLOR_OT_color_dynamics)
 

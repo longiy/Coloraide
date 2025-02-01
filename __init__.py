@@ -32,7 +32,7 @@ from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
 from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
-from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_select_color, PALETTE_OT_remove_color
+from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_remove_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 from .operators.HEX_OT import COLOR_OT_sync_hex
 
@@ -91,7 +91,6 @@ classes = [
     COLOR_OT_clear_history,
     PALETTE_OT_add_color,
     PALETTE_OT_remove_color,
-    PALETTE_OT_select_color,
     COLOR_OT_monitor,
     COLOR_OT_color_dynamics,
     

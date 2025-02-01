@@ -79,7 +79,7 @@ def sync_all(context, source, color):
         wm.coloraide_rgb.blue = rgb_bytes[2]
         wm.coloraide_rgb.suppress_updates = False
         
-        # Update LAB with rounded integers
+        # Update LAB
         if source != 'lab':
             wm.coloraide_lab.suppress_updates = True
             lab = rgb_to_lab(rgb_float)
@@ -88,7 +88,7 @@ def sync_all(context, source, color):
             wm.coloraide_lab.b = round(lab[2])
             wm.coloraide_lab.suppress_updates = False
             
-        # Update HSV with display values
+        # Update HSV
         if source != 'hsv':
             wm.coloraide_hsv.suppress_updates = True
             hsv = rgb_to_hsv(rgb_float)
@@ -97,10 +97,9 @@ def sync_all(context, source, color):
             wm.coloraide_hsv.value = round(hsv[2] * 100.0)
             wm.coloraide_hsv.suppress_updates = False
             
-        # Update picker
+        # Update picker mean only (removed current)
         wm.coloraide_picker.suppress_updates = True
         wm.coloraide_picker.mean = rgb_float
-        wm.coloraide_picker.current = rgb_float
         wm.coloraide_picker.suppress_updates = False
         
         # Update wheel
@@ -114,12 +113,20 @@ def sync_all(context, source, color):
         wm.coloraide_hex.value = hex_value
         wm.coloraide_hex.suppress_updates = False
         
-        # Update brush colors
+        # Update all brush colors
         ts = context.tool_settings
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+        # Update Grease Pencil brush if available
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = rgb_float
             
-        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+        # Update Image Paint brush if available
+        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
             ts.image_paint.brush.color = rgb_float
-            if ts.unified_paint_settings.use_unified_color:
-                ts.unified_paint_settings.color = rgb_float
+            
+        # Update Vertex Paint brush if available
+        if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
+            ts.vertex_paint.brush.color = rgb_float
+            
+        # Update unified settings if enabled
+        if ts.unified_paint_settings.use_unified_color:
+            ts.unified_paint_settings.color = rgb_float

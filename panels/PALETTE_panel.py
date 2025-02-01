@@ -4,6 +4,21 @@ Palette panel UI implementation for Coloraide.
 
 import bpy
 
+def get_active_paint_settings(context):
+    """Get all active paint settings"""
+    ts = context.tool_settings
+    paint_settings = []
+    
+    # Check Grease Pencil paint settings
+    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint:
+        paint_settings.append(('GREASE_PENCIL', ts.gpencil_paint))
+        
+    # Check Image Paint settings    
+    if hasattr(ts, 'image_paint') and ts.image_paint:
+        paint_settings.append(('IMAGE_PAINT', ts.image_paint))
+        
+    return paint_settings
+
 def draw_palette_panel(layout, context):
     """Draw palette controls in the given layout"""
     wm = context.window_manager
@@ -19,18 +34,27 @@ def draw_palette_panel(layout, context):
     
     if wm.coloraide_display.show_palettes:
         ts = context.tool_settings
-        paint_settings = ts.gpencil_paint if context.mode == 'PAINT_GPENCIL' else ts.image_paint
+        # Get correct paint settings based on context mode
+        if context.mode == 'PAINT_GPENCIL':
+            paint_settings = ts.gpencil_paint
+        elif context.mode == 'PAINT_VERTEX':
+            paint_settings = ts.vertex_paint
+        else:
+            paint_settings = ts.image_paint
             
         # Palette selector
         row = box.row(align=True)
         row.template_ID(paint_settings, "palette", new="palette.new")
         
         if paint_settings.palette:
-            # Add sync button right after palette selector
-            if paint_settings.palette.colors.active:
-                sync_row = box.row(align=True)
-                op = sync_row.operator("palette.select_color", text="Sync Color to Coloraide", icon='UV_SYNC_SELECT')
-                op.color = paint_settings.palette.colors.active.color
+            # Add color button
+            add_row = box.row(align=True)
+            add_op = add_row.operator(
+                "palette.add_color",
+                text="Add Current Color",
+                icon='ADD'
+            )
+            add_op.color = tuple(wm.coloraide_picker.mean)
             
             # Color selector UI
             palette_box = box.column()
@@ -39,6 +63,15 @@ def draw_palette_panel(layout, context):
                 "palette",
                 color=True
             )
+            
+            # Only show remove button if a color is selected
+            if paint_settings.palette.colors.active:
+                remove_row = box.row(align=True)
+                remove_row.operator(
+                    "palette.remove_color",
+                    text="Remove Selected Color",
+                    icon='REMOVE'
+                )
 
 class PALETTE_PT_panel:
     """Class containing panel drawing methods for palettes"""

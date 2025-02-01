@@ -27,13 +27,13 @@ class ColoraideDisplayProperties(PropertyGroup):
     show_rgb_sliders: BoolProperty(
         name="Show RGB Controls",
         description="Show RGB color controls",
-        default=True
+        default=False
     )
     
     show_lab_sliders: BoolProperty(
         name="Show LAB Controls",
         description="Show LAB color controls",
-        default=True
+        default=False
     )
     
     show_hsv_sliders: BoolProperty(

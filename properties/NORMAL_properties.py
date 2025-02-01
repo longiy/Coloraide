@@ -6,6 +6,6 @@ from bpy.types import PropertyGroup
 class ColoraideNormalProperties(PropertyGroup):
     enabled: BoolProperty(
         name="Normal Color Sampling",
-        description="Sample normals as colors when painting",
+        description="Sample normals as colors when painting, only work in 3D View",
         default=False
     )

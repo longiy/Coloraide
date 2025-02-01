@@ -6,4 +6,4 @@ def draw_dynamics_panel(layout, context):
     wm = context.window_manager
 
     row = layout.row(align=True)
-    row.prop(wm.coloraide_dynamics, "strength", text="Strength", slider=True)
+    row.prop(wm.coloraide_dynamics, "strength", text="Color Dynamics", slider=True)
