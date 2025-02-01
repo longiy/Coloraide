@@ -47,9 +47,9 @@ def draw_palette_panel(layout, context):
         row.template_ID(paint_settings, "palette", new="palette.new")
         
         if paint_settings.palette:
-            add_op.color = tuple(wm.coloraide_picker.mean)
-            
+
             # Color selector UI
+            add_row = box.row(align=True)
             palette_box = box.column()
             palette_box.template_palette(
                 paint_settings,
