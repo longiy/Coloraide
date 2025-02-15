@@ -8,7 +8,8 @@ from bpy.app.handlers import persistent
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
-from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, update_brush_color, is_brush_updating)
+from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, 
+                                 update_brush_color, is_brush_updating)
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
@@ -23,7 +24,7 @@ from .properties.HSV_properties import ColoraideHSVProperties
 from .properties.CHISTORY_properties import ColoraideHistoryProperties, ColorHistoryItemProperties
 from .COLORAIDE_properties import ColoraideDisplayProperties
 
-# Import all operators
+# Import all operators and panels
 from .operators.NORMAL_OT import NORMAL_OT_color_picker
 from .operators.CDYNAMICS_OT import COLOR_OT_color_dynamics
 from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick
@@ -100,11 +101,16 @@ classes = [
     CLIP_PT_coloraide,
 ]
 
+def start_color_monitor():
+    """Start the color monitor modal operator"""
+    bpy.ops.color.monitor('INVOKE_DEFAULT')
+    return None  # Important: Return None to prevent timer error
+
 @persistent
 def load_handler(dummy):
     """Ensure color monitor is running after file load"""
     # Small delay to ensure context is ready
-    bpy.app.timers.register(lambda: bpy.ops.color.monitor('INVOKE_DEFAULT'), first_interval=0.1)
+    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
 
 def initialize_addon(context):
     """Initialize addon state after registration"""
@@ -117,8 +123,10 @@ def register():
     # Register classes
     for cls in classes:
         bpy.utils.register_class(cls)
-     # Register keymaps
-    register_keymaps()  # Make sure this line is here
+        
+    # Register keymaps
+    register_keymaps()
+    
     # Register property group assignments
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
@@ -138,14 +146,15 @@ def register():
     # Initialize addon
     initialize_addon(bpy.context)
     
-    # Start monitor after slight delay
-    bpy.app.timers.register(lambda: bpy.ops.color.monitor('INVOKE_DEFAULT'), first_interval=0.1)
+    # Start color monitor after slight delay
+    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
 
 def unregister():
     # Remove load handler
     bpy.app.handlers.load_post.remove(load_handler)
-     # Unregister keymaps
-    unregister_keymaps()  # Make sure this line is here
+    
+    # Unregister keymaps
+    unregister_keymaps()
     
     # Unregister property groups
     del bpy.types.WindowManager.coloraide_palette
