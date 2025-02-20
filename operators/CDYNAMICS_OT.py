@@ -31,6 +31,30 @@ def is_mouse_in_ui(context, event):
                 return True
     return False
 
+def update_brush_colors(context, color, unified_only=False):
+    """Update all brush colors efficiently"""
+    ts = context.tool_settings
+    
+    # Update unified settings first if enabled
+    if ts.unified_paint_settings.use_unified_color:
+        ts.unified_paint_settings.color = color
+        if unified_only:
+            return
+            
+    # Update individual brush colors if not using unified
+    if not ts.unified_paint_settings.use_unified_color:
+        # Grease Pencil brush
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = color
+            
+        # Image Paint brush
+        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
+            ts.image_paint.brush.color = color
+            
+        # Vertex Paint brush
+        if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
+            ts.vertex_paint.brush.color = color
+
 class COLOR_OT_color_dynamics(Operator):
     bl_idname = "color.color_dynamics"
     bl_label = "Color Dynamics"
@@ -39,56 +63,47 @@ class COLOR_OT_color_dynamics(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.window_manager.coloraide_dynamics.strength > 0
+        if not context.window_manager.coloraide_dynamics.strength:
+            return False
+            
+        # Check if we're in a valid paint mode
+        return context.mode in {'PAINT_GPENCIL', 'PAINT_TEXTURE', 'PAINT_VERTEX'}
 
     def invoke(self, context, event):
         wm = context.window_manager
-        wm.coloraide_dynamics.base_color = tuple(wm.coloraide_picker.mean)  # Store initial color
+        wm.coloraide_dynamics.base_color = tuple(wm.coloraide_picker.mean)
         wm.modal_handler_add(self)
         wm.coloraide_dynamics.running = True
         return {'RUNNING_MODAL'}
 
-# In COLOR_OT_color_dynamics.modal:
-
     def modal(self, context, event):
         wm = context.window_manager
-        ts = context.tool_settings
         
+        # Early exit if dynamics disabled
         if not wm.coloraide_dynamics.strength:
             self.cleanup(context)
             return {'CANCELLED'}
 
         if event.type == 'LEFTMOUSE':
-            mouse_in_ui = is_mouse_in_ui(context, event)
-            
-            if mouse_in_ui:
+            # Check for UI interaction
+            if is_mouse_in_ui(context, event):
                 return {'PASS_THROUGH'}
             
-            if not mouse_in_ui:
-                if event.value == 'PRESS':
-                    base_color = tuple(wm.coloraide_picker.mean)
-                    dynamic_color = apply_color_dynamics(
-                        base_color,
-                        wm.coloraide_dynamics.strength
-                    )
-                    
-                    # Direct brush color modification without sync
-                    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                        ts.gpencil_paint.brush.color = dynamic_color
-                    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                        ts.image_paint.brush.color = dynamic_color
-                        if ts.unified_paint_settings.use_unified_color:
-                            ts.unified_paint_settings.color = dynamic_color
-
-                elif event.value == 'RELEASE':
-                    base_color = tuple(wm.coloraide_picker.mean)
-                    # Direct brush color restore without sync
-                    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                        ts.gpencil_paint.brush.color = base_color
-                    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                        ts.image_paint.brush.color = base_color
-                        if ts.unified_paint_settings.use_unified_color:
-                            ts.unified_paint_settings.color = base_color
+            if event.value == 'PRESS':
+                # Generate dynamic color
+                base_color = tuple(wm.coloraide_picker.mean)
+                dynamic_color = apply_color_dynamics(
+                    base_color,
+                    wm.coloraide_dynamics.strength
+                )
+                
+                # Update all brush colors efficiently
+                update_brush_colors(context, dynamic_color)
+                
+            elif event.value == 'RELEASE':
+                # Restore base color
+                base_color = tuple(wm.coloraide_picker.mean)
+                update_brush_colors(context, base_color)
 
         return {'PASS_THROUGH'}
 
