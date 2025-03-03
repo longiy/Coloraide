@@ -3,6 +3,21 @@ Color history panel UI implementation for Coloraide.
 """
 
 import bpy
+from ..COLORAIDE_brush_sync import update_brush_color, set_history_update_flag
+
+def history_color_clicked(context, color):
+    """Handle color history item clicks with priority"""
+    # Set the flag to indicate this is a history update
+    set_history_update_flag(True)
+    try:
+        # Update brush color with high priority
+        update_brush_color(context, color, from_history=True)
+        
+        # Add to history as newest item (moves it to front)
+        context.window_manager.coloraide_history.add_color(color)
+    finally:
+        # Always reset the flag when done
+        set_history_update_flag(False)
 
 def draw_history_panel(layout, context):
     """Draw color history controls in the given layout"""
@@ -47,7 +62,10 @@ def draw_history_panel(layout, context):
             row_colors = visible_history[start_idx:end_idx]
             for item in row_colors:
                 sub = history_row.row(align=True)
-                sub.prop(item, "color", text="", event=True)
+                # Use special operator for history color clicks
+                op = sub.operator("color.use_history_color", text="")
+                op.color = item.color
+                sub.prop(item, "color", text="", icon_only=True)
             
             # Fill empty spots in last row
             empty_spots = colors_per_row - len(row_colors)

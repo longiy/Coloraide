@@ -8,9 +8,11 @@ class ColorHistoryItemProperties(PropertyGroup):
     suppress_updates: BoolProperty(default=False)
     
     def update_history_color(self, context):
-        """Update handler with improved sync check"""
-        if is_updating() or self.suppress_updates:
+        """Update handler with priority overrides for history items"""
+        if self.suppress_updates:
             return
+            
+        # Use 'history' as the source for priority sync
         sync_all(context, 'history', self.color)
             
     color: FloatVectorProperty(
