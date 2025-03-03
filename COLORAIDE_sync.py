@@ -31,26 +31,20 @@ def update_lock(source=None):
         _UPDATE_SOURCE = None
 
 def is_updating(source=None):
-    print(f"is_updating called with source={source}, _UPDATING={_UPDATING}, _UPDATE_SOURCE={_UPDATE_SOURCE}")
     if source:
         return _UPDATING and _UPDATE_SOURCE != source
     return _UPDATING
 
 def sync_all(context, source, color):
-    print(f"\n=== SYNC_ALL CALLED ===")
-    print(f"Source: {source}")
-    print(f"Color: {color}")
+
     
     if is_updating(source):
-        print(f"Update from {source} suppressed due to is_updating check")
         return
         
     with update_lock(source) as acquired:
         if not acquired:
-            print("Failed to acquire lock")
             return
             
-        print("Lock acquired, proceeding with update")
         # Rest of the function...
         wm = context.window_manager
         
@@ -78,7 +72,6 @@ def sync_all(context, source, color):
         elif source == 'hex':
             rgb_float = hex_to_rgb(color)
         elif source == 'history':
-            print("Processing history source")
             # Make sure this case is handled properly
             rgb_float = tuple(color[:3])
         else:

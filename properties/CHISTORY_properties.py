@@ -9,34 +9,13 @@ class ColorHistoryItemProperties(PropertyGroup):
     
     def reset_all_suppress_flags(self):
         """Reset suppress_updates flag on all history items"""
-        print("Resetting all suppress_updates flags")
         for item in self.items:
             item.suppress_updates = False
     
     def update_history_color(self, context):
         """Update handler with improved sync check"""
-        print(f"\n=== COLOR HISTORY ITEM CLICKED ===")
-        print(f"Selected color: {self.color}")
-        
-        # Add more detailed debugging
-        from ..COLORAIDE_sync import _UPDATING, _UPDATE_SOURCE
-        print(f"Global _UPDATING state: {_UPDATING}")
-        print(f"Global _UPDATE_SOURCE: {_UPDATE_SOURCE}")
-        print(f"self.suppress_updates: {self.suppress_updates}")
-        
-        if is_updating():
-            print("is_updating() returned True")
-            if _UPDATE_SOURCE:
-                print(f"Update is coming from source: {_UPDATE_SOURCE}")
-            return
-        
-        if self.suppress_updates:
-            print("self.suppress_updates is True")
-            return
-            
-        print("Calling sync_all with color:", self.color)
+
         sync_all(context, 'history', self.color)
-        print("After sync_all call")
             
     color: FloatVectorProperty(
         name="Color",
@@ -57,7 +36,6 @@ class ColoraideHistoryProperties(PropertyGroup):
     
     def reset_all_suppress_flags(self):
         """Reset suppress_updates flag on all history items"""
-        print("Resetting all suppress_updates flags")
         for item in self.items:
             item.suppress_updates = False
     items: CollectionProperty(
