@@ -1,6 +1,6 @@
 # 🎨 Coloraide
 Advanced color picker and manager for Blender 4.3+
-![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview1.png)
+![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview.png)
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview2.png)
 
 ## ✨ Features
