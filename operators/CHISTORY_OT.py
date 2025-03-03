@@ -28,3 +28,15 @@ class COLOR_OT_clear_history(Operator):
         while len(history.items) > 0:
             history.items.remove(0)
         return {'FINISHED'}
+    
+class COLOR_OT_reset_history_flags(bpy.types.Operator):
+    bl_idname = "color.reset_history_flags"
+    bl_label = "Reset History Flags"
+    bl_description = "Reset all suppress_updates flags in history items (for troubleshooting)"
+    bl_options = {'INTERNAL'}
+    
+    def execute(self, context):
+        history = context.window_manager.coloraide_history
+        history.reset_all_suppress_flags()
+        self.report({'INFO'}, "All history flags reset")
+        return {'FINISHED'}

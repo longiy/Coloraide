@@ -9,7 +9,7 @@ from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
 from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, 
-                                 update_brush_color, is_brush_updating, set_history_update_flag)
+                                 update_brush_color, is_brush_updating)
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
@@ -32,8 +32,7 @@ from .operators.HSV_OT import COLOR_OT_sync_hsv
 from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
-from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
-from .operators.COLOR_OT_use_history_color import COLOR_OT_use_history_color  # New history operator
+from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history, COLOR_OT_reset_history_flags
 from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_remove_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 from .operators.HEX_OT import COLOR_OT_sync_hex
@@ -54,8 +53,8 @@ from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_co
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy',
-    'version': (1, 3, 5),  # Updated version
-    'blender': (4, 3, 0),  # Updated minimum version
+    'version': (1, 2, 8),
+    'blender': (4, 0, 0),
     'location': '(Image Editor, Clip Editor, and 3D View) -> Color',
     'description': 'Advanced color picker with extended features',
     'warning': '',
@@ -91,11 +90,11 @@ classes = [
     COLOR_OT_reset_wheel_scale,
     COLOR_OT_adjust_history_size,
     COLOR_OT_clear_history,
-    COLOR_OT_use_history_color,  # New history operator
     PALETTE_OT_add_color,
     PALETTE_OT_remove_color,
     COLOR_OT_monitor,
     COLOR_OT_color_dynamics,
+    COLOR_OT_reset_history_flags,
     
     # Panels
     IMAGE_PT_coloraide,
