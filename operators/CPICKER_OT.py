@@ -50,7 +50,7 @@ class IMAGE_OT_screen_picker(Operator):
     """Sample colors from screen with custom size"""
     bl_idname = "image.screen_picker"
     bl_label = "Screen Color Picker"
-    bl_description = "Sample colors from screen with adjustable area"
+    bl_description = "Sample colors from screen 1x1 pixel area"
     bl_options = {'REGISTER'}
     
     sqrt_length: bpy.props.IntProperty()
@@ -125,6 +125,13 @@ class IMAGE_OT_screen_picker(Operator):
         self._handler = space.draw_handler_add(draw_color_preview, (self,), 'WINDOW', 'POST_PIXEL')
         
         return {'RUNNING_MODAL'}
+
+class IMAGE_OT_screen_picker_quick(IMAGE_OT_screen_picker):
+    """Sample colors with the custom size picker"""
+    bl_idname = "image.screen_picker_quick"
+    bl_label = "Custom Size Color Picker"
+    bl_description = "Sample colors from screen custom pixel area"
+    bl_options = {'REGISTER'}
 
 class IMAGE_OT_quickpick(Operator):
     """Quick color picker activated by hotkey"""
@@ -218,8 +225,10 @@ class IMAGE_OT_quickpick(Operator):
 
 def register():
     bpy.utils.register_class(IMAGE_OT_screen_picker)
+    bpy.utils.register_class(IMAGE_OT_screen_picker_quick)
     bpy.utils.register_class(IMAGE_OT_quickpick)
 
 def unregister():
     bpy.utils.unregister_class(IMAGE_OT_quickpick)
+    bpy.utils.unregister_class(IMAGE_OT_screen_picker_quick)
     bpy.utils.unregister_class(IMAGE_OT_screen_picker)

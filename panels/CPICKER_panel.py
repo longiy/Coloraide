@@ -35,7 +35,7 @@ def draw_picker_panel(layout, context):
             text='Sample px', 
             slider=True,
         )
-        split.operator('image.screen_picker', 
+        split.operator('image.screen_picker_quick', 
             text="", 
             icon='EYEDROPPER'
         ).sqrt_length = wm.coloraide_picker.custom_size

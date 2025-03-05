@@ -9,7 +9,7 @@ from .HEX_OT import COLOR_OT_sync_hex
 from .NORMAL_OT import NORMAL_OT_color_picker
 
 __all__ = [
-    'IMAGE_OT_screen_picker', 'IMAGE_OT_quickpick',
+    'IMAGE_OT_screen_picker', 'IMAGE_OT_quickpick', 'IMAGE_OT_screen_picker_quick',
     'COLOR_OT_sync_hsv',
     'COLOR_OT_sync_rgb',
     'COLOR_OT_sync_lab',
