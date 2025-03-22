@@ -1,4 +1,4 @@
-# COLORAIDE_monitor.py
+# COLORAIDE_monitor.py - Clean implementation
 import bpy
 import time
 from bpy.types import Operator
@@ -24,6 +24,14 @@ class COLOR_OT_monitor(Operator):
         try:
             context = bpy.context
             ts = context.tool_settings
+            
+            # Check if color dynamics is active
+            wm = context.window_manager
+            dynamics_active = wm.coloraide_dynamics.running
+            
+            # Skip monitoring if dynamics is active
+            if dynamics_active:
+                return 0.1  # Check again in 0.1 seconds
             
             # Get current paint settings based on mode
             paint_settings = None
@@ -56,6 +64,7 @@ class COLOR_OT_monitor(Operator):
                     if curr_color and curr_color != old_color:
                         color_changed = True
                         update_color = curr_color
+                        
                         # Update stored color
                         if context.mode == 'PAINT_GPENCIL':
                             cls.old_gp_color = curr_color

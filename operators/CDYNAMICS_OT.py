@@ -1,9 +1,8 @@
-# COLOR_OT_color_dynamics.py
+# CDYNAMICS_OT.py - Clean implementation
 import bpy
 import random
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all, is_updating
-from ..COLORAIDE_brush_sync import update_brush_color
+from ..COLORAIDE_sync import is_updating
 
 def apply_color_dynamics(original_color, strength):
     """Apply random color variation to a brush color"""
@@ -31,18 +30,25 @@ def is_mouse_in_ui(context, event):
                 return True
     return False
 
-def update_brush_colors(context, color, unified_only=False):
-    """Update all brush colors efficiently"""
+def update_brush_colors_directly(context, color):
+    """Update only brush colors without affecting Coloraide storage"""
     ts = context.tool_settings
     
-    # Update unified settings first if enabled
-    if ts.unified_paint_settings.use_unified_color:
-        ts.unified_paint_settings.color = color
-        if unified_only:
-            return
-            
-    # Update individual brush colors if not using unified
-    if not ts.unified_paint_settings.use_unified_color:
+    # Store whether color monitor is running
+    wm = context.window_manager
+    monitor_running = False
+    for op in wm.operators:
+        if op.bl_idname == "color.monitor":
+            monitor_running = True
+            # Temporarily pause the monitor
+            COLOR_OT_monitor.is_running = False
+    
+    try:
+        # Update unified settings first if enabled
+        if ts.unified_paint_settings.use_unified_color:
+            ts.unified_paint_settings.color = color
+                
+        # Update individual brush colors if not using unified or if using both
         # Grease Pencil brush
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = color
@@ -54,13 +60,20 @@ def update_brush_colors(context, color, unified_only=False):
         # Vertex Paint brush
         if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
             ts.vertex_paint.brush.color = color
+    finally:
+        # Resume monitor if it was running
+        if monitor_running:
+            COLOR_OT_monitor.is_running = True
 
 class COLOR_OT_color_dynamics(Operator):
     bl_idname = "color.color_dynamics"
     bl_label = "Color Dynamics"
     bl_description = "Apply random color variation during brush strokes"
     bl_options = {'REGISTER'}
-
+    
+    # Store original picker color
+    original_mean_color = None
+    
     @classmethod
     def poll(cls, context):
         if not context.window_manager.coloraide_dynamics.strength:
@@ -71,9 +84,15 @@ class COLOR_OT_color_dynamics(Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        wm.coloraide_dynamics.base_color = tuple(wm.coloraide_picker.mean)
-        wm.modal_handler_add(self)
+        
+        # Store original color
+        self.original_mean_color = tuple(wm.coloraide_picker.mean)
+        wm.coloraide_dynamics.base_color = self.original_mean_color
+        
+        # Mark that dynamics is running - used by monitor
         wm.coloraide_dynamics.running = True
+        
+        wm.modal_handler_add(self)
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
@@ -90,34 +109,41 @@ class COLOR_OT_color_dynamics(Operator):
                 return {'PASS_THROUGH'}
             
             if event.value == 'PRESS':
-                # Generate dynamic color
-                base_color = tuple(wm.coloraide_picker.mean)
+                # Check if user changed the base color (via wheel or sliders)
+                current_mean = tuple(wm.coloraide_picker.mean)
+                if current_mean != self.original_mean_color:
+                    # Update our stored color to match
+                    self.original_mean_color = current_mean
+                    wm.coloraide_dynamics.base_color = current_mean
+                
+                # Generate dynamic color variation
                 dynamic_color = apply_color_dynamics(
-                    base_color,
+                    self.original_mean_color,
                     wm.coloraide_dynamics.strength
                 )
                 
-                # Update all brush colors efficiently
-                update_brush_colors(context, dynamic_color)
+                # Update brush colors directly without triggering monitor or sync
+                update_brush_colors_directly(context, dynamic_color)
                 
             elif event.value == 'RELEASE':
-                # Restore base color
-                base_color = tuple(wm.coloraide_picker.mean)
-                update_brush_colors(context, base_color)
+                # Restore to current base color
+                update_brush_colors_directly(context, self.original_mean_color)
 
         return {'PASS_THROUGH'}
 
     def cleanup(self, context):
-        """Reset state and colors"""
+        """Reset state and restore brush colors to original color"""
         wm = context.window_manager
         wm.coloraide_dynamics.running = False
         
-        # Restore base color
-        base_color = tuple(wm.coloraide_picker.mean)
-        update_brush_color(context, base_color)
+        # Restore to original picker color
+        if self.original_mean_color:
+            update_brush_colors_directly(context, self.original_mean_color)
+        else:
+            # Fallback if original color not stored
+            update_brush_colors_directly(context, tuple(wm.coloraide_picker.mean))
 
-def register():
-    bpy.utils.register_class(COLOR_OT_color_dynamics)
-
-def unregister():
-    bpy.utils.unregister_class(COLOR_OT_color_dynamics)
+# Modified monitor class reference (just enough for interaction with dynamics)
+# The full implementation is in COLORAIDE_monitor.py
+class COLOR_OT_monitor:
+    is_running = False
