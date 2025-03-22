@@ -1,4 +1,4 @@
-# COLOR_OT_color_dynamics.py
+# CDYNAMICS_OT.py
 import bpy
 import random
 from bpy.types import Operator
@@ -31,47 +31,22 @@ def is_mouse_in_ui(context, event):
                 return True
     return False
 
-def update_brush_colors(context, color, unified_only=False):
-    """Update all brush colors efficiently"""
-    ts = context.tool_settings
-    
-    # Update unified settings first if enabled
-    if ts.unified_paint_settings.use_unified_color:
-        ts.unified_paint_settings.color = color
-        if unified_only:
-            return
-            
-    # Update individual brush colors if not using unified
-    if not ts.unified_paint_settings.use_unified_color:
-        # Grease Pencil brush
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
-            ts.gpencil_paint.brush.color = color
-            
-        # Image Paint brush
-        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
-            ts.image_paint.brush.color = color
-            
-        # Vertex Paint brush
-        if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
-            ts.vertex_paint.brush.color = color
-
 class COLOR_OT_color_dynamics(Operator):
     bl_idname = "color.color_dynamics"
     bl_label = "Color Dynamics"
     bl_description = "Apply random color variation during brush strokes"
     bl_options = {'REGISTER'}
+    
+    # Store the base color during a stroke
+    _stroke_base_color = None
+    _active_stroke = False
 
     @classmethod
     def poll(cls, context):
-        if not context.window_manager.coloraide_dynamics.strength:
-            return False
-            
-        # Check if we're in a valid paint mode
-        return context.mode in {'PAINT_GPENCIL', 'PAINT_TEXTURE', 'PAINT_VERTEX'}
+        return context.window_manager.coloraide_dynamics.strength > 0
 
     def invoke(self, context, event):
         wm = context.window_manager
-        wm.coloraide_dynamics.base_color = tuple(wm.coloraide_picker.mean)
         wm.modal_handler_add(self)
         wm.coloraide_dynamics.running = True
         return {'RUNNING_MODAL'}
@@ -79,31 +54,63 @@ class COLOR_OT_color_dynamics(Operator):
     def modal(self, context, event):
         wm = context.window_manager
         
-        # Early exit if dynamics disabled
         if not wm.coloraide_dynamics.strength:
             self.cleanup(context)
             return {'CANCELLED'}
 
         if event.type == 'LEFTMOUSE':
-            # Check for UI interaction
-            if is_mouse_in_ui(context, event):
+            mouse_in_ui = is_mouse_in_ui(context, event)
+            
+            # Handle UI clicks normally
+            if mouse_in_ui:
                 return {'PASS_THROUGH'}
             
-            if event.value == 'PRESS':
-                # Generate dynamic color
-                base_color = tuple(wm.coloraide_picker.mean)
-                dynamic_color = apply_color_dynamics(
-                    base_color,
-                    wm.coloraide_dynamics.strength
-                )
-                
-                # Update all brush colors efficiently
-                update_brush_colors(context, dynamic_color)
-                
-            elif event.value == 'RELEASE':
-                # Restore base color
-                base_color = tuple(wm.coloraide_picker.mean)
-                update_brush_colors(context, base_color)
+            # Only apply color dynamics for non-UI clicks
+            if not mouse_in_ui:
+                if event.value == 'PRESS':
+                    # Start of a stroke - capture the base color
+                    self._stroke_base_color = tuple(wm.coloraide_picker.mean)
+                    self._active_stroke = True
+                    
+                    # Apply dynamics using the captured base color
+                    ts = context.tool_settings
+                    
+                    new_color = apply_color_dynamics(
+                        self._stroke_base_color,
+                        wm.coloraide_dynamics.strength
+                    )
+                    
+                    # Update brush colors
+                    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                        ts.gpencil_paint.brush.color = new_color
+                    
+                    if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                        ts.image_paint.brush.color = new_color
+                        if ts.unified_paint_settings.use_unified_color:
+                            ts.unified_paint_settings.color = new_color
+                    
+                    if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
+                        ts.vertex_paint.brush.color = new_color
+
+                elif event.value == 'RELEASE':
+                    # End of a stroke - restore the base color
+                    if self._active_stroke and self._stroke_base_color:
+                        ts = context.tool_settings
+                        
+                        # Restore the original base color
+                        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                            ts.gpencil_paint.brush.color = self._stroke_base_color
+                        
+                        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+                            ts.image_paint.brush.color = self._stroke_base_color
+                            if ts.unified_paint_settings.use_unified_color:
+                                ts.unified_paint_settings.color = self._stroke_base_color
+                        
+                        if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
+                            ts.vertex_paint.brush.color = self._stroke_base_color
+                    
+                    # Reset stroke state
+                    self._active_stroke = False
 
         return {'PASS_THROUGH'}
 
@@ -113,11 +120,16 @@ class COLOR_OT_color_dynamics(Operator):
         wm.coloraide_dynamics.running = False
         
         # Restore base color
+        ts = context.tool_settings
         base_color = tuple(wm.coloraide_picker.mean)
-        update_brush_color(context, base_color)
-
-def register():
-    bpy.utils.register_class(COLOR_OT_color_dynamics)
-
-def unregister():
-    bpy.utils.unregister_class(COLOR_OT_color_dynamics)
+        
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = base_color
+            
+        if hasattr(ts, 'image_paint') and ts.image_paint.brush:
+            ts.image_paint.brush.color = base_color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = base_color
+                
+        if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
+            ts.vertex_paint.brush.color = base_color
