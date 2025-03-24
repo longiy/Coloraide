@@ -29,10 +29,6 @@ class COLOR_OT_monitor(Operator):
             wm = context.window_manager
             dynamics_active = wm.coloraide_dynamics.running
             
-            # Skip monitoring if dynamics is active
-            if dynamics_active:
-                return 0.1  # Check again in 0.1 seconds
-            
             # Get current paint settings based on mode
             paint_settings = None
             if context.mode == 'PAINT_GPENCIL':
@@ -44,7 +40,33 @@ class COLOR_OT_monitor(Operator):
             else:
                 paint_settings = ts.image_paint
                 old_color = cls.old_image_color
+            
+            # Special handling when dynamics is active
+            if dynamics_active:
+                # Only check palette color changes, not brush color changes
+                if paint_settings and paint_settings.palette and paint_settings.palette.colors.active:
+                    curr_palette_color = tuple(paint_settings.palette.colors.active.color)
+                    if curr_palette_color != cls.old_palette_color:
+                        # Update palette tracking
+                        cls.old_palette_color = curr_palette_color
+                        
+                        # Important: Also update the dynamics base color
+                        if hasattr(wm, 'coloraide_dynamics'):
+                            wm.coloraide_dynamics.base_color = curr_palette_color
+                            
+                            # Find and update the original color in any running dynamics operator
+                            for op in wm.operators:
+                                if hasattr(op, 'bl_idname') and op.bl_idname == "color.color_dynamics":
+                                    if hasattr(op, 'original_mean_color'):
+                                        op.original_mean_color = curr_palette_color
+                        
+                        # Update the picker to match the new palette color
+                        sync_picker_from_brush(context, curr_palette_color)
+                
+                # Skip other brush color checks when dynamics is active
+                return 0.1  # Check again in 0.1 seconds
 
+            # Normal monitoring when dynamics is not active
             color_changed = False
             update_color = None
             

@@ -102,6 +102,11 @@ class COLOR_OT_color_dynamics(Operator):
         if not wm.coloraide_dynamics.strength:
             self.cleanup(context)
             return {'CANCELLED'}
+        
+        # Check if the base color was updated by the monitor (from palette)
+        if tuple(wm.coloraide_dynamics.base_color) != self.original_mean_color:
+            # Update our stored reference to match
+            self.original_mean_color = tuple(wm.coloraide_dynamics.base_color)
 
         if event.type == 'LEFTMOUSE':
             # Check for UI interaction
