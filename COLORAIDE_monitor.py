@@ -1,4 +1,4 @@
-# COLORAIDE_monitor.py - Clean implementation
+# COLORAIDE_monitor.py
 import bpy
 import time
 from bpy.types import Operator
@@ -25,10 +25,6 @@ class COLOR_OT_monitor(Operator):
             context = bpy.context
             ts = context.tool_settings
             
-            # Check if color dynamics is active
-            wm = context.window_manager
-            dynamics_active = wm.coloraide_dynamics.running
-            
             # Get current paint settings based on mode
             paint_settings = None
             if context.mode == 'PAINT_GPENCIL':
@@ -40,33 +36,7 @@ class COLOR_OT_monitor(Operator):
             else:
                 paint_settings = ts.image_paint
                 old_color = cls.old_image_color
-            
-            # Special handling when dynamics is active
-            if dynamics_active:
-                # Only check palette color changes, not brush color changes
-                if paint_settings and paint_settings.palette and paint_settings.palette.colors.active:
-                    curr_palette_color = tuple(paint_settings.palette.colors.active.color)
-                    if curr_palette_color != cls.old_palette_color:
-                        # Update palette tracking
-                        cls.old_palette_color = curr_palette_color
-                        
-                        # Important: Also update the dynamics base color
-                        if hasattr(wm, 'coloraide_dynamics'):
-                            wm.coloraide_dynamics.base_color = curr_palette_color
-                            
-                            # Find and update the original color in any running dynamics operator
-                            for op in wm.operators:
-                                if hasattr(op, 'bl_idname') and op.bl_idname == "color.color_dynamics":
-                                    if hasattr(op, 'original_mean_color'):
-                                        op.original_mean_color = curr_palette_color
-                        
-                        # Update the picker to match the new palette color
-                        sync_picker_from_brush(context, curr_palette_color)
-                
-                # Skip other brush color checks when dynamics is active
-                return 0.1  # Check again in 0.1 seconds
 
-            # Normal monitoring when dynamics is not active
             color_changed = False
             update_color = None
             
@@ -86,7 +56,6 @@ class COLOR_OT_monitor(Operator):
                     if curr_color and curr_color != old_color:
                         color_changed = True
                         update_color = curr_color
-                        
                         # Update stored color
                         if context.mode == 'PAINT_GPENCIL':
                             cls.old_gp_color = curr_color
