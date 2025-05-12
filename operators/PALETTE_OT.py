@@ -23,6 +23,8 @@ class PALETTE_OT_add_color(Operator):
             paint_settings = ts.gpencil_paint
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
+        elif context.mode == 'VERTEX_GPENCIL':
+            paint_settings = ts.gpencil_vertex_paint
         else:
             paint_settings = ts.image_paint
             
@@ -42,7 +44,7 @@ class PALETTE_OT_remove_color(Operator):
     bl_description = "Remove selected color from palette"
     bl_options = {'REGISTER', 'UNDO'}
     
-    @classmethod
+ @classmethod
     def poll(cls, context):
         ts = context.tool_settings
         paint_settings = None
@@ -50,6 +52,8 @@ class PALETTE_OT_remove_color(Operator):
             paint_settings = ts.gpencil_paint
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
+        elif context.mode == 'VERTEX_GPENCIL':
+            paint_settings = ts.gpencil_vertex_paint
         else:
             paint_settings = ts.image_paint
             
@@ -65,6 +69,8 @@ class PALETTE_OT_remove_color(Operator):
             paint_settings = ts.gpencil_paint
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
+        elif context.mode == 'VERTEX_GPENCIL':
+            paint_settings = ts.gpencil_vertex_paint
         else:
             paint_settings = ts.image_paint
         

@@ -88,11 +88,12 @@ class VIEW3D_PT_coloraide(Panel):
             'PAINT_TEXTURE', 
             'PAINT_VERTEX', 
             'PAINT_GREASE_PENCIL',
+            'VERTEX_GREASE_PENCIL',  # Alternative identifier
             'EDIT', 
             'OBJECT', 
             'SCULPT'
         }
-    
+        
     def draw(self, context):
         draw_coloraide_panels(self, context)
 

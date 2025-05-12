@@ -117,6 +117,12 @@ def sync_brush_from_picker(context, color):
             ts.vertex_paint.brush.color = color
             if ts.unified_paint_settings.use_unified_color:
                 ts.unified_paint_settings.color = color
+        
+        # Add support for Grease Pencil Vertex Paint
+        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+            ts.gpencil_vertex_paint.brush.color = color
+            if ts.unified_paint_settings.use_unified_color:
+                ts.unified_paint_settings.color = color
 
 def update_brush_color(context, color):
     """Update brush color and propagate to picker"""
