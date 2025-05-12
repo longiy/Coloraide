@@ -24,10 +24,10 @@ class NORMAL_OT_color_picker(Operator):
             return False
         if not context.active_object:
             return False
-        # Allow in additional modes including Grease Pencil Vertex Paint
+        # Allow in texture paint mode and grease pencil modes
         if context.mode not in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_WEIGHT', 'VERTEX_GPENCIL'}:
             return False
-        # Check for both mesh and grease pencil objects
+        # Check object type
         if context.active_object.type not in {'MESH', 'GPENCIL'}:
             return False
         return True

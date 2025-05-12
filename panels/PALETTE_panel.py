@@ -39,8 +39,6 @@ def draw_palette_panel(layout, context):
             paint_settings = ts.gpencil_paint
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
-        elif context.mode == 'VERTEX_GPENCIL':
-            paint_settings = ts.gpencil_vertex_paint
         else:
             paint_settings = ts.image_paint
             
@@ -71,10 +69,6 @@ class PALETTE_PT_panel:
             ts = context.tool_settings
             if context.mode == 'PAINT_GPENCIL':
                 paint_settings = ts.gpencil_paint
-            elif context.mode == 'PAINT_VERTEX':
-                paint_settings = ts.vertex_paint
-            elif context.mode == 'VERTEX_GPENCIL':
-                paint_settings = ts.gpencil_vertex_paint
             else:
                 paint_settings = ts.image_paint
                 

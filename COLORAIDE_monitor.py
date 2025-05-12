@@ -12,7 +12,6 @@ class COLOR_OT_monitor(Operator):
     old_gp_color = None
     old_image_color = None
     old_vertex_color = None
-    old_gp_vertex_color = None  # Add this property
     old_palette_color = None
     is_running = False
     
@@ -26,10 +25,6 @@ class COLOR_OT_monitor(Operator):
             context = bpy.context
             ts = context.tool_settings
             
-            # Check if color dynamics is active
-            wm = context.window_manager
-            dynamics_active = wm.coloraide_dynamics.running
-            
             # Get current paint settings based on mode
             paint_settings = None
             if context.mode == 'PAINT_GPENCIL':
@@ -38,9 +33,9 @@ class COLOR_OT_monitor(Operator):
             elif context.mode == 'PAINT_VERTEX':
                 paint_settings = ts.vertex_paint
                 old_color = cls.old_vertex_color
-            elif context.mode == 'VERTEX_GPENCIL':
-                paint_settings = ts.gpencil_vertex_paint
-                old_color = cls.old_gp_vertex_color
+            elif context.mode == 'VERTEX_GPENCIL':  # Add handling for Grease Pencil Vertex Paint
+                paint_settings = ts.gpencil_vertex_paint  # Use appropriate tool settings
+                old_color = cls.old_gp_vertex_color  # Need to add this property to the class
             else:
                 paint_settings = ts.image_paint
                 old_color = cls.old_image_color
@@ -87,7 +82,7 @@ class COLOR_OT_monitor(Operator):
         
         ts = context.tool_settings
         
-        # Initialize colors for all paint modes
+    # Initialize colors for all paint modes
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             self.__class__.old_gp_color = tuple(ts.gpencil_paint.brush.color)
             
@@ -96,10 +91,11 @@ class COLOR_OT_monitor(Operator):
             
         if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
             self.__class__.old_vertex_color = tuple(ts.vertex_paint.brush.color)
-            
+        
         # Add initialization for Grease Pencil Vertex Paint
         if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
             self.__class__.old_gp_vertex_color = tuple(ts.gpencil_vertex_paint.brush.color)
+    
         
         # Initialize palette color tracking
         paint_settings = None
@@ -107,8 +103,6 @@ class COLOR_OT_monitor(Operator):
             paint_settings = ts.gpencil_paint
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
-        elif context.mode == 'VERTEX_GPENCIL':
-            paint_settings = ts.gpencil_vertex_paint
         else:
             paint_settings = ts.image_paint
             
