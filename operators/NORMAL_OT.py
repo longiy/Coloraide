@@ -22,13 +22,10 @@ class NORMAL_OT_color_picker(Operator):
     def poll(cls, context):
         if context.area.type != 'VIEW_3D':
             return False
-        if not context.active_object:
+        if not context.active_object or not context.active_object.type == 'MESH':
             return False
-        # Allow in texture paint mode and grease pencil modes
-        if context.mode not in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_WEIGHT', 'VERTEX_GPENCIL'}:
-            return False
-        # Check object type
-        if context.active_object.type not in {'MESH', 'GPENCIL'}:
+        # Allow in texture paint mode
+        if context.mode not in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_WEIGHT'}:
             return False
         return True
 
