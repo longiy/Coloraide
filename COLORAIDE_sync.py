@@ -36,6 +36,7 @@ def is_updating(source=None):
     return _UPDATING
 
 def sync_all(context, source, color):
+    
 
     
     if is_updating(source):
@@ -76,7 +77,17 @@ def sync_all(context, source, color):
             rgb_float = tuple(color[:3])
         else:
             rgb_float = tuple(color[:3])
-            
+        
+        
+        if context.mode == 'VERTEX_GREASE_PENCIL':
+            ts = context.tool_settings
+            # Add a special delay before updating the brush again
+            # This helps break the feedback loop
+            if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+                import time
+                time.sleep(0.01)  # Small delay to break update cycle
+                ts.gpencil_vertex_paint.brush.color = rgb_float
+                
         # Update RGB properties
         wm.coloraide_rgb.suppress_updates = True
         rgb_bytes = rgb_float_to_bytes(rgb_float)
@@ -84,6 +95,8 @@ def sync_all(context, source, color):
         wm.coloraide_rgb.green = rgb_bytes[1]
         wm.coloraide_rgb.blue = rgb_bytes[2]
         wm.coloraide_rgb.suppress_updates = False
+        
+        
         
         # Update LAB
         if source != 'lab':
@@ -125,6 +138,10 @@ def sync_all(context, source, color):
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             ts.gpencil_paint.brush.color = rgb_float
             
+        # Add support for Grease Pencil vertex paint
+        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+            ts.gpencil_vertex_paint.brush.color = rgb_float
+            
         # Update Image Paint brush if available
         if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
             ts.image_paint.brush.color = rgb_float
@@ -132,7 +149,3 @@ def sync_all(context, source, color):
         # Update Vertex Paint brush if available
         if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
             ts.vertex_paint.brush.color = rgb_float
-            
-        # Update unified settings if enabled
-        if ts.unified_paint_settings.use_unified_color:
-            ts.unified_paint_settings.color = rgb_float

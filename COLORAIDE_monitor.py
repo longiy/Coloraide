@@ -12,6 +12,7 @@ class COLOR_OT_monitor(Operator):
     old_gp_color = None
     old_image_color = None
     old_vertex_color = None
+    old_gp_vertex_color = None
     old_palette_color = None
     is_running = False
     
@@ -30,9 +31,20 @@ class COLOR_OT_monitor(Operator):
             if context.mode == 'PAINT_GPENCIL':
                 paint_settings = ts.gpencil_paint
                 old_color = cls.old_gp_color
+                # In the _timer_function, add a case for VERTEX_GREASE_PENCIL mode
+            # Add Grease Pencil vertex paint handling
+            if context.mode == 'VERTEX_GREASE_PENCIL':
+                paint_settings = ts.gpencil_vertex_paint
+                old_color = cls.old_gp_vertex_color
+            # Check for other paint modes if curr_color and curr_color != old_color:
+                color_changed = True
+                update_color = curr_color
+                cls.old_gp_vertex_color = curr_color
+                            
             elif context.mode == 'PAINT_VERTEX':
                 paint_settings = ts.vertex_paint
                 old_color = cls.old_vertex_color
+                
             else:
                 paint_settings = ts.image_paint
                 old_color = cls.old_image_color
@@ -82,6 +94,10 @@ class COLOR_OT_monitor(Operator):
         # Initialize colors for all paint modes
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
             self.__class__.old_gp_color = tuple(ts.gpencil_paint.brush.color)
+                    
+        # Initialize colors for GP vertex paint
+        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+            self.__class__.old_gp_vertex_color = tuple(ts.gpencil_vertex_paint.brush.color)   
             
         if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
             self.__class__.old_image_color = tuple(ts.image_paint.brush.color)

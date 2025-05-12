@@ -21,6 +21,8 @@ class PALETTE_OT_add_color(Operator):
         # Get correct paint settings based on mode
         if context.mode == 'PAINT_GPENCIL':
             paint_settings = ts.gpencil_paint
+        elif context.mode == 'VERTEX_GREASE_PENCIL':
+            paint_settings = ts.gpencil_vertex_paint
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
         else:

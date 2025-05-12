@@ -84,6 +84,9 @@ class COLOR_OT_color_dynamics(Operator):
                     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                         ts.gpencil_paint.brush.color = new_color
                     
+                    if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+                        ts.gpencil_vertex_paint.brush.color = new_color
+                    
                     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
                         ts.image_paint.brush.color = new_color
                         if ts.unified_paint_settings.use_unified_color:
