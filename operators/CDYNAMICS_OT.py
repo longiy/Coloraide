@@ -43,7 +43,10 @@ class COLOR_OT_color_dynamics(Operator):
 
     @classmethod
     def poll(cls, context):
-        return context.window_manager.coloraide_dynamics.strength > 0
+        # Add VERTEX_GPENCIL to valid modes
+        valid_modes = {'PAINT_GPENCIL', 'PAINT_TEXTURE', 'PAINT_VERTEX', 'VERTEX_GPENCIL'}
+        return (context.window_manager.coloraide_dynamics.strength > 0 and 
+                context.mode in valid_modes)
 
     def invoke(self, context, event):
         wm = context.window_manager
@@ -91,6 +94,10 @@ class COLOR_OT_color_dynamics(Operator):
                     
                     if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
                         ts.vertex_paint.brush.color = new_color
+                    
+                    # Add support for Grease Pencil Vertex Paint
+                    if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+                        ts.gpencil_vertex_paint.brush.color = new_color
 
                 elif event.value == 'RELEASE':
                     # End of a stroke - restore the base color
@@ -108,6 +115,10 @@ class COLOR_OT_color_dynamics(Operator):
                         
                         if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
                             ts.vertex_paint.brush.color = self._stroke_base_color
+                        
+                        # Add support for Grease Pencil Vertex Paint
+                        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+                            ts.gpencil_vertex_paint.brush.color = self._stroke_base_color
                     
                     # Reset stroke state
                     self._active_stroke = False
@@ -133,3 +144,7 @@ class COLOR_OT_color_dynamics(Operator):
                 
         if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
             ts.vertex_paint.brush.color = base_color
+            
+        # Add support for Grease Pencil Vertex Paint
+        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+            ts.gpencil_vertex_paint.brush.color = base_color

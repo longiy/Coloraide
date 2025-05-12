@@ -58,6 +58,12 @@ class IMAGE_OT_screen_picker(Operator):
     y: bpy.props.IntProperty()
     _handler = None
     
+    @classmethod
+    def poll(cls, context):
+        # Add a poll method if it doesn't exist or update existing one
+        return context.area.type in {'VIEW_3D', 'IMAGE_EDITOR', 'CLIP_EDITOR'} and \
+               context.mode in {'PAINT_TEXTURE', 'PAINT_VERTEX', 'PAINT_GREASE_PENCIL', 'VERTEX_GPENCIL'}
+    
     def sample_colors(self, context, event):
         if is_updating('picker'):
             return

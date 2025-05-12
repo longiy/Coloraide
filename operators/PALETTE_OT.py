@@ -44,7 +44,7 @@ class PALETTE_OT_remove_color(Operator):
     bl_description = "Remove selected color from palette"
     bl_options = {'REGISTER', 'UNDO'}
     
- @classmethod
+    @classmethod
     def poll(cls, context):
         ts = context.tool_settings
         paint_settings = None
