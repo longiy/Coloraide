@@ -6,7 +6,7 @@ Updated for Blender 4.3+ API changes.
 
 import bpy
 from .COLORAIDE_utils import rgb_to_lab, lab_to_rgb, hsv_to_rgb, rgb_to_hsv, rgb_float_to_bytes
-from .COLORAIDE_utils import get_blender_version_category  # Add this import
+from .COLORAIDE_utils import get_blender_version_category, update_gpencil_brush_color
 
 from contextlib import contextmanager
 
