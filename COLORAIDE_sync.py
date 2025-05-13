@@ -37,9 +37,6 @@ def is_updating(source=None):
     return _UPDATING
 
 def sync_all(context, source, color):
-    
-
-    
     if is_updating(source):
         return
         
@@ -47,7 +44,6 @@ def sync_all(context, source, color):
         if not acquired:
             return
             
-        # Rest of the function...
         wm = context.window_manager
         
         # Convert input to RGB float (0-1)
@@ -79,25 +75,10 @@ def sync_all(context, source, color):
         else:
             rgb_float = tuple(color[:3])
         
-        
-        if context.mode == 'VERTEX_GREASE_PENCIL':
-            ts = context.tool_settings
-            is_new_version = get_blender_version_category() == "new"
-
-            # Update Grease Pencil brush if available
-            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
-                ts.gpencil_paint.brush.color = rgb_float
-                
-            # Add support for Grease Pencil vertex paint
-            if is_new_version:
-                # 4.3+ API
-                if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
-                    ts.gpencil_vertex_paint.brush.color = rgb_float
-            else:
-                # 4.2 API - Vertex paint might use a different path or property
-                if context.mode == 'VERTEX_GPENCIL' and hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                    ts.gpencil_paint.brush.color = rgb_float
-                
+        # Update Grease Pencil brush using helper function
+        update_gpencil_brush_color(context, rgb_float)
+            
+        # Continue with UI updates
         # Update RGB properties
         wm.coloraide_rgb.suppress_updates = True
         rgb_bytes = rgb_float_to_bytes(rgb_float)
@@ -105,9 +86,7 @@ def sync_all(context, source, color):
         wm.coloraide_rgb.green = rgb_bytes[1]
         wm.coloraide_rgb.blue = rgb_bytes[2]
         wm.coloraide_rgb.suppress_updates = False
-        
-        
-        
+                        
         # Update LAB
         if source != 'lab':
             wm.coloraide_lab.suppress_updates = True

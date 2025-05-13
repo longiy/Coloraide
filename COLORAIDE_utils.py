@@ -11,6 +11,43 @@ def get_blender_version_category():
     version = bpy.app.version
     return "new" if (version[0] > 4 or (version[0] == 4 and version[1] >= 3)) else "old"
 
+def get_gpencil_brush(context, for_vertex=False):
+    """Get appropriate Grease Pencil brush based on version and mode"""
+    ts = context.tool_settings
+    is_new_version = get_blender_version_category() == "new"
+    
+    if is_new_version:
+        # 4.3+ path
+        if for_vertex:
+            return ts.gpencil_vertex_paint.brush if hasattr(ts, 'gpencil_vertex_paint') else None
+        else:
+            return ts.gpencil_paint.brush if hasattr(ts, 'gpencil_paint') else None
+    else:
+        # 4.2 path - both modes use gpencil_paint
+        return ts.gpencil_paint.brush if hasattr(ts, 'gpencil_paint') else None
+
+def update_gpencil_brush_color(context, color):
+    """Update Grease Pencil brush color appropriately for version and mode"""
+    ts = context.tool_settings
+    is_new_version = get_blender_version_category() == "new"
+    current_mode = context.mode
+    
+    # Draw mode
+    if current_mode in ('PAINT_GPENCIL', 'PAINT_GREASE_PENCIL'):
+        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
+            ts.gpencil_paint.brush.color = color
+    
+    # Vertex paint mode
+    elif current_mode in ('VERTEX_GPENCIL', 'VERTEX_GREASE_PENCIL'):
+        if is_new_version:
+            # 4.3+ path
+            if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+                ts.gpencil_vertex_paint.brush.color = color
+        else:
+            # 4.2 path
+            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
+                ts.gpencil_paint.brush.color = color
+
 """Centralized color update flag management"""
 
 # Global update state
