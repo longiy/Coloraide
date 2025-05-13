@@ -2,8 +2,6 @@ import bpy
 from bpy.props import FloatVectorProperty
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all
-from .COLORAIDE_utils import get_blender_version_category
-
 
 class PALETTE_OT_add_color(Operator):
     bl_idname = "palette.add_color"
@@ -19,15 +17,12 @@ class PALETTE_OT_add_color(Operator):
     def execute(self, context):
         ts = context.tool_settings
         paint_settings = None
-        is_new_version = get_blender_version_category() == "new"
         
         # Get correct paint settings based on mode
         if context.mode == 'PAINT_GPENCIL':
             paint_settings = ts.gpencil_paint
-        elif is_new_version and context.mode == 'VERTEX_GREASE_PENCIL':
+        elif context.mode == 'VERTEX_GREASE_PENCIL':
             paint_settings = ts.gpencil_vertex_paint
-        elif not is_new_version and context.mode == 'VERTEX_GPENCIL':
-            paint_settings = ts.gpencil_paint  # 4.2 API
         elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
         else:

@@ -4,8 +4,6 @@ Handles registration and cleanup of addon hotkeys.
 """
 
 import bpy
-from .COLORAIDE_utils import get_blender_version_category
-
 
 # Storage for keymap items to enable proper cleanup
 addon_keymaps = []
@@ -19,10 +17,11 @@ def register_keymaps():
         return
         
     # Check Blender version
-    is_new_version = get_blender_version_category() == "new"
+    version = bpy.app.version
+    is_blender_43_plus = (version[0] > 4) or (version[0] == 4 and version[1] >= 3)
     
     # For Blender 4.3+, we can use more specific keymaps
-    if is_new_version:
+    if is_blender_43_plus:
         # Texture Paint keymap (4.3+ style)
         try:
             km = kc.keymaps.new(name='Image Paint', space_type='VIEW_3D', region_type='WINDOW')
@@ -48,69 +47,6 @@ def register_keymaps():
             addon_keymaps.append((km, kmi))
         except Exception as e:
             print(f"Warning: Could not register Image Paint keymap for IMAGE_EDITOR: {e}")
-            
-        # Grease Pencil Paint (4.3+ style)
-        try:
-            km = kc.keymaps.new(name='Grease Pencil Paint', space_type='VIEW_3D', region_type='WINDOW')
-            kmi = km.keymap_items.new(
-                "image.quickpick",
-                "E",
-                "PRESS",
-                shift=True
-            )
-            addon_keymaps.append((km, kmi))
-        except Exception as e:
-            print(f"Warning: Could not register Grease Pencil Paint keymap: {e}")
-            
-        # Grease Pencil Vertex Paint (4.3+ style)
-        try:
-            km = kc.keymaps.new(name='Grease Pencil Vertex Paint', space_type='VIEW_3D', region_type='WINDOW')
-            kmi = km.keymap_items.new(
-                "image.quickpick",
-                "E",
-                "PRESS",
-                shift=True
-            )
-            addon_keymaps.append((km, kmi))
-        except Exception as e:
-            print(f"Warning: Could not register Grease Pencil Vertex Paint keymap: {e}")
-    else:
-        # Grease Pencil Paint mode (4.2 style)
-        try:
-            km = kc.keymaps.new(name='Grease Pencil Stroke Paint Mode', space_type='VIEW_3D', region_type='WINDOW')
-            kmi = km.keymap_items.new(
-                "image.quickpick",
-                "E",
-                "PRESS",
-                shift=True
-            )
-            addon_keymaps.append((km, kmi))
-        except Exception as e:
-            print(f"Warning: Could not register Grease Pencil Stroke Paint Mode keymap: {e}")
-            
-        # Grease Pencil Vertex Paint (4.2 style)
-        try:
-            km = kc.keymaps.new(name='Grease Pencil Vertex Paint', space_type='VIEW_3D', region_type='WINDOW')
-            kmi = km.keymap_items.new(
-                "image.quickpick",
-                "E",
-                "PRESS",
-                shift=True
-            )
-            addon_keymaps.append((km, kmi))
-        except Exception as e:
-            # Fallback for older 4.2 versions that might have a different keymap name
-            try:
-                km = kc.keymaps.new(name='Grease Pencil Vertex', space_type='VIEW_3D', region_type='WINDOW')
-                kmi = km.keymap_items.new(
-                    "image.quickpick",
-                    "E", 
-                    "PRESS",
-                    shift=True
-                )
-                addon_keymaps.append((km, kmi))
-            except Exception as e2:
-                print(f"Warning: Could not register Grease Pencil Vertex keymap: {e2}")
     
     # These keymaps work in all versions - fallback approach
     # Regular 3D View keymap

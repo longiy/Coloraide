@@ -3,7 +3,6 @@ import bpy
 import time
 from bpy.types import Operator
 from .COLORAIDE_brush_sync import sync_picker_from_brush, is_brush_updating, check_brush_color
-from .COLORAIDE_utils import get_blender_version_category  # Add this import
 
 class COLOR_OT_monitor(Operator):
     bl_idname = "color.monitor"
@@ -26,23 +25,26 @@ class COLOR_OT_monitor(Operator):
         try:
             context = bpy.context
             ts = context.tool_settings
-            is_new_version = get_blender_version_category() == "new"
             
             # Get current paint settings based on mode
             paint_settings = None
             if context.mode == 'PAINT_GPENCIL':
                 paint_settings = ts.gpencil_paint
                 old_color = cls.old_gp_color
+                # In the _timer_function, add a case for VERTEX_GREASE_PENCIL mode
             # Add Grease Pencil vertex paint handling
-            elif is_new_version and context.mode == 'VERTEX_GREASE_PENCIL':
+            if context.mode == 'VERTEX_GREASE_PENCIL':
                 paint_settings = ts.gpencil_vertex_paint
                 old_color = cls.old_gp_vertex_color
-            elif not is_new_version and context.mode == 'VERTEX_GPENCIL':
-                paint_settings = ts.gpencil_paint  # 4.2 API uses gpencil_paint
-                old_color = cls.old_gp_vertex_color
+            # Check for other paint modes if curr_color and curr_color != old_color:
+                color_changed = True
+                update_color = curr_color
+                cls.old_gp_vertex_color = curr_color
+                            
             elif context.mode == 'PAINT_VERTEX':
                 paint_settings = ts.vertex_paint
                 old_color = cls.old_vertex_color
+                
             else:
                 paint_settings = ts.image_paint
                 old_color = cls.old_image_color

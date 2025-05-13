@@ -10,8 +10,7 @@ from .COLORAIDE_utils import (
     rgb_float_to_bytes,
     rgb_bytes_to_float,
     rgb_to_hex,
-    hex_to_rgb,
-    get_blender_version_category
+    hex_to_rgb
 )
 
 _UPDATING = False
@@ -82,21 +81,12 @@ def sync_all(context, source, color):
         
         if context.mode == 'VERTEX_GREASE_PENCIL':
             ts = context.tool_settings
-            is_new_version = get_blender_version_category() == "new"
-
-            # Update Grease Pencil brush if available
-            if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
-                ts.gpencil_paint.brush.color = rgb_float
-                
-            # Add support for Grease Pencil vertex paint
-            if is_new_version:
-                # 4.3+ API
-                if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
-                    ts.gpencil_vertex_paint.brush.color = rgb_float
-            else:
-                # 4.2 API - Vertex paint might use a different path or property
-                if context.mode == 'VERTEX_GPENCIL' and hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                    ts.gpencil_paint.brush.color = rgb_float
+            # Add a special delay before updating the brush again
+            # This helps break the feedback loop
+            if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+                import time
+                time.sleep(0.01)  # Small delay to break update cycle
+                ts.gpencil_vertex_paint.brush.color = rgb_float
                 
         # Update RGB properties
         wm.coloraide_rgb.suppress_updates = True
