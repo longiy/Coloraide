@@ -2,7 +2,7 @@ import bpy
 from bpy.props import FloatVectorProperty
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import get_blender_version_category
+from .COLORAIDE_utils import get_blender_version_category
 
 
 class PALETTE_OT_add_color(Operator):
