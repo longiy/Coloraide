@@ -87,23 +87,24 @@ class VIEW3D_PT_coloraide(Panel):
     @classmethod
     def poll(cls, context):
         is_new_version = get_blender_version_category() == "new"
+        valid_modes = {
+            'PAINT_TEXTURE', 
+            'PAINT_VERTEX', 
+            'PAINT_GREASE_PENCIL',
+            'EDIT', 
+            'OBJECT', 
+            'SCULPT'
+        }
         
-        # Get modes to check based on version
+        # Add 4.4+ modes
         if is_new_version:
-            # 4.3/4.4 mode names
-            gp_modes = {'PAINT_GREASE_PENCIL', 'VERTEX_GREASE_PENCIL', 'EDIT_GREASE_PENCIL'}
+            valid_modes.add('VERTEX_GREASE_PENCIL')
         else:
-            # 4.2 mode names
-            gp_modes = {'PAINT_GPENCIL', 'VERTEX_GPENCIL', 'EDIT_GPENCIL'}
-        
-        # Common modes for all versions
-        common_modes = {'PAINT_TEXTURE', 'PAINT_VERTEX', 'EDIT', 'OBJECT', 'SCULPT'}
-        
-        # Combine mode sets
-        valid_modes = common_modes.union(gp_modes)
+            # Add 4.2 GP vertex paint mode
+            valid_modes.add('VERTEX_GPENCIL')
         
         return context.mode in valid_modes
-        
+    
     def draw(self, context):
         draw_coloraide_panels(self, context)
 

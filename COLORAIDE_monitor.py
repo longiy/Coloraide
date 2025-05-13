@@ -26,43 +26,58 @@ class COLOR_OT_monitor(Operator):
         try:
             context = bpy.context
             ts = context.tool_settings
-            current_mode = context.mode
+            is_new_version = get_blender_version_category() == "new"
             
-            # Get brush and old color reference based on mode
-            brush = None
-            old_color = None
-            
-            if current_mode in ('PAINT_GPENCIL', 'PAINT_GREASE_PENCIL'):
-                brush = get_gpencil_brush(context, for_vertex=False)
+            # Get current paint settings based on mode
+            paint_settings = None
+            if context.mode == 'PAINT_GPENCIL':
+                paint_settings = ts.gpencil_paint
                 old_color = cls.old_gp_color
-            elif current_mode in ('VERTEX_GPENCIL', 'VERTEX_GREASE_PENCIL'):
-                brush = get_gpencil_brush(context, for_vertex=True)
+            # Add Grease Pencil vertex paint handling
+            elif is_new_version and context.mode == 'VERTEX_GREASE_PENCIL':
+                paint_settings = ts.gpencil_vertex_paint
                 old_color = cls.old_gp_vertex_color
-            elif current_mode == 'PAINT_VERTEX':
-                brush = ts.vertex_paint.brush if hasattr(ts, 'vertex_paint') else None
+            elif not is_new_version and context.mode == 'VERTEX_GPENCIL':
+                paint_settings = ts.gpencil_paint  # 4.2 API uses gpencil_paint
+                old_color = cls.old_gp_vertex_color
+            elif context.mode == 'PAINT_VERTEX':
+                paint_settings = ts.vertex_paint
                 old_color = cls.old_vertex_color
-            elif current_mode == 'PAINT_TEXTURE':
-                brush = ts.image_paint.brush if hasattr(ts, 'image_paint') else None
+            else:
+                paint_settings = ts.image_paint
                 old_color = cls.old_image_color
+
+            color_changed = False
+            update_color = None
+            
+            # Check for color changes including palette
+            if paint_settings:
+                # Check active palette color
+                if paint_settings.palette and paint_settings.palette.colors.active:
+                    curr_palette_color = tuple(paint_settings.palette.colors.active.color)
+                    if curr_palette_color != cls.old_palette_color:
+                        color_changed = True
+                        update_color = curr_palette_color
+                        cls.old_palette_color = curr_palette_color
                 
-            # Check if color changed
-            if brush:
-                curr_color = tuple(brush.color)
-                if curr_color != old_color:
-                    # Update stored color
-                    if current_mode in ('PAINT_GPENCIL', 'PAINT_GREASE_PENCIL'):
-                        cls.old_gp_color = curr_color
-                    elif current_mode in ('VERTEX_GPENCIL', 'VERTEX_GREASE_PENCIL'):
-                        cls.old_gp_vertex_color = curr_color
-                    elif current_mode == 'PAINT_VERTEX':
-                        cls.old_vertex_color = curr_color
-                    else:
-                        cls.old_image_color = curr_color
-                    
-                    # Update Coloraide if not already updating
-                    if not is_brush_updating():
-                        sync_picker_from_brush(context, curr_color)
-                    
+                # Check brush color
+                if not color_changed:
+                    curr_color = check_brush_color(context, paint_settings)
+                    if curr_color and curr_color != old_color:
+                        color_changed = True
+                        update_color = curr_color
+                        # Update stored color
+                        if context.mode == 'PAINT_GPENCIL':
+                            cls.old_gp_color = curr_color
+                        elif context.mode == 'PAINT_VERTEX':
+                            cls.old_vertex_color = curr_color
+                        else:
+                            cls.old_image_color = curr_color
+            
+            # Update Coloraide if color changed
+            if color_changed and update_color and not is_brush_updating():
+                sync_picker_from_brush(context, update_color)
+                
         except Exception as e:
             print(f"Color monitor error: {e}")
             

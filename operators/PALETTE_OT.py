@@ -19,15 +19,16 @@ class PALETTE_OT_add_color(Operator):
     def execute(self, context):
         ts = context.tool_settings
         paint_settings = None
-        current_mode = context.mode
+        is_new_version = get_blender_version_category() == "new"
         
         # Get correct paint settings based on mode
-        if current_mode in ('PAINT_GPENCIL', 'PAINT_GREASE_PENCIL'):
+        if context.mode == 'PAINT_GPENCIL':
             paint_settings = ts.gpencil_paint
-        elif current_mode in ('VERTEX_GPENCIL', 'VERTEX_GREASE_PENCIL'):
-            is_new_version = get_blender_version_category() == "new"
-            paint_settings = ts.gpencil_vertex_paint if is_new_version else ts.gpencil_paint
-        elif current_mode == 'PAINT_VERTEX':
+        elif is_new_version and context.mode == 'VERTEX_GREASE_PENCIL':
+            paint_settings = ts.gpencil_vertex_paint
+        elif not is_new_version and context.mode == 'VERTEX_GPENCIL':
+            paint_settings = ts.gpencil_paint  # 4.2 API
+        elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
         else:
             paint_settings = ts.image_paint
@@ -65,15 +66,11 @@ class PALETTE_OT_remove_color(Operator):
     def execute(self, context):
         ts = context.tool_settings
         paint_settings = None
-        current_mode = context.mode
         
         # Get correct paint settings based on mode
-        if current_mode in ('PAINT_GPENCIL', 'PAINT_GREASE_PENCIL'):
+        if context.mode == 'PAINT_GPENCIL':
             paint_settings = ts.gpencil_paint
-        elif current_mode in ('VERTEX_GPENCIL', 'VERTEX_GREASE_PENCIL'):
-            is_new_version = get_blender_version_category() == "new"
-            paint_settings = ts.gpencil_vertex_paint if is_new_version else ts.gpencil_paint
-        elif current_mode == 'PAINT_VERTEX':
+        elif context.mode == 'PAINT_VERTEX':
             paint_settings = ts.vertex_paint
         else:
             paint_settings = ts.image_paint
