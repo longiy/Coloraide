@@ -3,7 +3,7 @@ import bpy
 import time
 from bpy.types import Operator
 from .COLORAIDE_brush_sync import sync_picker_from_brush, is_brush_updating, check_brush_color
-from .COLORAIDE_utils import get_blender_version_category, get_gpencil_brush
+from .COLORAIDE_utils import get_blender_version_category  # Add this import
 
 class COLOR_OT_monitor(Operator):
     bl_idname = "color.monitor"
