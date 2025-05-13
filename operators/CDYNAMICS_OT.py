@@ -4,7 +4,7 @@ import random
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all, is_updating
 from ..COLORAIDE_brush_sync import update_brush_color
-from .COLORAIDE_utils import get_blender_version_category
+from ..COLORAIDE_utils import get_blender_version_category
 
 def apply_color_dynamics(original_color, strength):
     """Apply random color variation to a brush color"""
