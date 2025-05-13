@@ -23,7 +23,7 @@ type = "add-on"
 # https://docs.blender.org/manual/en/dev/extensions/tags.html
 tags = ["Paint", "Grease Pencil", "3D View"]
 
-blender_version_min = "4.2.0"
+blender_version_min = "4.3.0"
 # Optional: maximum supported Blender version
 # blender_version_max = "5.1.0"
 
