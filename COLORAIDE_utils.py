@@ -2,9 +2,14 @@
 Utility functions for Coloraide addon.
 Contains shared color conversion and helper functions.
 """
-
+import bpy
 import numpy as np
 from math import pow
+
+def get_blender_version_category():
+    """Return 'new' for >=4.3 and 'old' for <4.3"""
+    version = bpy.app.version
+    return "new" if (version[0] > 4 or (version[0] == 4 and version[1] >= 3)) else "old"
 
 """Centralized color update flag management"""
 

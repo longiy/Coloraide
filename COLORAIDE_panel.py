@@ -5,6 +5,8 @@ Integrates all component panels and handles display across different editors.
 
 import bpy
 from bpy.types import Panel
+from .COLORAIDE_utils import get_blender_version_category  # Add this import
+
 
 # Import all panel drawing functions
 from .panels.NORMAL_panel import draw_normal_panel
@@ -84,15 +86,24 @@ class VIEW3D_PT_coloraide(Panel):
     
     @classmethod
     def poll(cls, context):
-        return context.mode in {
+        is_new_version = get_blender_version_category() == "new"
+        valid_modes = {
             'PAINT_TEXTURE', 
             'PAINT_VERTEX', 
             'PAINT_GREASE_PENCIL',
-            'VERTEX_GREASE_PENCIL',  # Add this mode
             'EDIT', 
             'OBJECT', 
             'SCULPT'
         }
+        
+        # Add 4.4+ modes
+        if is_new_version:
+            valid_modes.add('VERTEX_GREASE_PENCIL')
+        else:
+            # Add 4.2 GP vertex paint mode
+            valid_modes.add('VERTEX_GPENCIL')
+        
+        return context.mode in valid_modes
     
     def draw(self, context):
         draw_coloraide_panels(self, context)

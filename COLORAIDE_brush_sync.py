@@ -6,6 +6,8 @@ Updated for Blender 4.3+ API changes.
 
 import bpy
 from .COLORAIDE_utils import rgb_to_lab, lab_to_rgb, hsv_to_rgb, rgb_to_hsv, rgb_float_to_bytes
+from .COLORAIDE_utils import get_blender_version_category  # Add this import
+
 from contextlib import contextmanager
 
 # Update state flags
@@ -99,6 +101,7 @@ def sync_brush_from_picker(context, color):
             return
             
         ts = context.tool_settings
+        is_new_version = get_blender_version_category() == "new"
         
         # Update Grease Pencil brush if available
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
@@ -107,10 +110,18 @@ def sync_brush_from_picker(context, color):
                 ts.unified_paint_settings.color = color
                 
         # Add support for Grease Pencil vertex paint
-        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
-            ts.gpencil_vertex_paint.brush.color = color
-            if ts.unified_paint_settings.use_unified_color:
-                ts.unified_paint_settings.color = color
+        if is_new_version:
+            # 4.3+ API
+            if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
+                ts.gpencil_vertex_paint.brush.color = color
+                if ts.unified_paint_settings.use_unified_color:
+                    ts.unified_paint_settings.color = color
+        else:
+            # 4.2 API
+            if context.mode == 'VERTEX_GPENCIL' and hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                ts.gpencil_paint.brush.color = color
+                if ts.unified_paint_settings.use_unified_color:
+                    ts.unified_paint_settings.color = color
                 
         # Update Image Paint brush if available  
         if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:

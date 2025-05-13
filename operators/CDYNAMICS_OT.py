@@ -4,6 +4,7 @@ import random
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all, is_updating
 from ..COLORAIDE_brush_sync import update_brush_color
+from .COLORAIDE_utils import get_blender_version_category
 
 def apply_color_dynamics(original_color, strength):
     """Apply random color variation to a brush color"""
@@ -74,18 +75,24 @@ class COLOR_OT_color_dynamics(Operator):
                     
                     # Apply dynamics using the captured base color
                     ts = context.tool_settings
-                    
+                    is_new_version = get_blender_version_category() == "new"
+
                     new_color = apply_color_dynamics(
                         self._stroke_base_color,
                         wm.coloraide_dynamics.strength
                     )
-                    
+
                     # Update brush colors
                     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                         ts.gpencil_paint.brush.color = new_color
-                    
-                    if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
-                        ts.gpencil_vertex_paint.brush.color = new_color
+
+                    if is_new_version:
+                        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+                            ts.gpencil_vertex_paint.brush.color = new_color
+                    else:
+                        # 4.2 API - vertex paint mode still uses gpencil_paint
+                        if context.mode == 'VERTEX_GPENCIL' and hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
+                            ts.gpencil_paint.brush.color = new_color
                     
                     if hasattr(ts, 'image_paint') and ts.image_paint.brush:
                         ts.image_paint.brush.color = new_color
