@@ -91,12 +91,12 @@ def sync_all(context, source, color):
                 ts.gpencil_vertex_paint.brush.color = rgb_float
                 
         # Update RGB properties
-        wm.coloraide_rgb.suppress_updates = True
-        rgb_bytes = rgb_float_to_bytes(rgb_float)
-        wm.coloraide_rgb.red = rgb_bytes[0]
-        wm.coloraide_rgb.green = rgb_bytes[1]
-        wm.coloraide_rgb.blue = rgb_bytes[2]
-        wm.coloraide_rgb.suppress_updates = False
+            wm.coloraide_rgb.suppress_updates = True
+            rgb_bytes = rgb_float_to_bytes(rgb_float)
+            wm.coloraide_rgb.red = rgb_bytes[0]
+            wm.coloraide_rgb.green = rgb_bytes[1]
+            wm.coloraide_rgb.blue = rgb_bytes[2]
+            wm.coloraide_rgb.suppress_updates = False
         
         
         

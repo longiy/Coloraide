@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "Coloraide"
-version = "1.4.4"
+version = "1.4.5"
 name = "Coloraide"
 tagline = "Advanced color picking and color management tools"
 maintainer = "longiy <longiyart@gmail.com>"
