@@ -5,7 +5,7 @@ Updated for Blender 4.3+ API changes.
 """
 
 import bpy
-from .COLORAIDE_utils import rgb_to_lab, lab_to_rgb, hsv_to_rgb, rgb_to_hsv, rgb_float_to_bytes
+from .COLORAIDE_utils import rgb_to_lab, lab_to_rgb, hsv_to_rgb, rgb_to_hsv, rgb_float_to_bytes, rgb_to_hex
 from contextlib import contextmanager
 
 # Update state flags
@@ -88,6 +88,12 @@ def sync_picker_from_brush(context, brush_color):
         wm.coloraide_wheel.suppress_updates = True
         wm.coloraide_wheel.color = (*brush_color, 1.0)
         wm.coloraide_wheel.suppress_updates = False
+                
+        # Update hex
+        wm.coloraide_hex.suppress_updates = True
+        hex_value = rgb_to_hex(brush_color)
+        wm.coloraide_hex.value = hex_value
+        wm.coloraide_hex.suppress_updates = False
 
 def sync_brush_from_picker(context, color):
     """Update brush colors directly from picker without full sync"""
