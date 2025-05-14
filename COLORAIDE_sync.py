@@ -36,9 +36,6 @@ def is_updating(source=None):
     return _UPDATING
 
 def sync_all(context, source, color):
-    
-
-    
     if is_updating(source):
         return
         
@@ -71,7 +68,12 @@ def sync_all(context, source, color):
             hsv_norm = (color[0]/360.0, color[1]/100.0, color[2]/100.0)
             rgb_float = hsv_to_rgb(hsv_norm)
         elif source == 'hex':
-            rgb_float = hex_to_rgb(color)
+            # CHANGE: Expect a hex string here, not rgb values
+            if isinstance(color, str):
+                rgb_float = hex_to_rgb(color)
+            else:
+                # Fall back if something else was passed
+                rgb_float = color
         elif source == 'history':
             # Make sure this case is handled properly
             rgb_float = tuple(color[:3])

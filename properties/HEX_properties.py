@@ -41,12 +41,12 @@ class ColoraideHexProperties(PropertyGroup):
         # Store valid value
         self._prev_value = value
             
-        # Only update if format changed
-        if value != self.value:
-            self.suppress_updates = True
-            self.value = value
-            self.suppress_updates = False
-            return
+        # # Only update if format changed
+        # if value != self.value:
+        #     self.suppress_updates = True
+        #     self.value = value
+        #     self.suppress_updates = False
+        #     return
             
         # Convert hex to RGB and sync
         try:
