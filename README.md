@@ -1,5 +1,5 @@
 # 🎨 Coloraide
-Advanced color picker and manager for Blender 4.2+
+Advanced color picker and manager for Blender 4.3+
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview.png)
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview2.png)
 
@@ -24,7 +24,7 @@ Advanced color picker and manager for Blender 4.2+
 - Wheel Size: Slider or reset button
 
 ## 📦 Info
-- Version: 1.3.3
+- Version: 1.4.6
 - Author: longiy
 - License: GPL-3.0
 - Location: Editor → Color panel
