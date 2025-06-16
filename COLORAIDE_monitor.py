@@ -62,15 +62,19 @@ class COLOR_OT_monitor(Operator):
                 old_color = cls.old_image_color
 
             # Check for palette color changes (for all modes)
+            palette_changed = False
             if paint_settings and paint_settings.palette and paint_settings.palette.colors.active:
                 curr_palette_color = tuple(paint_settings.palette.colors.active.color)
                 if curr_palette_color != cls.old_palette_color:
-                    color_changed = True
+                    palette_changed = True
                     update_color = curr_palette_color
                     cls.old_palette_color = curr_palette_color
+                    # Use 'palette' source for palette changes (not 'brush')
+                    sync_all(context, 'palette', update_color)
+                    return 0.1  # Early return to avoid double-processing
             
             # Only check brush color if palette color didn't change
-            if not color_changed and paint_settings and paint_settings.brush:
+            if not palette_changed and paint_settings and paint_settings.brush:
                 # Skip this section for VERTEX_GREASE_PENCIL as it's already handled above
                 if context.mode != 'VERTEX_GREASE_PENCIL':
                     curr_color = check_brush_color(context, paint_settings)
