@@ -38,13 +38,45 @@ def is_updating(source=None):
 def sync_all(context, source, color):
     if is_updating(source):
         return
+    
+    # NEW: Block brush→coloraide updates during active color dynamics
+    wm = context.window_manager
+    if (source == 'brush' and 
+        hasattr(wm, 'coloraide_dynamics') and 
+        wm.coloraide_dynamics.strength > 0 and
+        wm.coloraide_dynamics.running):
+        return  # Skip brush→coloraide sync during dynamics
         
     with update_lock(source) as acquired:
         if not acquired:
             return
             
+        # NEW: Update master color for dynamics when user changes Coloraide manually
+        if (hasattr(wm, 'coloraide_dynamics') and 
+            wm.coloraide_dynamics.strength > 0 and
+            wm.coloraide_dynamics.running and
+            source in ['wheel', 'picker', 'hsv', 'rgb', 'lab', 'hex', 'history', 'palette']):
+            # User manually changed color - update master color for dynamics
+            if hasattr(wm.coloraide_dynamics, 'master_color'):
+                # Convert to RGB float for consistency
+                if source == 'rgb':
+                    rgb_float = rgb_bytes_to_float(color)
+                elif source == 'lab':
+                    rgb_float = lab_to_rgb(color)
+                elif source == 'hsv':
+                    hsv_norm = (color[0]/360.0, color[1]/100.0, color[2]/100.0)
+                    rgb_float = hsv_to_rgb(hsv_norm)
+                elif source == 'hex':
+                    if isinstance(color, str):
+                        rgb_float = hex_to_rgb(color)
+                    else:
+                        rgb_float = color
+                else:
+                    rgb_float = tuple(color[:3])
+                
+                wm.coloraide_dynamics.master_color = rgb_float
+            
         # Rest of the function...
-        wm = context.window_manager
         
         # Convert input to RGB float (0-1)
         if source == 'rgb':
@@ -91,6 +123,7 @@ def sync_all(context, source, color):
                 ts.gpencil_vertex_paint.brush.color = rgb_float
                 
         # Update RGB properties
+        if source != 'rgb':
             wm.coloraide_rgb.suppress_updates = True
             rgb_bytes = rgb_float_to_bytes(rgb_float)
             wm.coloraide_rgb.red = rgb_bytes[0]
@@ -119,20 +152,23 @@ def sync_all(context, source, color):
             wm.coloraide_hsv.suppress_updates = False
             
         # Update picker mean only (removed current)
-        wm.coloraide_picker.suppress_updates = True
-        wm.coloraide_picker.mean = rgb_float
-        wm.coloraide_picker.suppress_updates = False
+        if source != 'picker':
+            wm.coloraide_picker.suppress_updates = True
+            wm.coloraide_picker.mean = rgb_float
+            wm.coloraide_picker.suppress_updates = False
         
         # Update wheel
-        wm.coloraide_wheel.suppress_updates = True
-        wm.coloraide_wheel.color = (*rgb_float, 1.0)
-        wm.coloraide_wheel.suppress_updates = False
+        if source != 'wheel':
+            wm.coloraide_wheel.suppress_updates = True
+            wm.coloraide_wheel.color = (*rgb_float, 1.0)
+            wm.coloraide_wheel.suppress_updates = False
         
         # Update hex
-        wm.coloraide_hex.suppress_updates = True
-        hex_value = rgb_to_hex(rgb_float)
-        wm.coloraide_hex.value = hex_value
-        wm.coloraide_hex.suppress_updates = False
+        if source != 'hex':
+            wm.coloraide_hex.suppress_updates = True
+            hex_value = rgb_to_hex(rgb_float)
+            wm.coloraide_hex.value = hex_value
+            wm.coloraide_hex.suppress_updates = False
         
         # Update all brush colors
         ts = context.tool_settings

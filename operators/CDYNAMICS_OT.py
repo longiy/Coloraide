@@ -5,16 +5,16 @@ from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all, is_updating
 from ..COLORAIDE_brush_sync import update_brush_color
 
-def apply_color_dynamics(original_color, strength):
-    """Apply random color variation to a brush color"""
+def apply_color_dynamics(master_color, strength):
+    """Apply random color variation to a master color"""
     if strength <= 0:
-        return original_color
+        return master_color
     
     random_color = (random.random(), random.random(), random.random())
     strength_factor = strength / 100.0
     return tuple(
-        original + (random - original) * strength_factor
-        for original, random in zip(original_color, random_color)
+        master + (random - master) * strength_factor
+        for master, random in zip(master_color, random_color)
     )
 
 def is_mouse_in_ui(context, event):
@@ -37,8 +37,7 @@ class COLOR_OT_color_dynamics(Operator):
     bl_description = "Apply random color variation during brush strokes"
     bl_options = {'REGISTER'}
     
-    # Store the base color during a stroke
-    _stroke_base_color = None
+    # Store state
     _active_stroke = False
 
     @classmethod
@@ -49,6 +48,12 @@ class COLOR_OT_color_dynamics(Operator):
         wm = context.window_manager
         wm.modal_handler_add(self)
         wm.coloraide_dynamics.running = True
+        
+        # Store current color as master color when starting
+        if hasattr(wm, 'coloraide_picker'):
+            current_color = tuple(wm.coloraide_picker.mean)
+            wm.coloraide_dynamics.master_color = current_color
+            
         return {'RUNNING_MODAL'}
 
     def modal(self, context, event):
@@ -68,19 +73,19 @@ class COLOR_OT_color_dynamics(Operator):
             # Only apply color dynamics for non-UI clicks
             if not mouse_in_ui:
                 if event.value == 'PRESS':
-                    # Start of a stroke - capture the base color
-                    self._stroke_base_color = tuple(wm.coloraide_picker.mean)
+                    # Start of a stroke - apply dynamics using master color
                     self._active_stroke = True
                     
-                    # Apply dynamics using the captured base color
-                    ts = context.tool_settings
-                    
+                    # NEW: Always use master color for randomization
+                    master_color = tuple(wm.coloraide_dynamics.master_color)
                     new_color = apply_color_dynamics(
-                        self._stroke_base_color,
+                        master_color,
                         wm.coloraide_dynamics.strength
                     )
                     
-                    # Update brush colors
+                    # Update brush colors directly (not through sync_all to avoid updating Coloraide)
+                    ts = context.tool_settings
+                    
                     if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
                         ts.gpencil_paint.brush.color = new_color
                     
@@ -96,21 +101,25 @@ class COLOR_OT_color_dynamics(Operator):
                         ts.vertex_paint.brush.color = new_color
 
                 elif event.value == 'RELEASE':
-                    # End of a stroke - restore the base color
-                    if self._active_stroke and self._stroke_base_color:
+                    # End of a stroke - restore the master color
+                    if self._active_stroke:
                         ts = context.tool_settings
+                        master_color = tuple(wm.coloraide_dynamics.master_color)
                         
-                        # Restore the original base color
+                        # Restore the master color to brushes
                         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-                            ts.gpencil_paint.brush.color = self._stroke_base_color
+                            ts.gpencil_paint.brush.color = master_color
+                        
+                        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+                            ts.gpencil_vertex_paint.brush.color = master_color
                         
                         if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-                            ts.image_paint.brush.color = self._stroke_base_color
+                            ts.image_paint.brush.color = master_color
                             if ts.unified_paint_settings.use_unified_color:
-                                ts.unified_paint_settings.color = self._stroke_base_color
+                                ts.unified_paint_settings.color = master_color
                         
                         if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
-                            ts.vertex_paint.brush.color = self._stroke_base_color
+                            ts.vertex_paint.brush.color = master_color
                     
                     # Reset stroke state
                     self._active_stroke = False
@@ -122,17 +131,20 @@ class COLOR_OT_color_dynamics(Operator):
         wm = context.window_manager
         wm.coloraide_dynamics.running = False
         
-        # Restore base color
+        # Restore master color to brushes
         ts = context.tool_settings
-        base_color = tuple(wm.coloraide_picker.mean)
+        master_color = tuple(wm.coloraide_dynamics.master_color)
         
         if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint.brush:
-            ts.gpencil_paint.brush.color = base_color
+            ts.gpencil_paint.brush.color = master_color
+            
+        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint.brush:
+            ts.gpencil_vertex_paint.brush.color = master_color
             
         if hasattr(ts, 'image_paint') and ts.image_paint.brush:
-            ts.image_paint.brush.color = base_color
+            ts.image_paint.brush.color = master_color
             if ts.unified_paint_settings.use_unified_color:
-                ts.unified_paint_settings.color = base_color
+                ts.unified_paint_settings.color = master_color
                 
         if hasattr(ts, 'vertex_paint') and ts.vertex_paint.brush:
-            ts.vertex_paint.brush.color = base_color
+            ts.vertex_paint.brush.color = master_color

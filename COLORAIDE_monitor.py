@@ -3,6 +3,7 @@ import bpy
 import time
 from bpy.types import Operator
 from .COLORAIDE_brush_sync import sync_picker_from_brush, is_brush_updating, check_brush_color
+from .COLORAIDE_sync import sync_all
 
 class COLOR_OT_monitor(Operator):
     bl_idname = "color.monitor"
@@ -84,9 +85,10 @@ class COLOR_OT_monitor(Operator):
                         else:
                             cls.old_image_color = curr_color
             
-            # Update Coloraide if color changed
+            # NEW: Use sync_all with 'brush' source instead of direct sync
+            # This allows the sync system to handle dynamics blocking
             if color_changed and update_color and not is_brush_updating():
-                sync_picker_from_brush(context, update_color)
+                sync_all(context, 'brush', update_color)
                 
         except Exception as e:
             print(f"Color monitor error: {e}")

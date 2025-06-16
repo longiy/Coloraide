@@ -13,12 +13,17 @@ class ColoraideDynamicsProperties(PropertyGroup):
             return
         
         if self.strength > 0:
+            # Store current color as master color when enabling dynamics
+            if hasattr(context.window_manager, 'coloraide_picker'):
+                current_color = tuple(context.window_manager.coloraide_picker.mean)
+                self.master_color = current_color
+            
             # Automatically start color dynamics if not already running
             if not any(op.bl_idname == "color.color_dynamics" for op in context.window_manager.operators):
                 bpy.ops.color.color_dynamics('INVOKE_DEFAULT')
         else:
             # Stop color dynamics when strength is zero
-            context.window_manager.coloraide_dynamics.running = False
+            self.running = False
 
     running: BoolProperty(
         name="Color Dynamics Active",
@@ -47,13 +52,15 @@ class ColoraideDynamicsProperties(PropertyGroup):
         default=True
     )
 
-    base_color: FloatVectorProperty(
+    # NEW: Store the master color for dynamics
+    master_color: FloatVectorProperty(
+        name="Master Color",
+        description="Base color for dynamics randomization",
         subtype='COLOR',
         size=3,
         min=0.0, max=1.0,
         default=(1.0, 1.0, 1.0)
     )
-    
     
 
 def register():
