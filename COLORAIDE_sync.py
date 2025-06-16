@@ -123,52 +123,44 @@ def sync_all(context, source, color):
                 ts.gpencil_vertex_paint.brush.color = rgb_float
                 
         # Update RGB properties
-        if source != 'rgb':
-            wm.coloraide_rgb.suppress_updates = True
-            rgb_bytes = rgb_float_to_bytes(rgb_float)
-            wm.coloraide_rgb.red = rgb_bytes[0]
-            wm.coloraide_rgb.green = rgb_bytes[1]
-            wm.coloraide_rgb.blue = rgb_bytes[2]
-            wm.coloraide_rgb.suppress_updates = False
-        
-        
+        wm.coloraide_rgb.suppress_updates = True
+        rgb_bytes = rgb_float_to_bytes(rgb_float)
+        wm.coloraide_rgb.red = rgb_bytes[0]
+        wm.coloraide_rgb.green = rgb_bytes[1]
+        wm.coloraide_rgb.blue = rgb_bytes[2]
+        wm.coloraide_rgb.suppress_updates = False
         
         # Update LAB
-        if source != 'lab':
-            wm.coloraide_lab.suppress_updates = True
-            lab = rgb_to_lab(rgb_float)
-            wm.coloraide_lab.lightness = round(lab[0])
-            wm.coloraide_lab.a = round(lab[1])
-            wm.coloraide_lab.b = round(lab[2])
-            wm.coloraide_lab.suppress_updates = False
+        wm.coloraide_lab.suppress_updates = True
+        lab = rgb_to_lab(rgb_float)
+        wm.coloraide_lab.lightness = round(lab[0])
+        wm.coloraide_lab.a = round(lab[1])
+        wm.coloraide_lab.b = round(lab[2])
+        wm.coloraide_lab.suppress_updates = False
             
         # Update HSV
-        if source != 'hsv':
-            wm.coloraide_hsv.suppress_updates = True
-            hsv = rgb_to_hsv(rgb_float)
-            wm.coloraide_hsv.hue = round(hsv[0] * 360.0)
-            wm.coloraide_hsv.saturation = round(hsv[1] * 100.0)
-            wm.coloraide_hsv.value = round(hsv[2] * 100.0)
-            wm.coloraide_hsv.suppress_updates = False
+        wm.coloraide_hsv.suppress_updates = True
+        hsv = rgb_to_hsv(rgb_float)
+        wm.coloraide_hsv.hue = round(hsv[0] * 360.0)
+        wm.coloraide_hsv.saturation = round(hsv[1] * 100.0)
+        wm.coloraide_hsv.value = round(hsv[2] * 100.0)
+        wm.coloraide_hsv.suppress_updates = False
             
-        # Update picker mean only (removed current)
-        if source != 'picker':
-            wm.coloraide_picker.suppress_updates = True
-            wm.coloraide_picker.mean = rgb_float
-            wm.coloraide_picker.suppress_updates = False
+        # Update picker mean 
+        wm.coloraide_picker.suppress_updates = True
+        wm.coloraide_picker.mean = rgb_float
+        wm.coloraide_picker.suppress_updates = False
         
         # Update wheel
-        if source != 'wheel':
-            wm.coloraide_wheel.suppress_updates = True
-            wm.coloraide_wheel.color = (*rgb_float, 1.0)
-            wm.coloraide_wheel.suppress_updates = False
+        wm.coloraide_wheel.suppress_updates = True
+        wm.coloraide_wheel.color = (*rgb_float, 1.0)
+        wm.coloraide_wheel.suppress_updates = False
         
         # Update hex
-        if source != 'hex':
-            wm.coloraide_hex.suppress_updates = True
-            hex_value = rgb_to_hex(rgb_float)
-            wm.coloraide_hex.value = hex_value
-            wm.coloraide_hex.suppress_updates = False
+        wm.coloraide_hex.suppress_updates = True
+        hex_value = rgb_to_hex(rgb_float)
+        wm.coloraide_hex.value = hex_value
+        wm.coloraide_hex.suppress_updates = False
         
         # Update all brush colors
         ts = context.tool_settings
