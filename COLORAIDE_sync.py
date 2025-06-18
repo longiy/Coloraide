@@ -130,6 +130,11 @@ def sync_all(context, source, color):
         wm.coloraide_rgb.blue = rgb_bytes[2]
         wm.coloraide_rgb.suppress_updates = False
         
+        # Update RGB preview colors too (like history colors)
+        wm.coloraide_rgb.red_preview = (rgb_float[0], 0.0, 0.0)
+        wm.coloraide_rgb.green_preview = (0.0, rgb_float[1], 0.0)
+        wm.coloraide_rgb.blue_preview = (0.0, 0.0, rgb_float[2])
+        
         # Update LAB
         wm.coloraide_lab.suppress_updates = True
         lab = rgb_to_lab(rgb_float)
