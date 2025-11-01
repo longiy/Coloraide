@@ -45,8 +45,8 @@ A comprehensive color management and selection tool for Blender.
 | :--- | :--- |
 | **Version 1.4.8 Requirement** | Blender **4.5 or newer** for full feature support |
 | **Version 1.4.7 Compatibility** | Blender 4.5 and earlier versions |
-| **Supported Editors** | Image Editor, **3D View**, Clip Editor |
-| **Supported Paint Modes** | Texture Paint, **Vertex Paint**, Weight Paint, Sculpt, Grease Pencil Draw, and Vertex Grease Pencil |
+| **Supported Editors** | Image Editor, 3D View, Clip Editor |
+| **Supported Paint Modes** | Texture Paint, Vertex Paint, Weight Paint, Sculpt, Grease Pencil Draw, and Vertex Grease Pencil |
 
 ---
 
