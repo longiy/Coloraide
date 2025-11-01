@@ -12,7 +12,7 @@ def draw_history_panel(layout, context):
     box = layout.box()
     row = box.row()
     row.prop(wm.coloraide_display, "show_history", 
-        text=f"Color History ({wm.coloraide_history.size})", 
+        text=f"Color Picker History ({wm.coloraide_history.size})", 
         icon='TRIA_DOWN' if wm.coloraide_display.show_history else 'TRIA_RIGHT',
         emboss=False
     )

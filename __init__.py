@@ -53,7 +53,7 @@ from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_co
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy',
-    'version': (2, 0, 0),
+    'version': (1, 4, 8),
     'blender': (5, 0, 0),
     'location': '(Image Editor, Clip Editor, and 3D View) -> Color',
     'description': 'Advanced color picker with extended features for Blender 5.0+',

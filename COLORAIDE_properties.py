@@ -60,6 +60,12 @@ class ColoraideDisplayProperties(PropertyGroup):
         default=True
     )
     
+    # Color dynamics visibility
+    show_dynamics: BoolProperty(
+        name="Show Color Dynamics",
+        description="Show color dynamics (randomization) controls",
+        default=True
+    )
     
     # Feature visibility
     show_history: BoolProperty(
@@ -73,4 +79,3 @@ class ColoraideDisplayProperties(PropertyGroup):
         description="Show color palette controls",
         default=True
     )
-    

@@ -29,10 +29,13 @@ def draw_coloraide_panels(self, context):
     # 1. Draw color wheel
     draw_wheel_panel(layout, context)
     
-    # 2. Draw core color picker
+    # 2. Draw color dynamics (native Blender color jitter)
+    draw_dynamics_panel(layout, context)
+
+    # 3. Draw core color picker
     draw_picker_panel(layout, context)
     
-    # 3. Color spaces box
+    # 4. Color spaces box
     box = layout.box()
     row = box.row()
     row.prop(wm.coloraide_display, "show_color_sliders", 
@@ -57,8 +60,6 @@ def draw_coloraide_panels(self, context):
         if wm.coloraide_display.show_hsv_sliders:
             draw_hsv_panel(col, context)
     
-    # 4. Draw color dynamics (native Blender color jitter)
-    draw_dynamics_panel(layout, context)
     
     # 5. Draw color history
     draw_history_panel(layout, context)
@@ -67,7 +68,7 @@ def draw_coloraide_panels(self, context):
     draw_palette_panel(layout, context)
 
 class IMAGE_PT_coloraide(Panel):
-    bl_label = "Coloraide 2.0"
+    bl_label = "Coloraide 1.4.8"
     bl_idname = "IMAGE_PT_coloraide"
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -77,7 +78,7 @@ class IMAGE_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class VIEW3D_PT_coloraide(Panel):
-    bl_label = "Coloraide 2.0"
+    bl_label = "Coloraide 1.4.8"
     bl_idname = "VIEW3D_PT_coloraide"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -99,7 +100,7 @@ class VIEW3D_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class CLIP_PT_coloraide(Panel):
-    bl_label = "Coloraide 2.0"
+    bl_label = "Coloraide 1.4.8"
     bl_idname = "CLIP_PT_coloraide"
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'
