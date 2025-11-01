@@ -41,7 +41,6 @@ A comprehensive color management and selection tool for Blender.
 
 ## 🔧 Compatibility & Requirements
 
-| Detail | Specification |
 | :--- | :--- |
 | **Version 1.4.8 Requirement** | Blender **4.5 or newer** for full feature support |
 | **Version 1.4.7 Compatibility** | Blender 4.5 and earlier versions |
@@ -65,7 +64,6 @@ A comprehensive color management and selection tool for Blender.
 
 ## 📦 Info
 
-| Detail | Value |
 | :--- | :--- |
 | **Version** | 1.4.8 |
 | **Author** | longiy (longiyart@gmail.com) |
