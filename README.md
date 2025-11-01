@@ -6,25 +6,25 @@ Advanced color picker and manager for Blender 4.3+
 ## ✨ Features
 🔍 Quick Pick (Shift+E)
 Real-time screen color sampling activated by holding Shift+E. Customizable sample area from 1-100 pixels displays both area average and single-pixel color with visual preview during sampling.
-🎯 Normal Sampling
+# 🎯 Normal Sampling
 Converts 3D mesh surface normals into RGB colors for normal map workflows. Supports both smooth and flat shading with world-space normal sampling in Texture Paint and Vertex Paint modes.
-🎡 Color Wheel
+# 🎡 Color Wheel
 Visual hue/saturation selector with integrated value slider. Scalable size (1.0-3.0x multiplier) for precision work, includes hex input field and reset-to-default button.
-🌈 Color Spaces
+# 🌈 Color Spaces
 Multiple color representations updated in real-time: RGB (0-255 bytes), HSV (360° hue, 0-100% sat/val), LAB (perceptually uniform), and Hex (#RRGGBB). All conversions maintain Photoshop-level accuracy using scene linear color space internally.
-📋 History
+# 📋 History
 Automatically stores recently used colors in an adjustable grid (8-80 slots, 8 per row). Click any swatch to instantly reapply that color, with automatic duplicate prevention and clear-all option.
-🎨 Palettes
+# 🎨 Palettes
 Seamless integration with Blender's native palette system. Add current color to palette, select from swatches, and manage persistent color collections that save with .blend files.
-🖌️ Color Dynamics
+# 🖌️ Color Dynamics
 Native brush color jitter control (Blender 5.0+) for hue, saturation, and value randomization. Includes per-stroke variation, pressure sensitivity, and customizable pressure curves for natural painting variation.
-🔧 Compatibility
+# 🔧 Compatibility
 Version Requirements
 
 Version 1.4.8: Requires Blender 4.5 or newer for full feature support
 Version 1.4.7: Compatible with Blender 4.5 and earlier versions
 
-Supported Editors
+# Supported Editors
 
 Image Editor: Texture painting and 2D paint workflows
 3D View: Texture Paint, Vertex Paint, Sculpt, Grease Pencil modes
