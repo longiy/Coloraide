@@ -38,15 +38,15 @@ def draw_dynamics_panel(layout, context):
     if not wm.coloraide_display.show_dynamics:
         return
     
-    # # Check if brush exists
-    # if not brush:
-    #     box.label(text="No active brush", icon='INFO')
-    #     return
+    # Check if brush exists
+    if not brush:
+        box.label(text="No active brush", icon='INFO')
+        return
     
-    # # Check if brush has color jitter properties
-    # if not hasattr(brush, 'use_color_jitter'):
-    #     box.label(text="Color jitter not available", icon='INFO')
-    #     return
+    # Check if brush has color jitter properties
+    if not hasattr(brush, 'use_color_jitter'):
+        box.label(text="Color jitter not available", icon='INFO')
+        return
     
     # Master toggle for color jitter
     row = box.row()

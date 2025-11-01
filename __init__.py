@@ -1,8 +1,11 @@
 """
 Main initialization file for Coloraide addon - Blender 5.0+ version.
+With customizable tab category in preferences.
 """
 import bpy
 from bpy.app.handlers import persistent
+from bpy.types import AddonPreferences
+from bpy.props import StringProperty
 
 # First utilities and sync system from root
 from .COLORAIDE_colorspace import *
@@ -62,6 +65,59 @@ bl_info = {
     'category': 'Paint',
 }
 
+# Define panel classes for tab customization
+panels = (
+    IMAGE_PT_coloraide,
+    VIEW3D_PT_coloraide,
+    CLIP_PT_coloraide,
+)
+
+
+def update_panel(self, context):
+    """Update panel tab category when changed in preferences"""
+    message = "Coloraide: Updating Panel locations has failed"
+    try:
+        # Unregister all panels
+        for panel in panels:
+            if "bl_rna" in panel.__dict__:
+                bpy.utils.unregister_class(panel)
+
+        # Update category and re-register
+        for panel in panels:
+            panel.bl_category = context.preferences.addons[__name__].preferences.category
+            bpy.utils.register_class(panel)
+
+    except Exception as e:
+        print("\n[{}]\n{}\n\nError:\n{}".format(__name__, message, e))
+        pass
+
+
+class ColoraideAddonPreferences(AddonPreferences):
+    """Addon preferences for Coloraide - allows customizing panel tab location"""
+    bl_idname = __name__
+
+    category: StringProperty(
+        name="Tab Category",
+        description="Choose the sidebar tab where Coloraide panels will appear",
+        default="Color",
+        update=update_panel
+    )
+
+    def draw(self, context):
+        layout = self.layout
+
+        row = layout.row()
+        col = row.column()
+        col.label(text="Sidebar Tab Category:")
+        col.prop(self, "category", text="")
+        
+        # Add helpful info
+        box = layout.box()
+        box.label(text="This controls which tab the Coloraide panel appears in.", icon='INFO')
+        box.label(text="Default: 'Color' - Change to 'Tool', 'View', 'Edit', etc.")
+        box.label(text="Applies to Image Editor, 3D View, and Clip Editor.")
+
+
 # Collect all classes that need registration
 classes = [
     # Properties
@@ -95,10 +151,13 @@ classes = [
     COLOR_OT_monitor,
     COLOR_OT_reset_history_flags,
     
-    # Panels
-    IMAGE_PT_coloraide,
-    VIEW3D_PT_coloraide,
-    CLIP_PT_coloraide,
+    # Preferences (must be registered before panels for update_panel to work)
+    ColoraideAddonPreferences,
+    
+    # Panels - will be registered via update_panel()
+    # IMAGE_PT_coloraide,
+    # VIEW3D_PT_coloraide,
+    # CLIP_PT_coloraide,
 ]
 
 def start_color_monitor():
@@ -138,7 +197,7 @@ def initialize_addon(context):
         print(f"Coloraide initialization warning: {e}")
 
 def register():
-    # Register classes
+    # Register non-panel classes first
     for cls in classes:
         bpy.utils.register_class(cls)
         
@@ -157,6 +216,9 @@ def register():
     bpy.types.WindowManager.coloraide_hsv = bpy.props.PointerProperty(type=ColoraideHSVProperties)
     bpy.types.WindowManager.coloraide_history = bpy.props.PointerProperty(type=ColoraideHistoryProperties)
     
+    # Register panels with correct category from preferences
+    update_panel(None, bpy.context)
+    
     # Add load handler
     bpy.app.handlers.load_post.append(load_handler)
     
@@ -174,6 +236,14 @@ def unregister():
     # Unregister keymaps
     unregister_keymaps()
     
+    # Unregister panels first (in case they were registered separately)
+    for panel in panels:
+        try:
+            if "bl_rna" in panel.__dict__:
+                bpy.utils.unregister_class(panel)
+        except:
+            pass
+    
     # Unregister property groups
     del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal
@@ -186,7 +256,7 @@ def unregister():
     del bpy.types.WindowManager.coloraide_picker
     del bpy.types.WindowManager.coloraide_display
     
-    # Unregister classes in reverse order
+    # Unregister other classes in reverse order
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
 
