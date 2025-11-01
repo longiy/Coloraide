@@ -38,25 +38,25 @@ class ModeManager:
     
     @staticmethod
     def get_paint_settings(context):
-        """
-        Get the paint settings object for current mode.
-        
-        Args:
-            context: Blender context
-        
-        Returns:
-            Paint settings object (Sculpt, ImagePaint, VertexPaint, etc.) or None
-        """
-        mode = ModeManager.get_current_mode(context)
-        if not mode:
-            return None
-        
-        paint_attr = ModeManager.MODE_MAP.get(mode)
-        if not paint_attr:
-            return None
-        
+        """Get paint settings with improved Image Editor detection"""
         ts = context.tool_settings
-        return getattr(ts, paint_attr, None)
+        
+        # Priority 1: If in Image Editor, always use image_paint
+        if hasattr(context, 'space_data') and context.space_data:
+            if context.space_data.type == 'IMAGE_EDITOR':
+                return ts.image_paint
+        
+        # Priority 2: Use context.mode
+        mode = context.mode
+        if mode in ModeManager.MODE_MAP:
+            paint_attr = ModeManager.MODE_MAP[mode]
+            return getattr(ts, paint_attr, None)
+        
+        # Priority 3: Check if we have any active paint brush
+        if ts.image_paint and ts.image_paint.brush:
+            return ts.image_paint
+        
+        return None
     
     @staticmethod
     def get_unified_paint_settings(context):
@@ -91,6 +91,11 @@ class ModeManager:
             return None
         
         return getattr(paint_settings, 'brush', None)
+
+        # NEW: If no brush, try to activate default
+        if not brush and paint_settings:
+            # Get or create default brush for this paint mode
+            bpy.ops.paint.brush_select(image_tool='DRAW')  # or similar
     
     @staticmethod
     def get_brush_color(context):
