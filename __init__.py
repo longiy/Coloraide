@@ -1,20 +1,21 @@
 """
-Main initialization file for Coloraide addon.
+Main initialization file for Coloraide addon - Blender 5.0+ version.
 """
 import bpy
 from bpy.app.handlers import persistent
 
 # First utilities and sync system from root
+from .COLORAIDE_colorspace import *
+from .COLORAIDE_mode_manager import ModeManager
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
-from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, 
-                                 update_brush_color, is_brush_updating)
+from .COLORAIDE_brush_sync import (sync_coloraide_from_brush, update_brush_color, 
+                                   is_brush_updating)
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
 from .properties.NORMAL_properties import ColoraideNormalProperties
-from .properties.CDYNAMICS_properties import ColoraideDynamicsProperties
 from .properties.CPICKER_properties import ColoraidePickerProperties
 from .properties.CWHEEL_properties import ColoraideWheelProperties 
 from .properties.HEX_properties import ColoraideHexProperties
@@ -26,7 +27,6 @@ from .COLORAIDE_properties import ColoraideDisplayProperties
 
 # Import all operators and panels
 from .operators.NORMAL_OT import NORMAL_OT_color_picker
-from .operators.CDYNAMICS_OT import COLOR_OT_color_dynamics
 from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick, IMAGE_OT_screen_picker_quick
 from .operators.HSV_OT import COLOR_OT_sync_hsv  
 from .operators.RGB_OT import COLOR_OT_sync_rgb
@@ -53,11 +53,11 @@ from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_co
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy',
-    'version': (1, 2, 8),
-    'blender': (4, 0, 0),
+    'version': (2, 0, 0),
+    'blender': (5, 0, 0),
     'location': '(Image Editor, Clip Editor, and 3D View) -> Color',
-    'description': 'Advanced color picker with extended features',
-    'warning': '',
+    'description': 'Advanced color picker with extended features for Blender 5.0+',
+    'warning': 'Requires Blender 5.0 or newer - uses native color jitter API',
     'doc_url': '',
     'category': 'Paint',
 }
@@ -67,7 +67,6 @@ classes = [
     # Properties
     ColoraidePaletteProperties,
     ColoraideNormalProperties,
-    ColoraideDynamicsProperties,
     ColoraideDisplayProperties,
     ColoraidePickerProperties,
     ColoraideWheelProperties,
@@ -94,7 +93,6 @@ classes = [
     PALETTE_OT_add_color,
     PALETTE_OT_remove_color,
     COLOR_OT_monitor,
-    COLOR_OT_color_dynamics,
     COLOR_OT_reset_history_flags,
     
     # Panels
@@ -115,11 +113,29 @@ def load_handler(dummy):
     bpy.app.timers.register(start_color_monitor, first_interval=0.1)
 
 def initialize_addon(context):
-    """Initialize addon state after registration"""
-    if context and context.window_manager:
-        # Initialize color history
-        if hasattr(context.window_manager, 'coloraide_history'):
-            context.window_manager.coloraide_history.initialize_history()
+    """Initialize addon state after registration. Enhanced for Image Editor."""
+    if not context or not context.window_manager:
+        return
+    
+    wm = context.window_manager
+    
+    # Initialize color history
+    if hasattr(wm, 'coloraide_history'):
+        wm.coloraide_history.initialize_history()
+    
+    # Try to initialize from current brush color immediately
+    try:
+        from .COLORAIDE_mode_manager import ModeManager
+        from .COLORAIDE_brush_sync import sync_coloraide_from_brush
+        
+        current_mode = ModeManager.get_current_mode(context)
+        if current_mode:
+            brush_color = ModeManager.get_brush_color(context)
+            if brush_color:
+                sync_coloraide_from_brush(context, brush_color)
+                print("Coloraide: Initialized with brush color")
+    except Exception as e:
+        print(f"Coloraide initialization warning: {e}")
 
 def register():
     # Register classes
@@ -132,7 +148,6 @@ def register():
     # Register property group assignments
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
-    bpy.types.WindowManager.coloraide_dynamics = bpy.props.PointerProperty(type=ColoraideDynamicsProperties)
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
     bpy.types.WindowManager.coloraide_picker = bpy.props.PointerProperty(type=ColoraidePickerProperties)
     bpy.types.WindowManager.coloraide_wheel = bpy.props.PointerProperty(type=ColoraideWheelProperties)
@@ -153,7 +168,8 @@ def register():
 
 def unregister():
     # Remove load handler
-    bpy.app.handlers.load_post.remove(load_handler)
+    if load_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_handler)
     
     # Unregister keymaps
     unregister_keymaps()
@@ -161,7 +177,6 @@ def unregister():
     # Unregister property groups
     del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal
-    del bpy.types.WindowManager.coloraide_dynamics
     del bpy.types.WindowManager.coloraide_history
     del bpy.types.WindowManager.coloraide_hsv
     del bpy.types.WindowManager.coloraide_lab

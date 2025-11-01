@@ -1,144 +1,110 @@
-# COLORAIDE_monitor.py
+"""
+Color monitor for Blender 5.0+
+Enhanced to work immediately in Image Editor without requiring 3D view texture paint mode.
+"""
+
 import bpy
-import time
 from bpy.types import Operator
-from .COLORAIDE_brush_sync import sync_picker_from_brush, is_brush_updating, check_brush_color
-from .COLORAIDE_sync import sync_all
+from .COLORAIDE_mode_manager import ModeManager
+from .COLORAIDE_brush_sync import sync_coloraide_from_brush, is_brush_updating
 
 class COLOR_OT_monitor(Operator):
+    """
+    Modal operator that monitors brush color changes and syncs to Coloraide.
+    Runs continuously in background after startup.
+    Enhanced to work immediately in Image Editor.
+    """
     bl_idname = "color.monitor"
     bl_label = "Monitor Color Changes"
     bl_options = {'INTERNAL'}
     
-    old_gp_color = None
-    old_image_color = None
-    old_vertex_color = None
-    old_gp_vertex_color = None
-    old_palette_color = None
+    # Class variables for state tracking
+    _last_mode = None
+    _last_color = None
+    _initialized = False
     is_running = False
     
     @classmethod
     def _timer_function(cls):
-        """Function to be called by timer"""
+        """
+        Timer callback function - monitors current mode's brush color.
+        Checks every 0.1 seconds for color changes.
+        Enhanced to detect Image Editor immediately.
+        """
         if not cls.is_running:
             return None
-            
+        
         try:
             context = bpy.context
-            ts = context.tool_settings
             
-            # Get current paint settings based on mode
-            paint_settings = None
-            color_changed = False
-            update_color = None
-            old_color = None
+            # Get current mode (includes Image Editor detection)
+            current_mode = ModeManager.get_current_mode(context)
             
-            # Handle Grease Pencil drawing mode
-            if context.mode == 'PAINT_GPENCIL':
-                paint_settings = ts.gpencil_paint
-                old_color = cls.old_gp_color
-            
-            # Fix for Grease Pencil vertex paint mode - COMPLETE IMPLEMENTATION
-            elif context.mode == 'VERTEX_GREASE_PENCIL':
-                paint_settings = ts.gpencil_vertex_paint
-                old_color = cls.old_gp_vertex_color
+            # Initialize on first run with valid mode
+            if not cls._initialized and current_mode:
+                cls._initialized = True
+                cls._last_mode = current_mode
                 
-                # Check for brush color changes
-                if paint_settings and paint_settings.brush:
-                    curr_color = tuple(paint_settings.brush.color)
-                    if curr_color != old_color:
-                        color_changed = True
-                        update_color = curr_color
-                        cls.old_gp_vertex_color = curr_color
+                # Initial sync from brush to Coloraide
+                brush_color = ModeManager.get_brush_color(context)
+                if brush_color:
+                    cls._last_color = brush_color
+                    sync_coloraide_from_brush(context, brush_color)
             
-            # Handle normal vertex paint mode            
-            elif context.mode == 'PAINT_VERTEX':
-                paint_settings = ts.vertex_paint
-                old_color = cls.old_vertex_color
-            
-            # Handle image paint mode    
-            else:
-                paint_settings = ts.image_paint
-                old_color = cls.old_image_color
-
-            # Check for palette color changes (for all modes)
-            palette_changed = False
-            if paint_settings and paint_settings.palette and paint_settings.palette.colors.active:
-                curr_palette_color = tuple(paint_settings.palette.colors.active.color)
-                if curr_palette_color != cls.old_palette_color:
-                    palette_changed = True
-                    update_color = curr_palette_color
-                    cls.old_palette_color = curr_palette_color
-                    # Use 'palette' source for palette changes (not 'brush')
-                    sync_all(context, 'palette', update_color)
-                    return 0.1  # Early return to avoid double-processing
-            
-            # Only check brush color if palette color didn't change
-            if not palette_changed and paint_settings and paint_settings.brush:
-                # Skip this section for VERTEX_GREASE_PENCIL as it's already handled above
-                if context.mode != 'VERTEX_GREASE_PENCIL':
-                    curr_color = check_brush_color(context, paint_settings)
-                    if curr_color and curr_color != old_color:
-                        color_changed = True
-                        update_color = curr_color
-                        # Update stored color
-                        if context.mode == 'PAINT_GPENCIL':
-                            cls.old_gp_color = curr_color
-                        elif context.mode == 'PAINT_VERTEX':
-                            cls.old_vertex_color = curr_color
-                        else:
-                            cls.old_image_color = curr_color
-            
-            # NEW: Use sync_all with 'brush' source instead of direct sync
-            # This allows the sync system to handle dynamics blocking
-            if color_changed and update_color and not is_brush_updating():
-                sync_all(context, 'brush', update_color)
+            # Handle mode switches
+            if current_mode != cls._last_mode:
+                cls._last_mode = current_mode
+                cls._last_color = None  # Reset color tracking on mode change
                 
+                # Sync Coloraide to new mode's brush color
+                if current_mode:
+                    brush_color = ModeManager.get_brush_color(context)
+                    if brush_color:
+                        cls._last_color = brush_color
+                        sync_coloraide_from_brush(context, brush_color)
+            
+            # Monitor current mode's brush color
+            if current_mode and not is_brush_updating():
+                current_color = ModeManager.get_brush_color(context)
+                
+                if current_color and current_color != cls._last_color:
+                    cls._last_color = current_color
+                    sync_coloraide_from_brush(context, current_color)
+        
         except Exception as e:
             print(f"Color monitor error: {e}")
-            
+        
         return 0.1  # Check every 0.1 seconds
     
     def invoke(self, context, event):
-    # Initialize color tracking
-        COLOR_OT_monitor.is_running = False  # Reset state
+        """
+        Initialize and start the color monitor.
+        Enhanced to detect Image Editor immediately.
+        """
+        # Reset state
+        COLOR_OT_monitor.is_running = False
+        COLOR_OT_monitor._last_mode = None
+        COLOR_OT_monitor._last_color = None
+        COLOR_OT_monitor._initialized = False
         
-        ts = context.tool_settings
+        # Try to initialize with current context immediately
+        current_mode = ModeManager.get_current_mode(context)
+        if current_mode:
+            COLOR_OT_monitor._initialized = True
+            COLOR_OT_monitor._last_mode = current_mode
+            brush_color = ModeManager.get_brush_color(context)
+            if brush_color:
+                COLOR_OT_monitor._last_color = brush_color
+                # Initial sync
+                sync_coloraide_from_brush(context, brush_color)
         
-        # Initialize colors for all paint modes
-        if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint and ts.gpencil_paint.brush:
-            self.__class__.old_gp_color = tuple(ts.gpencil_paint.brush.color)
-                    
-        # Ensure GP vertex paint initialization is correct
-        if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint and ts.gpencil_vertex_paint.brush:
-            self.__class__.old_gp_vertex_color = tuple(ts.gpencil_vertex_paint.brush.color)   
-            
-        if hasattr(ts, 'image_paint') and ts.image_paint and ts.image_paint.brush:
-            self.__class__.old_image_color = tuple(ts.image_paint.brush.color)
-            
-        if hasattr(ts, 'vertex_paint') and ts.vertex_paint and ts.vertex_paint.brush:
-            self.__class__.old_vertex_color = tuple(ts.vertex_paint.brush.color)
-        
-        # Initialize palette color tracking
-        paint_settings = None
-        if context.mode == 'PAINT_GPENCIL':
-            paint_settings = ts.gpencil_paint
-        elif context.mode == 'VERTEX_GREASE_PENCIL':  # Make sure this mode is handled
-            paint_settings = ts.gpencil_vertex_paint
-        elif context.mode == 'PAINT_VERTEX':
-            paint_settings = ts.vertex_paint
-        else:
-            paint_settings = ts.image_paint
-            
-        if paint_settings and paint_settings.palette and paint_settings.palette.colors.active:
-            self.__class__.old_palette_color = tuple(paint_settings.palette.colors.active.color)
-            
         # Start the timer
         COLOR_OT_monitor.is_running = True
         bpy.app.timers.register(self.__class__._timer_function)
         
         return {'FINISHED'}
-        
+    
     def execute(self, context):
+        """Stop the color monitor."""
         COLOR_OT_monitor.is_running = False
         return {'FINISHED'}

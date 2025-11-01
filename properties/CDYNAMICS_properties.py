@@ -1,72 +1,104 @@
-# COLORAIDE_dynamics_properties.py
+"""
+Color dynamics properties for Blender 5.0+
+Uses native brush jitter API instead of custom randomization system.
+"""
+
 import bpy
-from bpy.props import IntProperty, BoolProperty, FloatVectorProperty
+from bpy.props import FloatProperty, BoolProperty
 from bpy.types import PropertyGroup
-from ..COLORAIDE_sync import is_updating
 
 class ColoraideDynamicsProperties(PropertyGroup):
-    """Color dynamics control properties"""
+    """
+    Properties for controlling native Blender color jitter.
+    Maps a single "strength" value to Blender's hue/saturation/value jitter.
+    """
     
-    def update_dynamics(self, context):
-        """Trigger color dynamics operator when strength changes"""
-        if is_updating():
+    def update_dynamics_strength(self, context):
+        """
+        Update native jitter properties based on strength slider.
+        This replaces the old modal operator approach.
+        """
+        # Get unified paint settings for current mode
+        ts = context.tool_settings
+        ups = None
+        
+        # Try to get mode-specific unified paint settings (Blender 5.0+)
+        if context.mode == 'SCULPT' and hasattr(ts, 'sculpt'):
+            ups = getattr(ts.sculpt, 'unified_paint_settings', None)
+        elif context.mode == 'PAINT_TEXTURE' and hasattr(ts, 'image_paint'):
+            ups = getattr(ts.image_paint, 'unified_paint_settings', None)
+        elif context.mode == 'PAINT_VERTEX' and hasattr(ts, 'vertex_paint'):
+            ups = getattr(ts.vertex_paint, 'unified_paint_settings', None)
+        elif context.mode == 'PAINT_WEIGHT' and hasattr(ts, 'weight_paint'):
+            ups = getattr(ts.weight_paint, 'unified_paint_settings', None)
+        elif context.mode == 'PAINT_GPENCIL' and hasattr(ts, 'gpencil_paint'):
+            ups = getattr(ts.gpencil_paint, 'unified_paint_settings', None)
+        elif context.mode == 'VERTEX_GREASE_PENCIL' and hasattr(ts, 'gpencil_vertex_paint'):
+            ups = getattr(ts.gpencil_vertex_paint, 'unified_paint_settings', None)
+        
+        if not ups:
             return
         
-        if self.strength > 0:
-            # Store current color as master color when enabling dynamics
-            if hasattr(context.window_manager, 'coloraide_picker'):
-                current_color = tuple(context.window_manager.coloraide_picker.mean)
-                self.master_color = current_color
-            
-            # Automatically start color dynamics if not already running
-            if not any(op.bl_idname == "color.color_dynamics" for op in context.window_manager.operators):
-                bpy.ops.color.color_dynamics('INVOKE_DEFAULT')
-        else:
-            # Stop color dynamics when strength is zero
-            self.running = False
-
-    running: BoolProperty(
-        name="Color Dynamics Active",
+        # Convert strength (0-100) to jitter values (0.0-1.0)
+        jitter = self.strength / 100.0
+        
+        # Set hue jitter (use full strength for hue variation)
+        if hasattr(ups, 'hue_jitter'):
+            ups.hue_jitter = jitter * self.hue_factor
+        
+        # Set saturation jitter (typically want less variation)
+        if hasattr(ups, 'saturation_jitter'):
+            ups.saturation_jitter = jitter * self.saturation_factor
+        
+        # Set value jitter if available (typically want less variation)
+        if hasattr(ups, 'value_jitter'):
+            ups.value_jitter = jitter * self.value_factor
+    
+    strength: FloatProperty(
+        name="Color Dynamics",
+        description="Overall amount of color randomization (uses native Blender jitter)",
+        min=0.0,
+        max=100.0,
+        default=0.0,
+        subtype='PERCENTAGE',
+        update=update_dynamics_strength
+    )
+    
+    # Factor controls for fine-tuning individual channels
+    hue_factor: FloatProperty(
+        name="Hue Factor",
+        description="Multiplier for hue jitter (1.0 = full strength)",
+        min=0.0,
+        max=2.0,
+        default=1.0
+    )
+    
+    saturation_factor: FloatProperty(
+        name="Saturation Factor", 
+        description="Multiplier for saturation jitter (0.5 = half strength)",
+        min=0.0,
+        max=2.0,
+        default=0.5
+    )
+    
+    value_factor: FloatProperty(
+        name="Value Factor",
+        description="Multiplier for value jitter (0.5 = half strength)",
+        min=0.0,
+        max=2.0,
+        default=0.5
+    )
+    
+    show_advanced: BoolProperty(
+        name="Show Advanced",
+        description="Show individual HSV factor controls",
         default=False
     )
-    
-    strength: IntProperty(
-        name="Color Dynamics",
-        description="Amount of random color variation during strokes",
-        min=0,
-        max=100,
-        default=0,
-        subtype='PERCENTAGE',
-        update=update_dynamics
-    )
-    
-    show_color_sliders: BoolProperty(
-        name="Show Color Sliders",
-        description="Show color space sliders",
-        default=True
-    )
-    
-    show_dynamics: BoolProperty(
-        name="Show Color Dynamics",
-        description="Show color dynamics controls",
-        default=True
-    )
 
-    # NEW: Store the master color for dynamics
-    master_color: FloatVectorProperty(
-        name="Master Color",
-        description="Base color for dynamics randomization",
-        subtype='COLOR',
-        size=3,
-        min=0.0, max=1.0,
-        default=(1.0, 1.0, 1.0)
-    )
-    
 
 def register():
-    # No special registration needed beyond standard Blender property group registration
     pass
 
+
 def unregister():
-    # No special unregistration needed
     pass

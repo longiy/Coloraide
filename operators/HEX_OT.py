@@ -5,7 +5,7 @@ Operator for synchronizing hex color values.
 import bpy
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all, is_updating
-from ..COLORAIDE_utils import rgb_to_hex
+from ..COLORAIDE_colorspace import rgb_to_hex
 
 class COLOR_OT_sync_hex(Operator):
     bl_idname = "color.sync_hex"

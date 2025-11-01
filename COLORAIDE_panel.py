@@ -1,6 +1,6 @@
 """
 Main panel implementation for Coloraide addon.
-Integrates all component panels and handles display across different editors.
+Integrates all component panels including the new native color dynamics.
 """
 
 import bpy
@@ -26,13 +26,13 @@ def draw_coloraide_panels(self, context):
     
     layout = self.layout
     
-    # Draw color wheel
+    # 1. Draw color wheel
     draw_wheel_panel(layout, context)
     
-    # Draw core color picker
+    # 2. Draw core color picker
     draw_picker_panel(layout, context)
     
-     # Color spaces box
+    # 3. Color spaces box
     box = layout.box()
     row = box.row()
     row.prop(wm.coloraide_display, "show_color_sliders", 
@@ -48,7 +48,6 @@ def draw_coloraide_panels(self, context):
         row.prop(wm.coloraide_display, "show_rgb_sliders", text="RGB", toggle=True)
         row.prop(wm.coloraide_display, "show_lab_sliders", text="LAB", toggle=True)
         
-        
         # Draw slider panels directly without their boxes
         col = box.column()
         if wm.coloraide_display.show_rgb_sliders:
@@ -58,15 +57,17 @@ def draw_coloraide_panels(self, context):
         if wm.coloraide_display.show_hsv_sliders:
             draw_hsv_panel(col, context)
     
+    # 4. Draw color dynamics (native Blender color jitter)
+    draw_dynamics_panel(layout, context)
     
-    # Draw color history
+    # 5. Draw color history
     draw_history_panel(layout, context)
     
-    # Draw features
+    # 6. Draw palettes
     draw_palette_panel(layout, context)
 
 class IMAGE_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.4.8"
+    bl_label = "Coloraide 2.0"
     bl_idname = "IMAGE_PT_coloraide"
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -76,7 +77,7 @@ class IMAGE_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class VIEW3D_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.4.8"
+    bl_label = "Coloraide 2.0"
     bl_idname = "VIEW3D_PT_coloraide"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -88,7 +89,7 @@ class VIEW3D_PT_coloraide(Panel):
             'PAINT_TEXTURE', 
             'PAINT_VERTEX', 
             'PAINT_GREASE_PENCIL',
-            'VERTEX_GREASE_PENCIL',  # Add this mode
+            'VERTEX_GREASE_PENCIL',
             'EDIT', 
             'OBJECT', 
             'SCULPT'
@@ -98,7 +99,7 @@ class VIEW3D_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class CLIP_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.4.8"
+    bl_label = "Coloraide 2.0"
     bl_idname = "CLIP_PT_coloraide"
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'
@@ -106,7 +107,3 @@ class CLIP_PT_coloraide(Panel):
     
     def draw(self, context):
         draw_coloraide_panels(self, context)
-
-# Only needed if you want to test the panel directly
-if __name__ == "__main__":
-    register()

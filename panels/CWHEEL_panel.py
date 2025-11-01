@@ -1,5 +1,6 @@
 """
 Color wheel panel UI implementation for Coloraide.
+Updated to remove color dynamics (now in separate panel).
 """
 
 import bpy
@@ -28,11 +29,10 @@ def draw_wheel_panel(layout, context):
             lock_luminosity=False
         )
         
-       
         # Create a single aligned column for all controls
         col = box.column(align=True)
 
-        # First row: Hex input, scale and reset
+        # Hex input, scale and reset
         row = col.row(align=True)
         split = row.split(factor=0.4, align=True)
         split.prop(wm.coloraide_hex, "value", text="")
@@ -44,15 +44,7 @@ def draw_wheel_panel(layout, context):
             icon='LOOP_BACK'
         )
 
-        # Second row: Color dynamics directly below without gap
-        row = col.row(align=True)
-        row.prop(wm.coloraide_dynamics, "strength", text="Color Dynamics", slider=True)
-            
-        
-        
-        
-
-# Optional: Add operator for resetting wheel scale
+# Operator for resetting wheel scale
 class COLOR_OT_reset_wheel_scale(bpy.types.Operator):
     """Reset color wheel scale to default value"""
     bl_idname = "color.reset_wheel_scale"
