@@ -1,20 +1,23 @@
 """
-Hex color property definitions for Coloraide addon.
+Hex color property definitions for Coloraide addon - Blender 5.0+
+Uses colorspace module for proper sRGB <-> scene linear conversion.
 """
 
 import bpy
 from bpy.props import StringProperty, BoolProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all, is_updating
-from ..COLORAIDE_utils import hex_to_rgb
 
 class ColoraideHexProperties(PropertyGroup):
-    """Properties for hex color input"""
+    """
+    Properties for hex color input.
+    Hex values are inherently sRGB and are converted to scene linear internally.
+    """
     
     suppress_updates: BoolProperty(default=False)
     
     def update_hex_value(self, context):
-        """Handle hex color updates and validation"""
+        """Handle hex color updates and validation."""
         if is_updating() or self.suppress_updates:
             return
             
@@ -41,17 +44,9 @@ class ColoraideHexProperties(PropertyGroup):
         # Store valid value
         self._prev_value = value
             
-        # # Only update if format changed
-        # if value != self.value:
-        #     self.suppress_updates = True
-        #     self.value = value
-        #     self.suppress_updates = False
-        #     return
-            
-        # Convert hex to RGB and sync
+        # Sync with hex string (sync_all will convert to linear via 'hex' source)
         try:
-            rgb_float = hex_to_rgb(value)
-            sync_all(context, 'hex', rgb_float)
+            sync_all(context, 'hex', value)
         except Exception as e:
             print(f"Error updating hex color: {e}")
             # Reset to previous valid value on error
@@ -62,7 +57,7 @@ class ColoraideHexProperties(PropertyGroup):
 
     value: StringProperty(
         name="Hex",
-        description="Color in hex format (e.g. #FF0000)",
+        description="Color in hex format (sRGB, e.g. #FF0000)",
         default="#808080",
         maxlen=7,
         update=update_hex_value

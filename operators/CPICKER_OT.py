@@ -1,5 +1,6 @@
 """
-Core operators for color picker functionality.
+Core operators for color picker functionality - Blender 5.0+
+Framebuffer reading returns scene linear colors.
 """
 
 import bpy
@@ -8,14 +9,14 @@ import numpy as np
 from bpy.types import Operator
 from gpu_extras.batch import batch_for_shader
 from ..COLORAIDE_sync import sync_all
-from ..COLORAIDE_utils import is_updating, UpdateFlags
+from ..COLORAIDE_sync import is_updating
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
 indices = ((0, 1, 2), (2, 1, 3), (0, 1, 1), (1, 2, 2), (2, 2, 3), (3, 0, 0))
 
-# Set up shaders based on Blender version
-UNIFORM_COLOR = '2D_UNIFORM_COLOR' if bpy.app.version < (3, 4, 0) else 'UNIFORM_COLOR'
+# Set up shaders
+UNIFORM_COLOR = 'UNIFORM_COLOR'
 try:
     fill_shader = gpu.shader.from_builtin(UNIFORM_COLOR)
     edge_shader = gpu.shader.from_builtin(UNIFORM_COLOR)
@@ -25,11 +26,14 @@ except Exception as e:
     log.warning('Failed to initialize gpu shader')
 
 def draw_color_preview(op):
-    """Draw color preview rectangles during picking"""
+    """
+    Draw color preview rectangles during picking.
+    Colors are scene linear from properties.
+    """
     m_x, m_y = op.x, op.y
     length = op.sqrt_length + 5
     
-    # Draw mean color rectangle
+    # Draw mean color rectangle (scene linear color)
     mean_color = tuple(list(bpy.context.window_manager.coloraide_picker.mean) + [1.0])
     fill_shader.uniform_float("color", mean_color)
     
@@ -37,7 +41,7 @@ def draw_color_preview(op):
     batch_mean = batch_for_shader(fill_shader, 'TRIS', {"pos": draw_verts_mean}, indices=indices)
     batch_mean.draw(fill_shader)
     
-    # Draw current picked color rectangle
+    # Draw current picked color rectangle (scene linear color)
     current_color = tuple(list(bpy.context.window_manager.coloraide_picker.current) + [1.0])
     fill_shader.uniform_float("color", current_color)
     
@@ -59,6 +63,13 @@ class IMAGE_OT_screen_picker(Operator):
     _handler = None
     
     def sample_colors(self, context, event):
+        """
+        Sample colors from framebuffer.
+        
+        NOTE: In Blender 5.0+, framebuffer.read_color() with format='FLOAT'
+        returns colors in scene linear color space, not sRGB.
+        This is the correct behavior for Blender's color management.
+        """
         if is_updating('picker'):
             return
                 
@@ -68,22 +79,22 @@ class IMAGE_OT_screen_picker(Operator):
 
         fb = gpu.state.active_framebuffer_get()
         
-        # Sample area for mean color (the one we sync)
+        # Sample area for mean color (scene linear from framebuffer)
         screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
         channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
         mean_color = np.mean(channels, axis=0)
         
-        # Sample single pixel for current color (just display)
+        # Sample single pixel for current color (scene linear from framebuffer)
         curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
         current_color = np.array(curr_buffer.to_list()).reshape(-1)
         
         wm = context.window_manager
-        # Update current color directly without sync
+        # Update current color directly without sync (scene linear)
         wm.coloraide_picker.suppress_updates = True
         wm.coloraide_picker.current = tuple(current_color)
         wm.coloraide_picker.suppress_updates = False
         
-        # Only sync mean color
+        # Sync mean color (already scene linear)
         sync_all(context, 'picker', tuple(mean_color))
     
     def cleanup(self, context):
@@ -140,8 +151,7 @@ class IMAGE_OT_quickpick(Operator):
     bl_description = "Press and hold to activate color picker, release to select color"
     bl_options = {'REGISTER', 'UNDO'}
     
-    
-    mode: bpy.props.StringProperty(default='DEFAULT')  # Add this line
+    mode: bpy.props.StringProperty(default='DEFAULT')
     
     _key_pressed = None
     sqrt_length: bpy.props.IntProperty(default=3)
@@ -184,7 +194,7 @@ class IMAGE_OT_quickpick(Operator):
             
             fb = gpu.state.active_framebuffer_get()
             
-            # Sample colors
+            # Sample colors (scene linear from framebuffer)
             screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
             channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
             mean_color = np.mean(channels, axis=0)
@@ -192,7 +202,7 @@ class IMAGE_OT_quickpick(Operator):
             curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
             current_color = np.array(curr_buffer.to_list()).reshape(-1)
             
-            # Update statistics
+            # Update statistics (all scene linear)
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
@@ -202,7 +212,7 @@ class IMAGE_OT_quickpick(Operator):
             wm.coloraide_picker.min = tuple(channels[min_ind])
             wm.coloraide_picker.median = tuple(np.median(channels, axis=0))
             
-            # Update picker values using sync system
+            # Update picker values using sync system (scene linear)
             wm.coloraide_picker.current = tuple(current_color)
             sync_all(context, 'picker', tuple(mean_color))
         

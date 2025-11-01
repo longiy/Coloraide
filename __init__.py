@@ -1,15 +1,17 @@
 """
-Main initialization file for Coloraide addon.
+Main initialization file for Coloraide addon - Blender 5.0+ version.
 """
 import bpy
 from bpy.app.handlers import persistent
 
 # First utilities and sync system from root
+from .COLORAIDE_colorspace import *
+from .COLORAIDE_mode_manager import ModeManager
 from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
-from .COLORAIDE_brush_sync import (sync_picker_from_brush, sync_brush_from_picker, 
-                                 update_brush_color, is_brush_updating)
+from .COLORAIDE_brush_sync import (sync_coloraide_from_brush, update_brush_color, 
+                                   is_brush_updating)
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
@@ -53,11 +55,11 @@ from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_co
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy',
-    'version': (1, 2, 8),
-    'blender': (4, 0, 0),
+    'version': (2, 0, 0),
+    'blender': (5, 0, 0),
     'location': '(Image Editor, Clip Editor, and 3D View) -> Color',
-    'description': 'Advanced color picker with extended features',
-    'warning': '',
+    'description': 'Advanced color picker with extended features for Blender 5.0+',
+    'warning': 'Requires Blender 5.0 or newer - uses native color jitter API',
     'doc_url': '',
     'category': 'Paint',
 }
@@ -153,7 +155,8 @@ def register():
 
 def unregister():
     # Remove load handler
-    bpy.app.handlers.load_post.remove(load_handler)
+    if load_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_handler)
     
     # Unregister keymaps
     unregister_keymaps()
