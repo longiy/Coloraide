@@ -99,7 +99,7 @@ class ColoraideAddonPreferences(AddonPreferences):
     category: StringProperty(
         name="Tab Category",
         description="Choose the sidebar tab where Coloraide panels will appear",
-        default="Color",
+        default="Coloraide",
         update=update_panel
     )
 
