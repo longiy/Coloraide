@@ -92,11 +92,6 @@ class ModeManager:
         
         return getattr(paint_settings, 'brush', None)
 
-        # NEW: If no brush, try to activate default
-        if not brush and paint_settings:
-            # Get or create default brush for this paint mode
-            bpy.ops.paint.brush_select(image_tool='DRAW')  # or similar
-    
     @staticmethod
     def get_brush_color(context):
         """

@@ -44,17 +44,6 @@ def draw_wheel_panel(layout, context):
             icon='LOOP_BACK'
         )
 
-# Operator for resetting wheel scale
-class COLOR_OT_reset_wheel_scale(bpy.types.Operator):
-    """Reset color wheel scale to default value"""
-    bl_idname = "color.reset_wheel_scale"
-    bl_label = "Reset Wheel Scale"
-    bl_description = "Reset the color wheel size to default"
-    bl_options = {'INTERNAL'}
-    
-    def execute(self, context):
-        context.window_manager.coloraide_wheel.scale = 1.5
-        return {'FINISHED'}
 
 # Registration
 def register():

@@ -4,25 +4,6 @@ Palette panel UI implementation for Coloraide.
 
 import bpy
 
-def get_active_paint_settings(context):
-    """Get all active paint settings"""
-    ts = context.tool_settings
-    paint_settings = []
-    
-    # Check Grease Pencil paint settings
-    if hasattr(ts, 'gpencil_paint') and ts.gpencil_paint:
-        paint_settings.append(('GREASE_PENCIL', ts.gpencil_paint))
-        
-    # Check Grease Pencil vertex paint settings
-    if hasattr(ts, 'gpencil_vertex_paint') and ts.gpencil_vertex_paint:
-        paint_settings.append(('GREASE_PENCIL_VERTEX', ts.gpencil_vertex_paint))
-        
-    # Check Image Paint settings    
-    if hasattr(ts, 'image_paint') and ts.image_paint:
-        paint_settings.append(('IMAGE_PAINT', ts.image_paint))
-        
-    return paint_settings
-
 def draw_palette_panel(layout, context):
     """Draw palette controls in the given layout"""
     wm = context.window_manager

@@ -16,6 +16,15 @@ class ColoraideHexProperties(PropertyGroup):
     
     suppress_updates: BoolProperty(default=False)
     
+    # Previous valid hex value - stored as proper Blender property
+    # Name changed from '_prev_value' to 'prev_value' (no underscore)
+    prev_value: StringProperty(
+        name="Previous Hex",
+        description="Last valid hex value for validation fallback",
+        default="#808080",
+        options={'SKIP_SAVE', 'HIDDEN'}
+    )
+    
     def update_hex_value(self, context):
         """Handle hex color updates and validation."""
         if is_updating() or self.suppress_updates:
@@ -30,19 +39,14 @@ class ColoraideHexProperties(PropertyGroup):
             
         # Validate hex format
         if len(value) != 7 or not all(c in '0123456789ABCDEF#' for c in value):
-            # Invalid hex - reset to previous valid value or default
-            if hasattr(self, '_prev_value'):
-                self.suppress_updates = True
-                self.value = self._prev_value
-                self.suppress_updates = False
-            else:
-                self.suppress_updates = True
-                self.value = '#808080'
-                self.suppress_updates = False
+            # Invalid hex - reset to previous valid value
+            self.suppress_updates = True
+            self.value = self.prev_value  # ← Changed from _prev_value
+            self.suppress_updates = False
             return
             
         # Store valid value
-        self._prev_value = value
+        self.prev_value = value  # ← Changed from _prev_value
             
         # Sync with hex string (sync_all will convert to linear via 'hex' source)
         try:
@@ -50,10 +54,9 @@ class ColoraideHexProperties(PropertyGroup):
         except Exception as e:
             print(f"Error updating hex color: {e}")
             # Reset to previous valid value on error
-            if hasattr(self, '_prev_value'):
-                self.suppress_updates = True
-                self.value = self._prev_value
-                self.suppress_updates = False
+            self.suppress_updates = True
+            self.value = self.prev_value  # ← Changed from _prev_value
+            self.suppress_updates = False
 
     value: StringProperty(
         name="Hex",
