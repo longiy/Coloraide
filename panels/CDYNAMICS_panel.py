@@ -40,7 +40,7 @@ def draw_dynamics_panel(layout, context):
     
     # Check if brush exists
     if not brush:
-        box.label(text="No active brush", icon='INFO')
+        box.label(text="No active brush, go to paint mode", icon='INFO')
         return
     
     # Check if brush has color jitter properties

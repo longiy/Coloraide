@@ -72,7 +72,7 @@ class IMAGE_PT_coloraide(Panel):
     bl_idname = "IMAGE_PT_coloraide"
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
-    bl_category = "Color"
+    bl_category = "Coloraide"  # ← CHANGED FROM "Color"
     
     def draw(self, context):
         draw_coloraide_panels(self, context)
@@ -82,7 +82,7 @@ class VIEW3D_PT_coloraide(Panel):
     bl_idname = "VIEW3D_PT_coloraide"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Color"
+    bl_category = "Coloraide"  # ← CHANGED FROM "Color"
     
     @classmethod
     def poll(cls, context):
@@ -104,7 +104,7 @@ class CLIP_PT_coloraide(Panel):
     bl_idname = "CLIP_PT_coloraide"
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'
-    bl_category = "Color"
+    bl_category = "Coloraide"  # ← CHANGED FROM "Color"
     
     def draw(self, context):
         draw_coloraide_panels(self, context)
