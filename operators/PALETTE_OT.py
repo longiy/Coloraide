@@ -34,7 +34,6 @@ class PALETTE_OT_add_color(Operator):
             # Make the new color active
             paint_settings.palette.colors.active = new_color
             # Sync to Coloraide
-            sync_all(context, 'palette', self.color)
             return {'FINISHED'}
         return {'CANCELLED'}
 
