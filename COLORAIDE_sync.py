@@ -15,7 +15,9 @@ from .COLORAIDE_colorspace import (
     rgb_linear_to_bytes,
     rgb_bytes_to_linear,
     linear_to_hex,
-    hex_to_linear
+    hex_to_linear,
+    srgb_to_linear,
+    rgb_srgb_to_linear
 )
 from .COLORAIDE_mode_manager import ModeManager
 
@@ -179,9 +181,12 @@ def _update_coloraide_properties(wm, rgb_linear):
     wm.coloraide_wheel.color = (*rgb_linear, 1.0)
     wm.coloraide_wheel.suppress_updates = False
     
-    # Update hex (convert to sRGB for hex representation)
+    # Update hex - mean stores double-converted values, undo the conversion
     wm.coloraide_hex.suppress_updates = True
-    hex_value = linear_to_hex(rgb_linear)
+    # Read from mean and correct the double-conversion
+    stored_mean = tuple(wm.coloraide_picker.mean[:3])
+    corrected_linear = rgb_srgb_to_linear(stored_mean)  # Undo the double conversion
+    hex_value = linear_to_hex(corrected_linear)
     wm.coloraide_hex.value = hex_value
     wm.coloraide_hex.suppress_updates = False
 
