@@ -10,6 +10,24 @@ from bpy.types import Operator
 from gpu_extras.batch import batch_for_shader
 from ..COLORAIDE_sync import sync_all
 from ..COLORAIDE_sync import is_updating
+from ..COLORAIDE_colorspace import srgb_to_linear, rgb_linear_to_srgb, rgb_srgb_to_linear
+
+def diagnose_framebuffer_color(raw_color):
+    """
+    Diagnostic to determine if framebuffer returns sRGB or linear.
+    Tests with a known middle gray value.
+    """
+    print(f"\n=== COLOR DIAGNOSTIC ===")
+    print(f"Blender version: {bpy.app.version}")
+    print(f"Raw framebuffer value: {raw_color}")
+    
+    # If framebuffer is linear, 0.5 should be 0.5
+    # If framebuffer is sRGB, 0.5 needs conversion to ~0.21 linear
+    as_linear = srgb_to_linear(raw_color[0])
+    print(f"If treating as sRGB→linear: {as_linear:.4f}")
+    print(f"========================\n")
+    
+    return raw_color
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
@@ -25,29 +43,36 @@ except Exception as e:
     log = logging.getLogger(__name__)
     log.warning('Failed to initialize gpu shader')
 
+
+
 def draw_color_preview(op):
     """
     Draw color preview rectangles during picking.
-    Colors are scene linear from properties.
+    Colors are stored in scene linear, but GPU shader needs sRGB for display.
     """
     m_x, m_y = op.x, op.y
     length = op.sqrt_length + 5
     
-    # Draw mean color rectangle (scene linear color)
-    mean_color = tuple(list(bpy.context.window_manager.coloraide_picker.mean) + [1.0])
+    # Get mean color (scene linear) and convert to sRGB for display
+    mean_linear = tuple(bpy.context.window_manager.coloraide_picker.mean)
+    mean_srgb = rgb_linear_to_srgb(mean_linear)
+    mean_color = tuple(list(mean_srgb) + [1.0])
     fill_shader.uniform_float("color", mean_color)
     
     draw_verts_mean = tuple((m_x + x + length, m_y + y - length) for x,y in vertices)
     batch_mean = batch_for_shader(fill_shader, 'TRIS', {"pos": draw_verts_mean}, indices=indices)
     batch_mean.draw(fill_shader)
     
-    # Draw current picked color rectangle (scene linear color)
-    current_color = tuple(list(bpy.context.window_manager.coloraide_picker.current) + [1.0])
+    # Get current color (scene linear) and convert to sRGB for display
+    current_linear = tuple(bpy.context.window_manager.coloraide_picker.current)
+    current_srgb = rgb_linear_to_srgb(current_linear)
+    current_color = tuple(list(current_srgb) + [1.0])
     fill_shader.uniform_float("color", current_color)
     
     offset_x = 100  # Width + gap
     draw_verts_current = tuple((m_x + x + length + offset_x, m_y + y - length) for x,y in vertices)
     batch_current = batch_for_shader(fill_shader, 'TRIS', {"pos": draw_verts_current}, indices=indices)
+    batch_current.draw(fill_shader)
     batch_current.draw(fill_shader)
 
 class IMAGE_OT_screen_picker(Operator):
@@ -79,14 +104,17 @@ class IMAGE_OT_screen_picker(Operator):
 
         fb = gpu.state.active_framebuffer_get()
         
-        # Sample area for mean color (scene linear from framebuffer)
         screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
         channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
-        mean_color = np.mean(channels, axis=0)
-        
-        # Sample single pixel for current color (scene linear from framebuffer)
+        mean_color_srgb = np.mean(channels, axis=0)
+        # Convert sRGB → scene linear (framebuffer returns sRGB in Blender 5.1.0)
+        mean_color = rgb_srgb_to_linear(tuple(mean_color_srgb))
+
+        # Sample single pixel for current color (also sRGB, needs conversion)
         curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
-        current_color = np.array(curr_buffer.to_list()).reshape(-1)
+        current_color_srgb = np.array(curr_buffer.to_list()).reshape(-1)
+        # Convert sRGB → scene linear
+        current_color = rgb_srgb_to_linear(tuple(current_color_srgb))
         
         wm = context.window_manager
         # Update current color directly without sync (scene linear)
@@ -193,16 +221,23 @@ class IMAGE_OT_quickpick(Operator):
             self.y = event.mouse_region_y
             
             fb = gpu.state.active_framebuffer_get()
-            
-            # Sample colors (scene linear from framebuffer)
+
+            # Sample colors (framebuffer returns sRGB, need conversion)
             screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
-            channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
-            mean_color = np.mean(channels, axis=0)
-            
+            channels_srgb = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
+            mean_color_srgb = np.mean(channels_srgb, axis=0)
+            # Convert sRGB → scene linear
+            mean_color = rgb_srgb_to_linear(tuple(mean_color_srgb))
+
             curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
-            current_color = np.array(curr_buffer.to_list()).reshape(-1)
-            
-            # Update statistics (all scene linear)
+            current_color_srgb = np.array(curr_buffer.to_list()).reshape(-1)
+            # Convert sRGB → scene linear
+            current_color = rgb_srgb_to_linear(tuple(current_color_srgb))
+
+            # Convert all sampled colors to scene linear for statistics
+            channels = np.array([rgb_srgb_to_linear(tuple(c)) for c in channels_srgb])
+
+            # Update statistics (now in scene linear)
             dot = np.sum(channels, axis=1)
             max_ind = np.argmax(dot, axis=0)
             min_ind = np.argmin(dot, axis=0)
