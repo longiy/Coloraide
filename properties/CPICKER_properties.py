@@ -38,7 +38,7 @@ class ColoraidePickerProperties(PropertyGroup):
     mean: FloatVectorProperty(
         name="Mean Color",
         description="Average color of sampled area (scene linear)",
-        subtype='COLOR_GAMMA',
+        subtype='COLOR',
         size=3,
         min=0.0, max=1.0,
         default=(0.5, 0.5, 0.5),
@@ -48,7 +48,7 @@ class ColoraidePickerProperties(PropertyGroup):
     current: FloatVectorProperty(
         name="Current Color",
         description="Single pixel color under cursor (scene linear)",
-        subtype='COLOR_GAMMA',
+        subtype='COLOR',
         size=3,
         min=0.0, max=1.0,
         default=(1.0, 1.0, 1.0),
