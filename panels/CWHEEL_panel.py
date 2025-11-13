@@ -19,6 +19,12 @@ def draw_wheel_panel(layout, context):
     )
     
     if wm.coloraide_display.show_wheel:
+        # Color picker type dropdown (controls global Blender preference)
+        prefs = context.preferences
+        row = box.row(align=True)
+        row.label(text="Color Picker Type")
+        row.prop(prefs.view, "color_picker_type", text="")
+        
         # Add the main color wheel with dynamic scaling
         col = box.column()
         col.scale_y = wm.coloraide_wheel.scale
@@ -43,7 +49,6 @@ def draw_wheel_panel(layout, context):
             text="",
             icon='LOOP_BACK'
         )
-
 
 # Registration
 def register():

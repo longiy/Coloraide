@@ -1,7 +1,8 @@
 import bpy
-from bpy.props import FloatProperty, FloatVectorProperty, BoolProperty
+from bpy.props import FloatProperty, FloatVectorProperty, BoolProperty, EnumProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all, is_updating
+
 
 class ColoraideWheelProperties(PropertyGroup):
     suppress_updates: BoolProperty(default=False)
