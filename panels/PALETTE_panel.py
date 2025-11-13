@@ -3,7 +3,6 @@ Palette panel UI implementation for Coloraide.
 """
 
 import bpy
-from ..COLORAIDE_colorspace import rgb_srgb_to_linear
 
 def draw_palette_panel(layout, context):
     """Draw palette controls in the given layout"""
@@ -33,18 +32,9 @@ def draw_palette_panel(layout, context):
         row.template_ID(paint_settings, "palette", new="palette.new")
         
         if paint_settings.palette:
-            # Add color button
-            add_row = box.row(align=True)
-            # Correct the double-conversion before passing to operator
-            stored_mean = tuple(wm.coloraide_picker.mean[:3])
-            corrected_color = rgb_srgb_to_linear(stored_mean)
-            add_row.operator(
-                "palette.add_color",
-                text="Add Current Color",
-                icon='ADD'
-            ).color = corrected_color
-            
+
             # Color selector UI
+            add_row = box.row(align=True)
             palette_box = box.column()
             palette_box.template_palette(
                 paint_settings,
