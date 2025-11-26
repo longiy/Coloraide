@@ -79,3 +79,15 @@ class ColoraideDisplayProperties(PropertyGroup):
         description="Show color palette controls",
         default=True
     )
+
+    show_palettes: BoolProperty(
+        name="Show Color Palettes",
+        description="Show color palette controls",
+        default=True
+    )
+    
+    show_object_colors: BoolProperty(
+        name="Show Object Colors",
+        description="Show detected color properties from selected objects",
+        default=True
+    )

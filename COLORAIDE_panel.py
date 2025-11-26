@@ -17,6 +17,7 @@ from .panels.HSV_panel import draw_hsv_panel
 from .panels.HEX_panel import draw_hex_panel
 from .panels.CHISTORY_panel import draw_history_panel
 from .panels.PALETTE_panel import draw_palette_panel
+from .panels.OBJECT_COLORS_panel import draw_object_colors_panel
 
 def draw_coloraide_panels(self, context):
     """Draw all Coloraide panels in the specified order"""
@@ -67,8 +68,11 @@ def draw_coloraide_panels(self, context):
     # 6. Draw palettes
     draw_palette_panel(layout, context)
 
+    # 7. Draw object colors
+    draw_object_colors_panel(layout, context)
+
 class IMAGE_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.4.9"
+    bl_label = "Coloraide 1.5.0"
     bl_idname = "IMAGE_PT_coloraide"
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -78,7 +82,7 @@ class IMAGE_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class VIEW3D_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.4.9"
+    bl_label = "Coloraide 1.5.0"
     bl_idname = "VIEW3D_PT_coloraide"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -100,7 +104,7 @@ class VIEW3D_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class CLIP_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.4.9"
+    bl_label = "Coloraide 1.5.0"
     bl_idname = "CLIP_PT_coloraide"
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'

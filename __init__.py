@@ -6,6 +6,7 @@ import bpy
 from bpy.app.handlers import persistent
 from bpy.types import AddonPreferences
 from bpy.props import StringProperty
+from bpy.app.handlers import persistent
 
 # First utilities and sync system from root
 from .COLORAIDE_colorspace import *
@@ -52,6 +53,11 @@ from .panels.HSV_panel import draw_hsv_panel
 from .panels.CHISTORY_panel import draw_history_panel
 from .panels.PALETTE_panel import draw_palette_panel
 from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_coloraide
+
+
+from .properties.OBJECT_COLORS_properties import ColorPropertyItem, ColoraideObjectColorsProperties
+from .operators.OBJECT_COLORS_OT import OBJECT_COLORS_OT_refresh, OBJECT_COLORS_OT_pull, OBJECT_COLORS_OT_push
+from .panels.OBJECT_COLORS_panel import draw_object_colors_panel
 
 bl_info = {
     'name': 'Coloraide',
@@ -118,9 +124,14 @@ class ColoraideAddonPreferences(AddonPreferences):
         box.label(text="Applies to Image Editor, 3D View, and Clip Editor.")
 
 
+
+
 # Collect all classes that need registration
 classes = [
     # Properties
+    ColorPropertyItem,  # Before ColoraideObjectColorsProperties
+    ColoraideObjectColorsProperties,
+
     ColoraidePaletteProperties,
     ColoraideNormalProperties,
     ColoraideDisplayProperties,
@@ -134,6 +145,12 @@ classes = [
     ColoraideHistoryProperties,
     
     # Operators
+
+
+    OBJECT_COLORS_OT_refresh,
+    OBJECT_COLORS_OT_pull,
+    OBJECT_COLORS_OT_push,
+
     NORMAL_OT_color_picker,
     IMAGE_OT_screen_picker,
     IMAGE_OT_screen_picker_quick,
@@ -196,6 +213,41 @@ def initialize_addon(context):
     except Exception as e:
         print(f"Coloraide initialization warning: {e}")
 
+@persistent
+def selection_change_handler(scene, depsgraph):
+    """Auto-refresh object colors when selection changes"""
+    try:
+        context = bpy.context
+        if not context or not context.window_manager:
+            return
+        
+        wm = context.window_manager
+        if not hasattr(wm, 'coloraide_object_colors'):
+            return
+        
+        obj_colors = wm.coloraide_object_colors
+        
+        # Check if selection changed
+        active_obj = context.active_object
+        active_name = active_obj.name if active_obj else ""
+        selected_count = len(context.selected_objects)
+        
+        # Detect changes
+        changed = (
+            active_name != obj_colors.last_active_object or
+            selected_count != obj_colors.last_selected_count
+        )
+        
+        if changed and (active_obj or selected_count > 0):
+            # Update tracking
+            obj_colors.last_active_object = active_name
+            obj_colors.last_selected_count = selected_count
+            
+            # Refresh colors
+            bpy.ops.object_colors.refresh()
+    except:
+        pass  # Silent fail to avoid breaking Blender
+
 def register():
     # Register non-panel classes first
     for cls in classes:
@@ -205,6 +257,9 @@ def register():
     register_keymaps()
     
     # Register property group assignments
+    bpy.types.WindowManager.coloraide_object_colors = bpy.props.PointerProperty(type=ColoraideObjectColorsProperties)
+    
+
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
@@ -221,6 +276,8 @@ def register():
     
     # Add load handler
     bpy.app.handlers.load_post.append(load_handler)
+    # Add selection change handler
+    bpy.app.handlers.depsgraph_update_post.append(selection_change_handler)
     
     # Initialize addon
     initialize_addon(bpy.context)
@@ -229,6 +286,10 @@ def register():
     bpy.app.timers.register(start_color_monitor, first_interval=0.1)
 
 def unregister():
+# Remove selection handler
+    if selection_change_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(selection_change_handler)
+
     # Remove load handler
     if load_handler in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(load_handler)
@@ -245,6 +306,9 @@ def unregister():
             pass
     
     # Unregister property groups
+
+    del bpy.types.WindowManager.coloraide_object_colors
+
     del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal
     del bpy.types.WindowManager.coloraide_history

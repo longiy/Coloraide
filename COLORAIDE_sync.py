@@ -61,11 +61,12 @@ def sync_all(context, source, color):
     1. Converts input color to scene linear RGB (if not already)
     2. Updates all Coloraide UI properties
     3. Updates ONLY the current active mode's brush color
+    4. Updates live-synced object color properties
     
     Args:
         context: Blender context
         source: String identifier of what triggered the sync
-                ('wheel', 'picker', 'hsv', 'rgb', 'lab', 'hex', 'history', 'palette', 'brush')
+                ('wheel', 'picker', 'hsv', 'rgb', 'lab', 'hex', 'history', 'palette', 'brush', 'object_colors')
         color: Color data (format depends on source)
     
     Note: All internal Coloraide state is stored in scene linear color space.
@@ -88,6 +89,14 @@ def sync_all(context, source, color):
         
         # Update current mode's brush color
         ModeManager.set_brush_color(context, rgb_linear)
+        
+        # Update live-synced object colors (if not triggered by object_colors itself)
+        if source != 'object_colors':
+            try:
+                from .operators.OBJECT_COLORS_OT import update_live_synced_properties
+                update_live_synced_properties(context, rgb_linear)
+            except ImportError:
+                pass  # Object colors module not yet loaded
 
 
 def _convert_to_linear(source, color, wm):
