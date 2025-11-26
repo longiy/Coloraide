@@ -1,4 +1,4 @@
-# 🎨 Coloraide Add-on - Version 1.4.8
+# 🎨 Coloraide Add-on - Version 1.4.9
 Advanced color picker and manager for Blender 4.3+
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview.png)
 ![Image Description](https://github.com/longiy/static-assets/blob/main/coloraide-assets/Coloraide_Preview2.png)
