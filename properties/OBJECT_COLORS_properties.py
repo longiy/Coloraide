@@ -67,7 +67,7 @@ class ColorPropertyItem(PropertyGroup):
     # Current color value (cached for display, always in scene linear)
     color: FloatVectorProperty(
         name="Color",
-        subtype='COLOR_GAMMA',
+        subtype='COLOR',
         size=3,
         min=0.0, max=1.0,
         default=(0.5, 0.5, 0.5),

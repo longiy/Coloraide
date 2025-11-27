@@ -256,8 +256,7 @@ def scan_greasepencil_colors(obj):
             
             # Fill color - convert sRGB to linear
             if hasattr(gp_settings, 'fill_color'):
-                fill_srgb = tuple(gp_settings.fill_color[:3])
-                fill_linear = rgb_srgb_to_linear(fill_srgb)
+                fill_linear = tuple(gp_settings.fill_color[:3])
                 
                 colors.append({
                     'label_short': f"GP:{mat_label}:Fill",
@@ -281,7 +280,7 @@ def scan_greasepencil_colors(obj):
                     'property_path': f'data.materials[{mat_idx}].grease_pencil.color',
                     'property_type': 'GPENCIL',
                     'color': stroke_linear,  # Converted to linear
-                    'color_space': 'SRGB'  # Mark as sRGB so we convert back when writing
+                    'color_space': 'LINEAR'  # ← Change from 'SRGB' to 'LINEAR'
                 })
         
         # Try new GP system (4.3+) - might use regular materials
