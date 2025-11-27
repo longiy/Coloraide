@@ -3,15 +3,21 @@ Object color property detection and access for Coloraide.
 Scans objects for color properties and provides get/set functionality.
 
 Color Space Notes:
-- GeoNodes color inputs: Scene linear
-- Material node COLOR sockets: Scene linear  
-- Light.color: Scene linear
-- Object.color: sRGB (viewport display)
+- GeoNodes color inputs: Scene linear (raw float storage)
+- Material node COLOR sockets: Scene linear (raw float storage)
+- Light.color: Scene linear (raw float storage)
+- Object.color: COLOR_GAMMA property (Blender auto-converts)
+- Grease Pencil colors: COLOR_GAMMA property (Blender auto-converts)
+
+CRITICAL: COLOR_GAMMA properties auto-convert:
+- When reading: Blender returns scene linear (auto-converted from sRGB storage)
+- When writing: Blender expects scene linear (auto-converts to sRGB for storage)
+- We should NOT manually convert - just pass through linear values!
 """
 
 import bpy
 from mathutils import Color
-from .COLORAIDE_colorspace import rgb_srgb_to_linear, rgb_linear_to_srgb
+from .COLORAIDE_colorspace import rgb_srgb_to_linear, rgb_linear_to_srgb, linear_to_hex
 
 
 def is_node_connected_to_output(node, node_tree):
@@ -209,12 +215,12 @@ def scan_light_colors(obj):
 
 
 def scan_object_colors(obj):
-    """Scan object for viewport display color (sRGB -> convert to linear)"""
+    """Scan object for viewport display color (COLOR_GAMMA property)"""
     colors = []
     
-    # Object viewport color is sRGB - convert to linear for storage
-    obj_color_srgb = tuple(obj.color[:3])
-    obj_color_linear = rgb_srgb_to_linear(obj_color_srgb)
+    # Object viewport color uses COLOR_GAMMA subtype
+    # Blender auto-converts: we get linear, it stores sRGB
+    obj_color_linear = tuple(obj.color[:3])
     
     colors.append({
         'label_short': "Obj:Color",
@@ -222,15 +228,15 @@ def scan_object_colors(obj):
         'object_name': obj.name,
         'property_path': 'color',
         'property_type': 'OBJECT',
-        'color': obj_color_linear,  # Converted to linear
-        'color_space': 'SRGB'  # Mark as sRGB so we convert back when writing
+        'color': obj_color_linear,  # Blender gives us linear (auto-converted)
+        'color_space': 'COLOR_GAMMA'  # Signal: this is a COLOR_GAMMA property (don't convert)
     })
     
     return colors
 
 
 def scan_greasepencil_colors(obj):
-    """Scan Grease Pencil materials for fill and stroke colors (sRGB -> convert to linear)"""
+    """Scan Grease Pencil materials for fill and stroke colors (COLOR_GAMMA properties)"""
     colors = []
     
     # Check for both old GPENCIL and new GREASEPENCIL types (Blender 4.3+)
@@ -244,6 +250,8 @@ def scan_greasepencil_colors(obj):
     if not hasattr(obj.data, 'materials'):
         return colors
     
+    print(f"\n  Scanning Grease Pencil object: {obj.name}")
+    
     # Scan through all material slots
     for mat_idx, mat in enumerate(obj.data.materials):
         if not mat:
@@ -254,9 +262,11 @@ def scan_greasepencil_colors(obj):
             gp_settings = mat.grease_pencil
             mat_label = mat.name[:10] + "..." if len(mat.name) > 10 else mat.name
             
-            # Fill color - convert sRGB to linear
+            # Fill color - COLOR_GAMMA property (Blender auto-converts)
             if hasattr(gp_settings, 'fill_color'):
-                fill_linear = tuple(gp_settings.fill_color[:3])
+                fill_linear = tuple(gp_settings.fill_color[:3])  # Blender gives us linear
+                print(f"\n    GP Fill Color (from Blender, linear): {fill_linear}")
+                print(f"      As hex: {linear_to_hex(fill_linear)}")
                 
                 colors.append({
                     'label_short': f"GP:{mat_label}:Fill",
@@ -264,14 +274,15 @@ def scan_greasepencil_colors(obj):
                     'object_name': obj.name,
                     'property_path': f'data.materials[{mat_idx}].grease_pencil.fill_color',
                     'property_type': 'GPENCIL',
-                    'color': fill_linear,  # Converted to linear
-                    'color_space': 'SRGB'  # Mark as sRGB so we convert back when writing
+                    'color': fill_linear,  # Already linear (Blender converted)
+                    'color_space': 'COLOR_GAMMA'  # Signal: don't convert, Blender handles it
                 })
             
-            # Stroke color - convert sRGB to linear
+            # Stroke color - COLOR_GAMMA property (Blender auto-converts)
             if hasattr(gp_settings, 'color'):
-                stroke_srgb = tuple(gp_settings.color[:3])
-                stroke_linear = rgb_srgb_to_linear(stroke_srgb)
+                stroke_linear = tuple(gp_settings.color[:3])  # Blender gives us linear
+                print(f"\n    GP Stroke Color (from Blender, linear): {stroke_linear}")
+                print(f"      As hex: {linear_to_hex(stroke_linear)}")
                 
                 colors.append({
                     'label_short': f"GP:{mat_label}:Stroke",
@@ -279,8 +290,8 @@ def scan_greasepencil_colors(obj):
                     'object_name': obj.name,
                     'property_path': f'data.materials[{mat_idx}].grease_pencil.color',
                     'property_type': 'GPENCIL',
-                    'color': stroke_linear,  # Converted to linear
-                    'color_space': 'LINEAR'  # ← Change from 'SRGB' to 'LINEAR'
+                    'color': stroke_linear,  # Already linear (Blender converted)
+                    'color_space': 'COLOR_GAMMA'  # Signal: don't convert, Blender handles it
                 })
         
         # Try new GP system (4.3+) - might use regular materials
@@ -316,20 +327,23 @@ def scan_all_colors(context, show_multiple=False):
 def get_color_value(obj, property_path, color_space='LINEAR'):
     """
     Get color value from object using property path.
-    Returns color in scene linear space regardless of source color space.
+    Returns color in scene linear space.
     
     Args:
         obj: Blender object
         property_path: Path to color property
-        color_space: 'LINEAR' or 'SRGB' - the space the property is stored in
+        color_space: 'LINEAR' or 'COLOR_GAMMA' - the property type
     
     Returns:
         tuple: (r, g, b) in scene linear space, or None
     """
+    print(f"\n    GET_COLOR_VALUE:")
+    print(f"      Path: {property_path}")
+    print(f"      Property type: {color_space}")
+    
     try:
         # Special handling for modifier dictionary access (GeoNodes)
         if 'modifiers[' in property_path and '"][' in property_path:
-            # Extract modifier name and key: modifiers["Name"]["key"]
             parts = property_path.split('"]["')
             mod_part = parts[0].replace('modifiers["', '')
             key = parts[1].replace('"]', '')
@@ -339,9 +353,8 @@ def get_color_value(obj, property_path, color_space='LINEAR'):
                 value = mod[key]
                 if hasattr(value, '__len__') and len(value) >= 3:
                     color = tuple(value[:3])
-                    # Convert to linear if needed
-                    if color_space == 'SRGB':
-                        color = rgb_srgb_to_linear(color)
+                    print(f"      Value (linear): {color}")
+                    print(f"      As hex: {linear_to_hex(color)}")
                     return color
             return None
         
@@ -349,13 +362,16 @@ def get_color_value(obj, property_path, color_space='LINEAR'):
         value = eval(f"obj.{property_path}")
         if hasattr(value, '__len__') and len(value) >= 3:
             color = tuple(value[:3])
-            # Convert to linear if needed
-            if color_space == 'SRGB':
-                color = rgb_srgb_to_linear(color)
+            print(f"      Value (linear): {color}")
+            print(f"      As hex: {linear_to_hex(color)}")
+            
+            # For COLOR_GAMMA properties, Blender already gave us linear
+            # For LINEAR properties, value is already linear
+            # Either way, just return it
             return color
         return None
     except Exception as e:
-        print(f"Error getting color from {property_path}: {e}")
+        print(f"      ERROR: {e}")
         return None
 
 
@@ -367,36 +383,43 @@ def set_color_value(obj, property_path, color, color_space='LINEAR'):
         obj: Blender object
         property_path: Path to color property
         color: (r, g, b) tuple in scene linear space
-        color_space: 'LINEAR' or 'SRGB' - the space the property should be stored in
+        color_space: 'LINEAR' or 'COLOR_GAMMA' - the property type
     
     Returns:
         bool: True if successful
     """
+    print(f"\n    SET_COLOR_VALUE:")
+    print(f"      Path: {property_path}")
+    print(f"      Input color (scene linear): {color}")
+    print(f"      Input as hex: {linear_to_hex(color)}")
+    print(f"      Property type: {color_space}")
+    
     try:
-        # Convert from linear if needed
-        if color_space == 'SRGB':
-            color = rgb_linear_to_srgb(color)
+        # For COLOR_GAMMA properties: pass through linear values (Blender auto-converts)
+        # For LINEAR properties: pass through linear values (no conversion needed)
+        write_color = color
+        print(f"      Writing (linear): {write_color}")
         
         # Special handling for modifier dictionary access (GeoNodes)
         if 'modifiers[' in property_path and '"][' in property_path:
-            # Extract modifier name and key: modifiers["Name"]["key"]
             parts = property_path.split('"]["')
             mod_part = parts[0].replace('modifiers["', '')
             key = parts[1].replace('"]', '')
             
             mod = obj.modifiers.get(mod_part)
             if mod and key in mod:
-                # Get current value to preserve alpha if present
                 current = mod[key]
                 if hasattr(current, '__len__'):
                     if len(current) == 3:
-                        mod[key] = color
+                        mod[key] = write_color
                     elif len(current) == 4:
-                        mod[key] = tuple(color) + (current[3],)
+                        mod[key] = tuple(write_color) + (current[3],)
                 else:
-                    mod[key] = color
+                    mod[key] = write_color
                 
-                # CRITICAL: Force depsgraph update for GeoNodes
+                print(f"      Wrote to GeoNodes modifier")
+                
+                # Force depsgraph update for GeoNodes
                 obj.update_tag()
                 if bpy.context.view_layer:
                     bpy.context.view_layer.update()
@@ -404,27 +427,26 @@ def set_color_value(obj, property_path, color, color_space='LINEAR'):
                 return True
             return False
         
-        # Standard property path - split into container and attribute
+        # Standard property path
         if '.' in property_path:
             path_parts = property_path.rsplit('.', 1)
             container_path = path_parts[0]
             attr = path_parts[1]
             
-            # Evaluate container
             container = eval(f"obj.{container_path}")
             current = getattr(container, attr)
             
-            # Handle different color types
             if hasattr(current, '__len__'):
                 if len(current) == 3:
-                    setattr(container, attr, color)
+                    setattr(container, attr, write_color)
                 elif len(current) == 4:
-                    # Preserve alpha channel
-                    setattr(container, attr, tuple(color) + (current[3],))
+                    setattr(container, attr, tuple(write_color) + (current[3],))
             else:
-                setattr(container, attr, color)
+                setattr(container, attr, write_color)
             
-            # Trigger update for materials/lights
+            print(f"      Wrote to property")
+            
+            # Trigger update
             obj.update_tag()
             if bpy.context.view_layer:
                 bpy.context.view_layer.update()
@@ -435,13 +457,14 @@ def set_color_value(obj, property_path, color, color_space='LINEAR'):
             current = getattr(obj, property_path)
             if hasattr(current, '__len__'):
                 if len(current) == 3:
-                    setattr(obj, property_path, color)
+                    setattr(obj, property_path, write_color)
                 elif len(current) == 4:
-                    setattr(obj, property_path, tuple(color) + (current[3],))
+                    setattr(obj, property_path, tuple(write_color) + (current[3],))
             else:
-                setattr(obj, property_path, color)
+                setattr(obj, property_path, write_color)
             
-            # Trigger viewport update
+            print(f"      Wrote to direct attribute")
+            
             obj.update_tag()
             if bpy.context.view_layer:
                 bpy.context.view_layer.update()
@@ -449,7 +472,7 @@ def set_color_value(obj, property_path, color, color_space='LINEAR'):
             return True
             
     except Exception as e:
-        print(f"Error setting color at {property_path}: {e}")
+        print(f"      ERROR: {e}")
         import traceback
         traceback.print_exc()
         return False

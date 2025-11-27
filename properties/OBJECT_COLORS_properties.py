@@ -11,6 +11,14 @@ from bpy.types import PropertyGroup
 class ColorPropertyItem(PropertyGroup):
     """Individual color property detected on an object"""
     
+    # Add suppress flag to prevent callback loops
+    suppress_updates: BoolProperty(
+        name="Suppress Updates",
+        description="Prevent update callbacks during refresh operations",
+        default=False,
+        options={'SKIP_SAVE', 'HIDDEN'}
+    )
+    
     # Display info
     label_short: StringProperty(
         name="Short Label",
@@ -39,7 +47,7 @@ class ColorPropertyItem(PropertyGroup):
     
     property_type: StringProperty(
         name="Property Type",
-        description="Type of property (GEONODES, MATERIAL, LIGHT, OBJECT)",
+        description="Type of property (GEONODES, MATERIAL, LIGHT, OBJECT, GPENCIL)",
         default=""
     )
     
@@ -52,22 +60,42 @@ class ColorPropertyItem(PropertyGroup):
     
     def update_color(self, context):
         """When user changes color swatch, push to object"""
+        # CRITICAL: Check suppress flag to prevent callback loops during refresh
+        if self.suppress_updates:
+            return
+        
+        print(f"\n{'='*60}")
+        print(f"COLOR PROPERTY UPDATE CALLBACK TRIGGERED")
+        print(f"{'='*60}")
+        print(f"Property: {self.label_short}")
+        print(f"Path: {self.property_path}")
+        print(f"Color space: {self.color_space}")
+        
         from ..COLORAIDE_object_colors import set_color_value
+        from ..COLORAIDE_colorspace import linear_to_hex
         import bpy
         
         # Find object
         obj = bpy.data.objects.get(self.object_name)
         if not obj:
+            print(f"ERROR: Object '{self.object_name}' not found")
+            print(f"{'='*60}\n")
             return
         
-        # Push color to object (scene linear → correct space)
+        # Get color from property
         color = tuple(self.color[:3])
-        set_color_value(obj, self.property_path, color, self.color_space)
+        print(f"Color from property (scene linear): {color}")
+        print(f"  As hex: {linear_to_hex(color)}")
+        
+        # Push color to object (scene linear → correct space)
+        success = set_color_value(obj, self.property_path, color, self.color_space)
+        print(f"Set color result: {'SUCCESS' if success else 'FAILED'}")
+        print(f"{'='*60}\n")
     
     # Current color value (cached for display, always in scene linear)
     color: FloatVectorProperty(
         name="Color",
-        subtype='COLOR',
+        subtype='COLOR_GAMMA',  # REVERTED: Tells Blender values are scene linear
         size=3,
         min=0.0, max=1.0,
         default=(0.5, 0.5, 0.5),
