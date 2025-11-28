@@ -8,6 +8,7 @@ from bpy.app.handlers import persistent
 from bpy.types import AddonPreferences
 from bpy.props import StringProperty
 from bpy.app.handlers import persistent
+from bpy.props import StringProperty, BoolProperty
 
 # First utilities and sync system from root
 from .COLORAIDE_colorspace import *
@@ -103,7 +104,7 @@ def update_panel(self, context):
 
 
 class ColoraideAddonPreferences(AddonPreferences):
-    """Addon preferences for Coloraide - allows customizing panel tab location"""
+    """Addon preferences for Coloraide - allows customizing panel tab location and enabled panels"""
     bl_idname = __name__
 
     category: StringProperty(
@@ -112,20 +113,93 @@ class ColoraideAddonPreferences(AddonPreferences):
         default="Coloraide",
         update=update_panel
     )
+    
+    # Panel visibility preferences
+    enable_color_wheel: BoolProperty(
+        name="Color Wheel",
+        description="Enable the Color Wheel panel with picker type selector and hex input",
+        default=True
+    )
+    
+    enable_color_dynamics: BoolProperty(
+        name="Color Dynamics",
+        description="Enable the Color Dynamics panel (native brush randomization)",
+        default=True
+    )
+    
+    enable_color_picker: BoolProperty(
+        name="Color Picker",
+        description="Enable the Color Picker panel with screen sampling and normal picker",
+        default=True
+    )
+    
+    enable_color_sliders: BoolProperty(
+        name="Color Sliders",
+        description="Enable the Color Sliders panel (RGB/HSV/LAB)",
+        default=True
+    )
+    
+    enable_history: BoolProperty(
+        name="Color History",
+        description="Enable the Color History panel with recently used colors",
+        default=True
+    )
+    
+    enable_palettes: BoolProperty(
+        name="Color Palettes",
+        description="Enable the Color Palettes panel for managing persistent color collections",
+        default=True
+    )
+    
+    enable_object_colors: BoolProperty(
+        name="Object Colors",
+        description="Enable the Object Colors panel for detecting and syncing colors from selected objects",
+        default=True
+    )
 
     def draw(self, context):
         layout = self.layout
 
-        row = layout.row()
+        # Tab Category Section
+        box = layout.box()
+        box.label(text="Panel Location", icon='WINDOW')
+        row = box.row()
         col = row.column()
         col.label(text="Sidebar Tab Category:")
         col.prop(self, "category", text="")
         
-        # Add helpful info
+        info_box = box.box()
+        info_box.label(text="Controls which tab the Coloraide panel appears in.", icon='INFO')
+        info_box.label(text="Default: 'Coloraide' - Change to 'Tool', 'View', 'Edit', etc.")
+        info_box.label(text="Applies to Image Editor, 3D View, and Clip Editor.")
+        
+        layout.separator()
+        
+        # Panel Visibility Section
         box = layout.box()
-        box.label(text="This controls which tab the Coloraide panel appears in.", icon='INFO')
-        box.label(text="Default: 'Coloraide' - Change to 'Tool', 'View', 'Edit', etc.")
-        box.label(text="Applies to Image Editor, 3D View, and Clip Editor.")
+        box.label(text="Enabled Panels", icon='PRESET')
+        box.label(text="Toggle individual panel sections on/off:")
+        
+        # Two columns for cleaner layout
+        split = box.split(factor=0.5)
+        
+        # Left column
+        col = split.column()
+        col.prop(self, "enable_color_wheel")
+        col.prop(self, "enable_color_dynamics")
+        col.prop(self, "enable_color_picker")
+        col.prop(self, "enable_color_sliders")
+        
+        # Right column
+        col = split.column()
+        col.prop(self, "enable_history")
+        col.prop(self, "enable_palettes")
+        col.prop(self, "enable_object_colors")
+        
+        # Info box
+        info_box = box.box()
+        info_box.label(text="Disabled panels are completely hidden from the UI.", icon='INFO')
+        info_box.label(text="Use this to customize your workflow and reduce clutter.")
 
 
 # Collect all classes that need registration
