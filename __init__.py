@@ -1,6 +1,7 @@
 """
 Main initialization file for Coloraide addon - Blender 5.0+ version.
 With customizable tab category in preferences.
+NOW WITH GROUPED COLOR MODE!
 """
 import bpy
 from bpy.app.handlers import persistent
@@ -16,6 +17,7 @@ from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
 from .COLORAIDE_brush_sync import (sync_coloraide_from_brush, update_brush_color, 
                                    is_brush_updating)
+from .COLORAIDE_color_grouping import *  # NEW: Color grouping utilities
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
@@ -54,15 +56,17 @@ from .panels.CHISTORY_panel import draw_history_panel
 from .panels.PALETTE_panel import draw_palette_panel
 from .COLORAIDE_panel import IMAGE_PT_coloraide, VIEW3D_PT_coloraide, CLIP_PT_coloraide
 
-
+# UPDATED: Import updated object colors system
 from .properties.OBJECT_COLORS_properties import ColorPropertyItem, ColoraideObjectColorsProperties
-from .operators.OBJECT_COLORS_OT import OBJECT_COLORS_OT_refresh, OBJECT_COLORS_OT_pull, OBJECT_COLORS_OT_push
+from .operators.OBJECT_COLORS_OT import (OBJECT_COLORS_OT_refresh, OBJECT_COLORS_OT_pull, 
+                                          OBJECT_COLORS_OT_push, OBJECT_COLORS_OT_update_group_color,
+                                          OBJECT_COLORS_OT_show_tooltip)
 from .panels.OBJECT_COLORS_panel import draw_object_colors_panel
 
 bl_info = {
     'name': 'Coloraide',
     'author': 'longiy',
-    'version': (1, 4, 8),
+    'version': (1, 5, 0),  # Version bump for grouped colors feature
     'blender': (5, 0, 0),
     'location': '(Image Editor, Clip Editor, and 3D View) -> Color',
     'description': 'Advanced color picker with extended features for Blender 5.0+',
@@ -120,10 +124,8 @@ class ColoraideAddonPreferences(AddonPreferences):
         # Add helpful info
         box = layout.box()
         box.label(text="This controls which tab the Coloraide panel appears in.", icon='INFO')
-        box.label(text="Default: 'Color' - Change to 'Tool', 'View', 'Edit', etc.")
+        box.label(text="Default: 'Coloraide' - Change to 'Tool', 'View', 'Edit', etc.")
         box.label(text="Applies to Image Editor, 3D View, and Clip Editor.")
-
-
 
 
 # Collect all classes that need registration
@@ -145,11 +147,11 @@ classes = [
     ColoraideHistoryProperties,
     
     # Operators
-
-
     OBJECT_COLORS_OT_refresh,
     OBJECT_COLORS_OT_pull,
     OBJECT_COLORS_OT_push,
+    OBJECT_COLORS_OT_update_group_color,  # NEW: Group color update operator
+    OBJECT_COLORS_OT_show_tooltip,  # NEW: Tooltip operator for grouped mode
 
     NORMAL_OT_color_picker,
     IMAGE_OT_screen_picker,
@@ -227,6 +229,10 @@ def selection_change_handler(scene, depsgraph):
         
         obj_colors = wm.coloraide_object_colors
         
+        # Only refresh if Object Colors panel is visible
+        if not wm.coloraide_display.show_object_colors:
+            return
+        
         # Check if selection changed
         active_obj = context.active_object
         active_name = active_obj.name if active_obj else ""
@@ -243,7 +249,7 @@ def selection_change_handler(scene, depsgraph):
             obj_colors.last_active_object = active_name
             obj_colors.last_selected_count = selected_count
             
-            # Refresh colors
+            # Auto-refresh colors
             bpy.ops.object_colors.refresh()
     except:
         pass  # Silent fail to avoid breaking Blender
@@ -259,7 +265,6 @@ def register():
     # Register property group assignments
     bpy.types.WindowManager.coloraide_object_colors = bpy.props.PointerProperty(type=ColoraideObjectColorsProperties)
     
-
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
@@ -284,9 +289,11 @@ def register():
     
     # Start color monitor after slight delay
     bpy.app.timers.register(start_color_monitor, first_interval=0.1)
+    
+    print("✓ Coloraide registered with Grouped Color Mode support")
 
 def unregister():
-# Remove selection handler
+    # Remove selection handler
     if selection_change_handler in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(selection_change_handler)
 
@@ -306,7 +313,6 @@ def unregister():
             pass
     
     # Unregister property groups
-
     del bpy.types.WindowManager.coloraide_object_colors
 
     del bpy.types.WindowManager.coloraide_palette
@@ -323,6 +329,8 @@ def unregister():
     # Unregister other classes in reverse order
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+    
+    print("✓ Coloraide unregistered")
 
 if __name__ == "__main__":
     register()

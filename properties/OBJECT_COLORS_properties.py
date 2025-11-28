@@ -1,17 +1,17 @@
 """
 Object color properties detection and management for Coloraide.
-Stores detected color properties from selected objects.
+NOW WITH MODE TOGGLE: Object Mode vs Grouped Mode
 """
 
 import bpy
-from bpy.props import BoolProperty, StringProperty, FloatVectorProperty, CollectionProperty
+from bpy.props import (BoolProperty, StringProperty, FloatVectorProperty, 
+                       CollectionProperty, EnumProperty, IntProperty, PointerProperty)
 from bpy.types import PropertyGroup
 
 
 class ColorPropertyItem(PropertyGroup):
-    """Individual color property detected on an object"""
+    """Individual color property detected on an object (Object Mode)"""
     
-    # Add suppress flag to prevent callback loops
     suppress_updates: BoolProperty(
         name="Suppress Updates",
         description="Prevent update callbacks during refresh operations",
@@ -19,7 +19,6 @@ class ColorPropertyItem(PropertyGroup):
         options={'SKIP_SAVE', 'HIDDEN'}
     )
     
-    # Display info
     label_short: StringProperty(
         name="Short Label",
         description="Short label for UI display",
@@ -32,7 +31,6 @@ class ColorPropertyItem(PropertyGroup):
         default=""
     )
     
-    # Property path for access
     object_name: StringProperty(
         name="Object Name",
         description="Name of the object this property belongs to",
@@ -51,7 +49,6 @@ class ColorPropertyItem(PropertyGroup):
         default=""
     )
     
-    # Color space info
     color_space: StringProperty(
         name="Color Space",
         description="Color space this property is stored in (LINEAR or SRGB)",
@@ -60,49 +57,43 @@ class ColorPropertyItem(PropertyGroup):
     
     def update_color(self, context):
         """When user changes color swatch, push to object"""
-        # CRITICAL: Check suppress flag to prevent callback loops during refresh
         if self.suppress_updates:
             return
         
-        print(f"\n{'='*60}")
-        print(f"COLOR PROPERTY UPDATE CALLBACK TRIGGERED")
-        print(f"{'='*60}")
-        print(f"Property: {self.label_short}")
-        print(f"Path: {self.property_path}")
-        print(f"Color space: {self.color_space}")
-        
-        from ..COLORAIDE_object_colors import set_color_value
-        from ..COLORAIDE_colorspace import linear_to_hex
-        import bpy
-        
-        # Find object
-        obj = bpy.data.objects.get(self.object_name)
-        if not obj:
-            print(f"ERROR: Object '{self.object_name}' not found")
-            print(f"{'='*60}\n")
+        # Check if this is a grouped item
+        if self.property_path == '__GROUP__':
+            # For grouped items, call the update operator
+            # This ensures all instances get updated
+            try:
+                # Find our index in the items collection
+                obj_colors = context.window_manager.coloraide_object_colors
+                for idx, item in enumerate(obj_colors.items):
+                    if item == self:
+                        bpy.ops.object_colors.update_group_color(index=idx)
+                        return
+            except:
+                pass
             return
         
-        # Get color from property
-        color = tuple(self.color[:3])
-        print(f"Color from property (scene linear): {color}")
-        print(f"  As hex: {linear_to_hex(color)}")
+        # OBJECT MODE: Update single property
+        from ..COLORAIDE_object_colors import set_color_value
         
-        # Push color to object (scene linear → correct space)
-        success = set_color_value(obj, self.property_path, color, self.color_space)
-        print(f"Set color result: {'SUCCESS' if success else 'FAILED'}")
-        print(f"{'='*60}\n")
+        obj = bpy.data.objects.get(self.object_name)
+        if not obj:
+            return
+        
+        color = tuple(self.color[:3])
+        set_color_value(obj, self.property_path, color, self.color_space)
     
-    # Current color value (cached for display, always in scene linear)
     color: FloatVectorProperty(
         name="Color",
-        subtype='COLOR',  # REVERTED: Tells Blender values are scene linear
+        subtype='COLOR',
         size=3,
         min=0.0, max=1.0,
         default=(0.5, 0.5, 0.5),
         update=update_color
     )
     
-    # Live sync state
     live_sync: BoolProperty(
         name="Live Sync",
         description="Sync Coloraide changes to this property in real-time",
@@ -111,22 +102,64 @@ class ColorPropertyItem(PropertyGroup):
 
 
 class ColoraideObjectColorsProperties(PropertyGroup):
-    """Manager for detected object color properties"""
+    """Manager for detected object color properties with mode toggle"""
     
-    # Collection of detected properties
+    def update_display_mode(self, context):
+        """Auto-refresh when switching modes"""
+        # Automatically refresh the color list when mode changes
+        try:
+            bpy.ops.object_colors.refresh()
+        except:
+            pass  # Silent fail if context not ready
+    
+    # MODE SELECTION
+    display_mode: EnumProperty(
+        name="Display Mode",
+        description="How to display detected colors",
+        items=[
+            ('OBJECT', "Object Mode", "Show individual properties per object", 'OBJECT_DATA', 0),
+            ('GROUPED', "Grouped Mode", "Group identical colors (Figma-style)", 'COLOR', 1),
+        ],
+        default='OBJECT',
+        update=update_display_mode  # Auto-refresh on change
+    )
+    
+    # OBJECT MODE: Collection of individual properties
     items: CollectionProperty(
         type=ColorPropertyItem,
         name="Color Properties"
     )
     
     # Settings
+    def update_show_multiple(self, context):
+        """Auto-refresh when toggling Multi on/off"""
+        try:
+            bpy.ops.object_colors.refresh()
+        except:
+            pass
+    
     show_multiple_objects: BoolProperty(
         name="Show Multiple Objects",
         description="Show colors from all selected objects (off = active object only)",
-        default=False
+        default=False,
+        update=update_show_multiple  # Auto-refresh on toggle
     )
     
-    # Internal state
+    # Tolerance for grouped mode (HIDDEN - no UI control)
+    tolerance: bpy.props.FloatProperty(
+        name="Color Tolerance",
+        description="How similar colors must be to group together (0 = exact match, higher = more grouping)",
+        default=0.001,  # Very precise - groups visually identical colors
+        min=0.0,
+        max=0.1,
+        soft_min=0.0,
+        soft_max=0.05,
+        precision=4,
+        step=0.01,
+        options={'HIDDEN', 'SKIP_SAVE'}  # Hidden from UI, not saved
+    )
+    
+    # Internal state tracking
     last_active_object: StringProperty(
         name="Last Active Object",
         description="Name of last active object (for change detection)",
@@ -134,7 +167,7 @@ class ColoraideObjectColorsProperties(PropertyGroup):
         options={'SKIP_SAVE'}
     )
     
-    last_selected_count: bpy.props.IntProperty(
+    last_selected_count: IntProperty(
         name="Last Selected Count",
         description="Number of last selected objects (for change detection)",
         default=0,
