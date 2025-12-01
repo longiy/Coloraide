@@ -215,14 +215,15 @@ def draw_object_colors_panel(layout, context):
     
     if not wm.coloraide_display.show_object_colors:
         return
-    
-    # Settings row - REMOVED REFRESH BUTTON, kept Multi toggle
-    settings_row = box.row(align=True)
-    settings_row.prop(obj_colors, "show_multiple_objects", text="Multi", toggle=True)
+
     
     # MODE TOGGLE BUTTONS (like RGB/HSV/LAB toggles)
     mode_row = box.row(align=True)
     
+    
+    multi_row = mode_row.row(align=True)
+    multi_row.prop(obj_colors, "show_multiple_objects", text="Multi", icon='MOD_ARRAY', toggle=True)
+
     # Object Mode button
     obj_mode = mode_row.row(align=True)
     obj_mode.prop_enum(obj_colors, "display_mode", 'OBJECT', text="Object", icon='OBJECT_DATA')
@@ -231,7 +232,6 @@ def draw_object_colors_panel(layout, context):
     group_mode = mode_row.row(align=True)
     group_mode.prop_enum(obj_colors, "display_mode", 'GROUPED', text="Grouped", icon='COLOR')
     
-    box.separator()
     
     # Draw appropriate UI based on mode
     if obj_colors.display_mode == 'OBJECT':

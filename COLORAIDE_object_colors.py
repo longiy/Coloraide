@@ -113,7 +113,7 @@ def scan_geonodes_colors(obj):
 
 
 def scan_material_colors(obj):
-    """Scan materials for color properties (only connected nodes, scene linear)"""
+    """Scan materials for all RGBA color inputs (connected nodes only, scene linear)"""
     colors = []
     
     if not hasattr(obj, 'material_slots'):
@@ -126,71 +126,67 @@ def scan_material_colors(obj):
         
         mat_label = mat.name[:10] + "..." if len(mat.name) > 10 else mat.name
         
-        # Scan nodes
+        # Scan all nodes
         for node in mat.node_tree.nodes:
             # Skip if node doesn't connect to output
             if not is_node_connected_to_output(node, mat.node_tree):
                 continue
             
-            # Check Principled BSDF special cases
-            if node.type == 'BSDF_PRINCIPLED':
-                # Base Color
-                if 'Base Color' in node.inputs:
-                    socket = node.inputs['Base Color']
-                    if not socket.is_linked:
-                        # Material node colors are already scene linear
+            # Special handling for RGB nodes (use output socket)
+            if node.type == 'RGB':
+                if node.outputs and len(node.outputs) > 0:
+                    output = node.outputs[0]
+                    if output.type == 'RGBA':
+                        node_name_short = node.name[:8] if len(node.name) > 8 else node.name
                         colors.append({
-                            'label_short': f"{mat_label}:Base",
-                            'label_detailed': f"Material '{mat.name}' > {node.name} > Base Color",
+                            'label_short': f"{mat_label}:{node_name_short}",
+                            'label_detailed': f"Material '{mat.name}' > RGB Node '{node.name}'",
                             'object_name': obj.name,
-                            'property_path': f'material_slots[{slot_idx}].material.node_tree.nodes["{node.name}"].inputs["Base Color"].default_value',
+                            'property_path': f'material_slots[{slot_idx}].material.node_tree.nodes["{node.name}"].outputs[0].default_value',
                             'property_type': 'MATERIAL',
-                            'color': tuple(socket.default_value[:3]),  # Already linear
+                            'color': tuple(output.default_value[:3]),
                             'color_space': 'LINEAR'
                         })
-                
-                # Emission (only if Emission Strength > 0.001)
-                if 'Emission Color' in node.inputs and 'Emission Strength' in node.inputs:
-                    emission_strength = node.inputs['Emission Strength'].default_value
-                    if emission_strength > 0.001:
-                        socket = node.inputs['Emission Color']
-                        if not socket.is_linked:
-                            colors.append({
-                                'label_short': f"{mat_label}:Emission",
-                                'label_detailed': f"Material '{mat.name}' > {node.name} > Emission Color",
-                                'object_name': obj.name,
-                                'property_path': f'material_slots[{slot_idx}].material.node_tree.nodes["{node.name}"].inputs["Emission Color"].default_value',
-                                'property_type': 'MATERIAL',
-                                'color': tuple(socket.default_value[:3]),  # Already linear
-                                'color_space': 'LINEAR'
-                            })
+                continue
             
-            # RGB Node
-            elif node.type == 'RGB':
+            # For all other nodes, scan ALL RGBA input sockets
+            for input_socket in node.inputs:
+                # Only process RGBA type sockets that aren't linked
+                if input_socket.type != 'RGBA' or input_socket.is_linked:
+                    continue
+                
+                # Create shortened labels for UI
+                node_name_short = node.name[:8] if len(node.name) > 8 else node.name
+                socket_name_short = input_socket.name[:8] if len(input_socket.name) > 8 else input_socket.name
+                
+                # Create more readable socket names for common cases
+                socket_display = socket_name_short
+                if node.type == 'BSDF_PRINCIPLED':
+                    # Shorten common Principled BSDF names
+                    if input_socket.name == 'Base Color':
+                        socket_display = 'Base'
+                    elif input_socket.name == 'Emission Color':
+                        socket_display = 'Emis'
+                    elif input_socket.name == 'Subsurface Color':
+                        socket_display = 'SSS'
+                elif node.type == 'EMISSION':
+                    if input_socket.name == 'Color':
+                        socket_display = 'Emis'
+                elif node.type.startswith('BSDF_'):
+                    # For other BSDF nodes, if socket is just "Color", use shader type
+                    if input_socket.name == 'Color':
+                        shader_type = node.type.replace('BSDF_', '').title()
+                        socket_display = shader_type[:8]
+                
                 colors.append({
-                    'label_short': f"{mat_label}:{node.name}",
-                    'label_detailed': f"Material '{mat.name}' > RGB Node '{node.name}'",
+                    'label_short': f"{mat_label}:{node_name_short}:{socket_display}",
+                    'label_detailed': f"Material '{mat.name}' > {node.name} > {input_socket.name}",
                     'object_name': obj.name,
-                    'property_path': f'material_slots[{slot_idx}].material.node_tree.nodes["{node.name}"].outputs[0].default_value',
+                    'property_path': f'material_slots[{slot_idx}].material.node_tree.nodes["{node.name}"].inputs["{input_socket.name}"].default_value',
                     'property_type': 'MATERIAL',
-                    'color': tuple(node.outputs[0].default_value[:3]),  # Already linear
+                    'color': tuple(input_socket.default_value[:3]),
                     'color_space': 'LINEAR'
                 })
-            
-            # Mix/Combine Color nodes - check color inputs
-            elif node.type in {'MIX', 'MIX_RGB', 'COMBCOLOR_RGB', 'COMBCOLOR_HSV', 'COMBCOLOR_HSL'}:
-                for input_socket in node.inputs:
-                    if input_socket.type == 'RGBA' and not input_socket.is_linked:
-                        socket_name_short = input_socket.name[:6]
-                        colors.append({
-                            'label_short': f"{mat_label}:{node.name[:6]}:{socket_name_short}",
-                            'label_detailed': f"Material '{mat.name}' > {node.name} > {input_socket.name}",
-                            'object_name': obj.name,
-                            'property_path': f'material_slots[{slot_idx}].material.node_tree.nodes["{node.name}"].inputs["{input_socket.name}"].default_value',
-                            'property_type': 'MATERIAL',
-                            'color': tuple(input_socket.default_value[:3]),  # Already linear
-                            'color_space': 'LINEAR'
-                        })
     
     return colors
 
