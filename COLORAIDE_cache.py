@@ -47,41 +47,49 @@ def flush_color_cache(context):
         return None  # Nothing to flush
     
     from .COLORAIDE_object_colors import set_color_value
+    from .COLORAIDE_sync import live_sync_lock
     
-    # Track which objects were modified
-    updated_objects = set()
-    
-    # Write all cached colors to Blender
-    for cache_key, (color, color_space) in _COLOR_CACHE.items():
-        try:
-            obj_name, prop_path = cache_key.split(':', 1)
-            obj = bpy.data.objects.get(obj_name)
-            
-            if obj:
-                set_color_value(obj, prop_path, color, color_space)
-                updated_objects.add(obj)
-        except Exception as e:
-            print(f"Error flushing color cache for {cache_key}: {e}")
-    
-    # Single depsgraph update for all modified objects
-    for obj in updated_objects:
-        try:
-            obj.update_tag()
-        except:
-            pass
-    
-    # Single view layer update
-    if updated_objects and context.view_layer:
-        try:
-            context.view_layer.update()
-        except:
-            pass
-    
-    # Clear cache
-    _COLOR_CACHE.clear()
-    _FLUSH_SCHEDULED = False
-    
-    return None  # For timer
+    # Use live sync lock to prevent recursion during flush
+    with live_sync_lock() as acquired:
+        if not acquired:
+            # Already flushing, reschedule
+            _FLUSH_SCHEDULED = False
+            return 0.05  # Try again in 50ms
+        
+        # Track which objects were modified
+        updated_objects = set()
+        
+        # Write all cached colors to Blender
+        for cache_key, (color, color_space) in _COLOR_CACHE.items():
+            try:
+                obj_name, prop_path = cache_key.split(':', 1)
+                obj = bpy.data.objects.get(obj_name)
+                
+                if obj:
+                    set_color_value(obj, prop_path, color, color_space)
+                    updated_objects.add(obj)
+            except Exception as e:
+                print(f"Error flushing color cache for {cache_key}: {e}")
+        
+        # Single depsgraph update for all modified objects
+        for obj in updated_objects:
+            try:
+                obj.update_tag()
+            except:
+                pass
+        
+        # Single view layer update
+        if updated_objects and context.view_layer:
+            try:
+                context.view_layer.update()
+            except:
+                pass
+        
+        # Clear cache
+        _COLOR_CACHE.clear()
+        _FLUSH_SCHEDULED = False
+        
+        return None  # For timer
 
 
 def schedule_flush(context, mode='BATCHED_TIMER'):
@@ -127,7 +135,7 @@ def update_live_synced_properties_cached(context, color, mode='absolute', delta=
     wm = context.window_manager
     obj_colors = wm.coloraide_object_colors
     
-    # Get update mode from preferences - FIXED VERSION
+    # Get update mode from preferences
     try:
         # Get addon name from module path
         addon_name = __name__.split('.')[0]

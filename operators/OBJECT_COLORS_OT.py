@@ -297,7 +297,6 @@ def update_live_synced_properties(context, color, mode='absolute', delta=None):
     """
     Update all properties with live sync enabled.
     NOW USES PYTHON CACHING for performance (90-95% faster).
-    FIX: Check if already updating to prevent recursion.
     
     Args:
         context: Blender context
@@ -308,10 +307,6 @@ def update_live_synced_properties(context, color, mode='absolute', delta=None):
     Returns:
         int: Number of properties updated
     """
-    # FIX: Don't update if already updating
-    if is_updating_live_sync():
-        return 0
-    
     # Use the cached implementation for better performance
     from ..COLORAIDE_cache import update_live_synced_properties_cached
     

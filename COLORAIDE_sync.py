@@ -194,15 +194,13 @@ def sync_all(context, source, color_value, mode='absolute'):
             wm.coloraide_palette.suppress_updates = False
         
         # Update live-synced object colors (with mode)
-        # FIX 1: Use live sync lock to prevent recursion
+        # FIX 1: Use live sync lock to prevent nested sync_all calls from live sync updates
         if source != 'object_colors':
-            with live_sync_lock() as acquired:
-                if acquired:
-                    try:
-                        from .operators.OBJECT_COLORS_OT import update_live_synced_properties
-                        update_live_synced_properties(context, rgb_linear, mode=mode, delta=delta)
-                    except ImportError:
-                        pass  # Object colors module not yet loaded
+            try:
+                from .operators.OBJECT_COLORS_OT import update_live_synced_properties
+                update_live_synced_properties(context, rgb_linear, mode=mode, delta=delta)
+            except ImportError:
+                pass  # Object colors module not yet loaded
 
 
 __all__ = ['sync_all', 'is_updating', 'update_lock', 'is_updating_live_sync', 'live_sync_lock']
