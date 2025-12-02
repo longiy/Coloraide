@@ -14,7 +14,7 @@ __all__ = [
     'COLOR_OT_sync_rgb',
     'COLOR_OT_sync_lab',
     'COLOR_OT_sync_wheel', 'COLOR_OT_reset_wheel_scale',
-    'COLOR_OT_adjust_history_size', 'COLOR_OT_clear_history', 'COLOR_OT_remove_history_color',
+    'COLOR_OT_adjust_history_size', 'COLOR_OT_clear_history',
     'PALETTE_OT_add_color', 'PALETTE_OT_remove_color',
     'COLOR_OT_sync_hex',
     'NORMAL_OT_color_picker',

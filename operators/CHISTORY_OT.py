@@ -1,4 +1,6 @@
 # CHISTORY_OT.py
+# CLEANED: Removed COLOR_OT_reset_history_flags (debugging operator)
+
 import bpy
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all, is_updating
@@ -18,6 +20,7 @@ class COLOR_OT_adjust_history_size(Operator):
             history.size -= 1
         return {'FINISHED'}
 
+
 class COLOR_OT_clear_history(Operator):
     bl_idname = "color.clear_history"
     bl_label = "Clear History"
@@ -27,16 +30,4 @@ class COLOR_OT_clear_history(Operator):
         history = context.window_manager.coloraide_history
         while len(history.items) > 0:
             history.items.remove(0)
-        return {'FINISHED'}
-    
-class COLOR_OT_reset_history_flags(bpy.types.Operator):
-    bl_idname = "color.reset_history_flags"
-    bl_label = "Reset History Flags"
-    bl_description = "Reset all suppress_updates flags in history items (for troubleshooting)"
-    bl_options = {'INTERNAL'}
-    
-    def execute(self, context):
-        history = context.window_manager.coloraide_history
-        history.reset_all_suppress_flags()
-        self.report({'INFO'}, "All history flags reset")
         return {'FINISHED'}
