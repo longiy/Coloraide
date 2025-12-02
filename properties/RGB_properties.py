@@ -16,7 +16,8 @@ class ColoraideRGBProperties(PropertyGroup):
         self.blue_preview = (0.0, 0.0, self.blue / 255.0)
         
         rgb_bytes = (self.red, self.green, self.blue)
-        sync_all(context, 'rgb', rgb_bytes)
+        # Use RELATIVE mode for slider adjustments
+        sync_all(context, 'rgb', rgb_bytes, mode='relative')
 
     red: IntProperty(
         name="R",

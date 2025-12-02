@@ -1,10 +1,10 @@
-"""HSV Properties with optimized response"""
+"""HSV Properties with optimized response and relative adjustment mode"""
 
 import bpy
 from bpy.props import FloatProperty, BoolProperty
 from bpy.types import PropertyGroup
-from .. import COLORAIDE_sync
-from .. import COLORAIDE_utils
+from ..import COLORAIDE_sync
+from ..import COLORAIDE_utils
 
 class ColoraideHSVProperties(PropertyGroup):
     suppress_updates: BoolProperty(default=False)
@@ -13,7 +13,8 @@ class ColoraideHSVProperties(PropertyGroup):
         if COLORAIDE_sync.is_updating() or self.suppress_updates:
             return
         hsv_values = (self.hue, self.saturation, self.value)
-        COLORAIDE_sync.sync_all(context, 'hsv', hsv_values)
+        # Use RELATIVE mode for slider adjustments
+        COLORAIDE_sync.sync_all(context, 'hsv', hsv_values, mode='relative')
 
     hue: FloatProperty(
         name="H",

@@ -8,7 +8,7 @@ from bpy.app.handlers import persistent
 from bpy.types import AddonPreferences
 from bpy.props import StringProperty
 from bpy.app.handlers import persistent
-from bpy.props import StringProperty, BoolProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 
 # First utilities and sync system from root
 from .COLORAIDE_colorspace import *
@@ -19,6 +19,7 @@ from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
 from .COLORAIDE_brush_sync import (sync_coloraide_from_brush, update_brush_color, 
                                    is_brush_updating)
 from .COLORAIDE_color_grouping import *  # NEW: Color grouping utilities
+from .COLORAIDE_cache import flush_color_cache, clear_cache  # ← ADD THIS LINE
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties
@@ -114,7 +115,7 @@ class ColoraideAddonPreferences(AddonPreferences):
         update=update_panel
     )
     
-    # Panel visibility preferences
+    # Panel visibility preferences (keep existing ones)
     enable_color_wheel: BoolProperty(
         name="Color Wheel",
         description="Enable the Color Wheel panel with picker type selector and hex input",
@@ -156,11 +157,26 @@ class ColoraideAddonPreferences(AddonPreferences):
         description="Enable the Object Colors panel for detecting and syncing colors from selected objects",
         default=True
     )
+    
+    # NEW: Performance preference
+    live_sync_mode: EnumProperty(
+        name="Live Sync Update Mode",
+        description="How to update live-synced object colors (affects performance)",
+        items=[
+            ('IMMEDIATE', "Immediate", 
+             "Update instantly - accurate but may lag with 50+ properties", 'SETTINGS', 0),
+            ('BATCHED_TIMER', "Batched (100ms)", 
+             "Update every 100ms - smooth with slight delay (recommended)", 'TIME', 1),
+            ('ON_RELEASE', "On Mouse Release", 
+             "Update when slider released - fastest but no live preview", 'HAND', 2),
+        ],
+        default='BATCHED_TIMER'
+    )
 
     def draw(self, context):
         layout = self.layout
 
-        # Tab Category Section
+        # Tab Category Section (keep existing)
         box = layout.box()
         box.label(text="Panel Location", icon='WINDOW')
         row = box.row()
@@ -175,31 +191,52 @@ class ColoraideAddonPreferences(AddonPreferences):
         
         layout.separator()
         
-        # Panel Visibility Section
+        # Panel Visibility Section (keep existing)
         box = layout.box()
         box.label(text="Enabled Panels", icon='PRESET')
         box.label(text="Toggle individual panel sections on/off:")
         
-        # Two columns for cleaner layout
         split = box.split(factor=0.5)
         
-        # Left column
         col = split.column()
         col.prop(self, "enable_color_wheel")
         col.prop(self, "enable_color_dynamics")
         col.prop(self, "enable_color_picker")
         col.prop(self, "enable_color_sliders")
         
-        # Right column
         col = split.column()
         col.prop(self, "enable_history")
         col.prop(self, "enable_palettes")
         col.prop(self, "enable_object_colors")
         
-        # Info box
         info_box = box.box()
         info_box.label(text="Disabled panels are completely hidden from the UI.", icon='INFO')
         info_box.label(text="Use this to customize your workflow and reduce clutter.")
+        
+        layout.separator()
+        
+        # NEW: Performance Section
+        box = layout.box()
+        box.label(text="Performance Settings", icon='PREFERENCES')
+        
+        col = box.column()
+        col.label(text="Live Sync Update Mode:")
+        col.prop(self, "live_sync_mode", text="")
+        
+        # Help text based on selection
+        info_box = box.box()
+        if self.live_sync_mode == 'IMMEDIATE':
+            info_box.label(text="✓ Most accurate - updates instantly", icon='INFO')
+            info_box.label(text="⚠ May lag with 50+ live-synced properties")
+            info_box.label(text="Best for: Precise work with few properties")
+        elif self.live_sync_mode == 'BATCHED_TIMER':
+            info_box.label(text="✓ Balanced - smooth with minimal delay", icon='INFO')
+            info_box.label(text="✓ Updates every 100ms (imperceptible)")
+            info_box.label(text="✓ Recommended for most users")
+        else:  # ON_RELEASE
+            info_box.label(text="✓ Fastest - no lag during slider drag", icon='INFO')
+            info_box.label(text="⚠ Colors update only when you release mouse")
+            info_box.label(text="Best for: Heavy scenes with 200+ properties")
 
 
 # Collect all classes that need registration
@@ -328,17 +365,22 @@ def selection_change_handler(scene, depsgraph):
     except:
         pass  # Silent fail to avoid breaking Blender
 
+@persistent
+def cleanup_cache_on_load(dummy):
+    """Clear color cache when file loads"""
+    clear_cache()
+
+
 def register():
-    # Register non-panel classes first
+    # Register non-panel classes first (keep existing)
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    # Register keymaps
+    # Register keymaps (keep existing)
     register_keymaps()
     
-    # Register property group assignments
+    # Register property group assignments (keep existing)
     bpy.types.WindowManager.coloraide_object_colors = bpy.props.PointerProperty(type=ColoraideObjectColorsProperties)
-    
     bpy.types.WindowManager.coloraide_palette = bpy.props.PointerProperty(type=ColoraidePaletteProperties)
     bpy.types.WindowManager.coloraide_normal = bpy.props.PointerProperty(type=ColoraideNormalProperties)
     bpy.types.WindowManager.coloraide_display = bpy.props.PointerProperty(type=ColoraideDisplayProperties)
@@ -350,35 +392,46 @@ def register():
     bpy.types.WindowManager.coloraide_hsv = bpy.props.PointerProperty(type=ColoraideHSVProperties)
     bpy.types.WindowManager.coloraide_history = bpy.props.PointerProperty(type=ColoraideHistoryProperties)
     
-    # Register panels with correct category from preferences
+    # Register panels with correct category from preferences (keep existing)
     update_panel(None, bpy.context)
     
-    # Add load handler
+    # Add load handler (keep existing)
     bpy.app.handlers.load_post.append(load_handler)
-    # Add selection change handler
+    
+    # NEW: Add cache cleanup handler
+    bpy.app.handlers.load_post.append(cleanup_cache_on_load)
+    
+    # Add selection change handler (keep existing)
     bpy.app.handlers.depsgraph_update_post.append(selection_change_handler)
     
-    # Initialize addon
+    # Initialize addon (keep existing)
     initialize_addon(bpy.context)
     
-    # Start color monitor after slight delay
+    # Start color monitor after slight delay (keep existing)
     bpy.app.timers.register(start_color_monitor, first_interval=0.1)
     
-    print("✓ Coloraide registered with Grouped Color Mode support")
+    print("✓ Coloraide registered with Python Caching optimization")
 
 def unregister():
-    # Remove selection handler
+    # NEW: Clear cache before unregistering
+    clear_cache()
+    
+    # Remove selection handler (keep existing)
     if selection_change_handler in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.depsgraph_update_post.remove(selection_change_handler)
 
-    # Remove load handler
+    # Remove load handler (keep existing)
     if load_handler in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(load_handler)
     
-    # Unregister keymaps
+    # NEW: Remove cleanup handler
+    if cleanup_cache_on_load in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(cleanup_cache_on_load)
+    
+    # Unregister keymaps (keep existing)
     unregister_keymaps()
     
-    # Unregister panels first (in case they were registered separately)
+    # Unregister panels first (keep existing)
     for panel in panels:
         try:
             if "bl_rna" in panel.__dict__:
@@ -386,9 +439,8 @@ def unregister():
         except:
             pass
     
-    # Unregister property groups
+    # Unregister property groups (keep existing)
     del bpy.types.WindowManager.coloraide_object_colors
-
     del bpy.types.WindowManager.coloraide_palette
     del bpy.types.WindowManager.coloraide_normal
     del bpy.types.WindowManager.coloraide_history
@@ -400,11 +452,12 @@ def unregister():
     del bpy.types.WindowManager.coloraide_picker
     del bpy.types.WindowManager.coloraide_display
     
-    # Unregister other classes in reverse order
+    # Unregister other classes in reverse order (keep existing)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
     
     print("✓ Coloraide unregistered")
+
 
 if __name__ == "__main__":
     register()

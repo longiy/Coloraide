@@ -1,10 +1,10 @@
-"""LAB Properties with fixed range handling"""
+"""LAB Properties with fixed range handling and relative adjustment mode"""
 
 import bpy
 from bpy.props import FloatProperty, BoolProperty
 from bpy.types import PropertyGroup
-from .. import COLORAIDE_sync
-from .. import COLORAIDE_utils
+from ..import COLORAIDE_sync
+from ..import COLORAIDE_utils
 
 class ColoraideLABProperties(PropertyGroup):
     suppress_updates: BoolProperty(default=False)
@@ -13,7 +13,8 @@ class ColoraideLABProperties(PropertyGroup):
         if COLORAIDE_sync.is_updating() or self.suppress_updates:
             return
         lab_values = (self.lightness, self.a, self.b)
-        COLORAIDE_sync.sync_all(context, 'lab', lab_values)
+        # Use RELATIVE mode for slider adjustments
+        COLORAIDE_sync.sync_all(context, 'lab', lab_values, mode='relative')
 
     lightness: FloatProperty(
         name="L",

@@ -1,6 +1,7 @@
 """
 Simplified color synchronization system for Blender 5.0+
 All colors are handled in scene linear color space internally.
+NOW WITH RELATIVE ADJUSTMENT MODE for live-synced properties.
 """
 
 import bpy
@@ -21,6 +22,7 @@ from .COLORAIDE_mode_manager import ModeManager
 
 _UPDATING = False
 _UPDATE_SOURCE = None
+_PREVIOUS_COLOR = (0.5, 0.5, 0.5)  # Track previous color for delta calculations
 
 @contextmanager 
 def update_lock(source=None):
@@ -53,7 +55,7 @@ def is_updating(source=None):
     return _UPDATING
 
 
-def sync_all(context, source, color):
+def sync_all(context, source, color, mode='absolute'):
     """
     Synchronize all Coloraide properties and current mode brush from a color change.
     
@@ -61,17 +63,22 @@ def sync_all(context, source, color):
     1. Converts input color to scene linear RGB (if not already)
     2. Updates all Coloraide UI properties
     3. Updates ONLY the current active mode's brush color
-    4. Updates live-synced object color properties
+    4. Updates live-synced object color properties (absolute or relative)
     
     Args:
         context: Blender context
         source: String identifier of what triggered the sync
                 ('wheel', 'picker', 'hsv', 'rgb', 'lab', 'hex', 'history', 'palette', 'brush', 'object_colors')
         color: Color data (format depends on source)
+        mode: 'absolute' (replace color) or 'relative' (adjust by delta)
+              Default 'absolute' for most sources
+              Use 'relative' for slider adjustments
     
     Note: All internal Coloraide state is stored in scene linear color space.
           Conversions to/from sRGB happen only at UI boundaries.
     """
+    global _PREVIOUS_COLOR
+    
     if is_updating(source):
         return
     
@@ -84,17 +91,25 @@ def sync_all(context, source, color):
         # Convert input to scene linear RGB [0.0, 1.0]
         rgb_linear = _convert_to_linear(source, color, wm)
         
+        # Calculate delta if in relative mode
+        delta = None
+        if mode == 'relative':
+            delta = tuple(new - old for new, old in zip(rgb_linear, _PREVIOUS_COLOR))
+        
+        # Update previous color for next delta calculation
+        _PREVIOUS_COLOR = rgb_linear
+        
         # Update all Coloraide properties (in scene linear space)
         _update_coloraide_properties(wm, rgb_linear)
         
-        # Update current mode's brush color
+        # Update current mode's brush color (always absolute)
         ModeManager.set_brush_color(context, rgb_linear)
         
-        # Update live-synced object colors (if not triggered by object_colors itself)
+        # Update live-synced object colors (with mode)
         if source != 'object_colors':
             try:
                 from .operators.OBJECT_COLORS_OT import update_live_synced_properties
-                update_live_synced_properties(context, rgb_linear)
+                update_live_synced_properties(context, rgb_linear, mode=mode, delta=delta)
             except ImportError:
                 pass  # Object colors module not yet loaded
 
