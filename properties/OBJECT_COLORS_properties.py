@@ -1,6 +1,7 @@
 """
 Object color properties detection and management for Coloraide.
 NOW WITH MODE TOGGLE: Object Mode vs Grouped Mode
+FIX 4: Prevent grouped update recursion by using direct updates.
 """
 
 import bpy
@@ -56,28 +57,45 @@ class ColorPropertyItem(PropertyGroup):
     )
     
     def update_color(self, context):
-        """When user changes color swatch, push to object"""
+        """
+        When user changes color swatch, push to object.
+        FIX 4: Use direct updates instead of operators to prevent recursion.
+        """
         if self.suppress_updates:
             return
         
+        # Import here to avoid circular dependencies
+        from ..COLORAIDE_object_colors import set_color_value
+        
         # Check if this is a grouped item
         if self.property_path == '__GROUP__':
-            # For grouped items, call the update operator
-            # This ensures all instances get updated
-            try:
-                # Find our index in the items collection
-                obj_colors = context.window_manager.coloraide_object_colors
-                for idx, item in enumerate(obj_colors.items):
-                    if item == self:
-                        bpy.ops.object_colors.update_group_color(index=idx)
-                        return
-            except:
-                pass
+            # GROUPED MODE: Update all instances directly
+            parts = self.object_name.split('|')
+            count = int(parts[0])
+            instances = parts[2:] if len(parts) > 2 else []
+            
+            new_color = tuple(self.color[:3])
+            
+            for inst_str in instances:
+                try:
+                    obj_name, prop_path, color_space = inst_str.split(':')
+                    obj = bpy.data.objects.get(obj_name)
+                    if obj:
+                        # FIX 4: Direct update, no operator call
+                        set_color_value(obj, prop_path, new_color, color_space)
+                except Exception as e:
+                    print(f"Coloraide: Error updating grouped instance: {e}")
+            
+            # Update hex value in label
+            from ..COLORAIDE_colorspace import linear_to_hex
+            new_hex = linear_to_hex(new_color)
+            self.label_short = f"{new_hex} ({count}×)"
+            
+            # Update stored data
+            self.object_name = f"{count}|{new_hex}|" + "|".join(instances)
             return
         
         # OBJECT MODE: Update single property
-        from ..COLORAIDE_object_colors import set_color_value
-        
         obj = bpy.data.objects.get(self.object_name)
         if not obj:
             return

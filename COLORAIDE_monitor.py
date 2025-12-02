@@ -1,18 +1,19 @@
 """
 Color monitor for Blender 5.0+
 Simple, robust version that works with palettes.
-Based on proven working approach - no complex mode management.
+FIX 3: Respects update state to prevent recursion.
 """
 
 import bpy
 from bpy.types import Operator
-from .COLORAIDE_sync import sync_all
+from .COLORAIDE_sync import sync_all, is_updating, is_updating_live_sync
 from .COLORAIDE_brush_sync import is_brush_updating
 
 class COLOR_OT_monitor(Operator):
     """
     Monitor brush and palette color changes.
     Simple timer-based approach that just works.
+    FIX 3: Skip monitoring when updates are in progress.
     """
     bl_idname = "color.monitor"
     bl_label = "Monitor Color Changes"
@@ -45,6 +46,10 @@ class COLOR_OT_monitor(Operator):
         """Timer callback - checks all paint modes for changes"""
         if not cls.is_running:
             return None
+        
+        # FIX 3: Skip if any updates are in progress
+        if is_updating() or is_updating_live_sync() or is_brush_updating():
+            return 0.1  # Check again soon
         
         try:
             context = bpy.context

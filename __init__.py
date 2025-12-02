@@ -8,6 +8,7 @@ OPTIMIZATIONS APPLIED:
 - Proper error handling (no silent failures)
 """
 import bpy
+import time
 from bpy.app.handlers import persistent
 from bpy.types import AddonPreferences
 from bpy.props import StringProperty
@@ -322,10 +323,25 @@ def initialize_addon(context):
     except Exception as e:
         print(f"Coloraide initialization warning: {e}")
 
+# Debounce timer for selection handler
+_LAST_SELECTION_CHECK = 0
+_DEBOUNCE_INTERVAL = 0.5  # Only check every 0.5 seconds
+
 @persistent
 def selection_change_handler(scene, depsgraph):
-    """Auto-refresh object colors when selection changes"""
+    """
+    Auto-refresh object colors when selection changes.
+    FIX 2: Only trigger on actual selection changes, not property updates.
+    FIX 5: Debounce to prevent rapid-fire updates.
+    """
+    global _LAST_SELECTION_CHECK
+    
     try:
+        # FIX 5: Debounce - ignore if called too recently
+        current_time = time.time()
+        if current_time - _LAST_SELECTION_CHECK < _DEBOUNCE_INTERVAL:
+            return
+        
         context = bpy.context
         if not context or not context.window_manager:
             return
@@ -339,6 +355,21 @@ def selection_change_handler(scene, depsgraph):
         # Only refresh if Object Colors panel is visible
         if not wm.coloraide_display.show_object_colors:
             return
+        
+        # FIX 2: Only check selection changes, ignore property updates
+        # Check if this is a property update by looking at depsgraph updates
+        is_property_update = False
+        for update in depsgraph.updates:
+            # If updates are to properties/geometry, not objects themselves, skip
+            if hasattr(update, 'is_updated_geometry') and update.is_updated_geometry:
+                is_property_update = True
+                break
+            if hasattr(update, 'is_updated_shading') and update.is_updated_shading:
+                is_property_update = True
+                break
+        
+        if is_property_update:
+            return  # Skip property updates - only care about selection
         
         # Check if selection changed
         active_obj = context.active_object
@@ -356,8 +387,12 @@ def selection_change_handler(scene, depsgraph):
             obj_colors.last_active_object = active_name
             obj_colors.last_selected_count = selected_count
             
+            # Update debounce timer
+            _LAST_SELECTION_CHECK = current_time
+            
             # Auto-refresh colors
             bpy.ops.object_colors.refresh()
+    
     except Exception as e:
         print(f"Coloraide: Selection handler error: {e}")
 

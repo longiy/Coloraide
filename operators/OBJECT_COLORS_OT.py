@@ -1,6 +1,7 @@
 """
 Operators for object color property management in Coloraide.
 SUPPORTS: Object Mode, Grouped Mode, Relative Adjustments, Python Caching
+FIX: Added recursion guards to all operators.
 """
 
 import bpy
@@ -8,7 +9,7 @@ from bpy.types import Operator
 from bpy.props import IntProperty, StringProperty
 from ..COLORAIDE_object_colors import scan_all_colors, get_color_value, set_color_value
 from ..COLORAIDE_color_grouping import group_colors_by_value, build_grouped_properties
-from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_sync import sync_all, is_updating, is_updating_live_sync
 
 
 class OBJECT_COLORS_OT_refresh(Operator):
@@ -18,7 +19,18 @@ class OBJECT_COLORS_OT_refresh(Operator):
     bl_description = "Scan selected objects for color properties"
     bl_options = {'INTERNAL'}
     
+    @classmethod
+    def poll(cls, context):
+        """FIX: Don't refresh during updates"""
+        if is_updating() or is_updating_live_sync():
+            return False
+        return True
+    
     def execute(self, context):
+        # FIX: Skip if updates in progress
+        if is_updating() or is_updating_live_sync():
+            return {'CANCELLED'}
+        
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
@@ -77,7 +89,18 @@ class OBJECT_COLORS_OT_pull(Operator):
     
     index: IntProperty()
     
+    @classmethod
+    def poll(cls, context):
+        """FIX: Don't pull during updates"""
+        if is_updating() or is_updating_live_sync():
+            return False
+        return True
+    
     def execute(self, context):
+        # FIX: Skip if updates in progress
+        if is_updating() or is_updating_live_sync():
+            return {'CANCELLED'}
+        
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
@@ -109,7 +132,9 @@ class OBJECT_COLORS_OT_pull(Operator):
                     failed += 1
             
             # Update color and hex in the item
+            item.suppress_updates = True
             item.color = current_color
+            item.suppress_updates = False
             
             # Update hex value in label_short
             from ..COLORAIDE_colorspace import linear_to_hex
@@ -129,7 +154,9 @@ class OBJECT_COLORS_OT_pull(Operator):
             return {'CANCELLED'}
         
         if set_color_value(obj, item.property_path, current_color, item.color_space):
+            item.suppress_updates = True
             item.color = current_color
+            item.suppress_updates = False
             return {'FINISHED'}
         else:
             self.report({'WARNING'}, f"Failed to set color at {item.property_path}")
@@ -145,7 +172,18 @@ class OBJECT_COLORS_OT_push(Operator):
     
     index: IntProperty()
     
+    @classmethod
+    def poll(cls, context):
+        """FIX: Don't push during updates"""
+        if is_updating() or is_updating_live_sync():
+            return False
+        return True
+    
     def execute(self, context):
+        # FIX: Skip if updates in progress
+        if is_updating() or is_updating_live_sync():
+            return {'CANCELLED'}
+        
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
@@ -169,7 +207,9 @@ class OBJECT_COLORS_OT_push(Operator):
         
         color = get_color_value(obj, item.property_path, item.color_space)
         if color:
+            item.suppress_updates = True
             item.color = color
+            item.suppress_updates = False
             sync_all(context, 'object_colors', color)
             return {'FINISHED'}
         else:
@@ -186,7 +226,18 @@ class OBJECT_COLORS_OT_update_group_color(Operator):
     
     index: IntProperty()
     
+    @classmethod
+    def poll(cls, context):
+        """FIX: Don't update during other updates"""
+        if is_updating() or is_updating_live_sync():
+            return False
+        return True
+    
     def execute(self, context):
+        # FIX: Skip if updates in progress
+        if is_updating() or is_updating_live_sync():
+            return {'CANCELLED'}
+        
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
@@ -246,6 +297,7 @@ def update_live_synced_properties(context, color, mode='absolute', delta=None):
     """
     Update all properties with live sync enabled.
     NOW USES PYTHON CACHING for performance (90-95% faster).
+    FIX: Check if already updating to prevent recursion.
     
     Args:
         context: Blender context
@@ -256,6 +308,10 @@ def update_live_synced_properties(context, color, mode='absolute', delta=None):
     Returns:
         int: Number of properties updated
     """
+    # FIX: Don't update if already updating
+    if is_updating_live_sync():
+        return 0
+    
     # Use the cached implementation for better performance
     from ..COLORAIDE_cache import update_live_synced_properties_cached
     
