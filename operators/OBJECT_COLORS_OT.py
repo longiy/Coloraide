@@ -31,6 +31,11 @@ class OBJECT_COLORS_OT_refresh(Operator):
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
+        # STEP 0: FORCE CLEAR ALL CACHES before scanning
+        # This ensures we read fresh data from objects
+        from ..COLORAIDE_object_colors import clear_object_cache
+        clear_object_cache()  # Clear entire cache, not just specific objects
+        
         # STEP 1: Save current user state (live_sync flags, manual colors)
         saved_state = {}  # {(obj_name, prop_path): (live_sync, color)}
         
@@ -44,9 +49,9 @@ class OBJECT_COLORS_OT_refresh(Operator):
             
             saved_state[key] = (item.live_sync, tuple(item.color[:3]))
         
-        # STEP 2: Clear existing items and rescan
+        # STEP 2: Clear existing items and rescan with use_cache=False
         obj_colors.items.clear()
-        detected = scan_all_colors(context, obj_colors.show_multiple_objects)
+        detected = scan_all_colors(context, obj_colors.show_multiple_objects, use_cache=False)
         
         # STEP 3: Rebuild items based on current mode
         if obj_colors.display_mode == 'OBJECT':
@@ -59,19 +64,23 @@ class OBJECT_COLORS_OT_refresh(Operator):
                 item.property_path = color_data['property_path']
                 item.property_type = color_data['property_type']
                 item.color_space = color_data.get('color_space', 'LINEAR')
-                item.color = color_data['color']
                 
-                # RESTORE: Check if we have saved state for this property
+                # Check if we have saved state for this property
                 key = (item.object_name, item.property_path)
                 if key in saved_state:
                     saved_live_sync, saved_color = saved_state[key]
+                    
+                    # RESTORE live_sync flag
                     item.live_sync = saved_live_sync
-                    # Use saved color if user manually changed it
-                    # (Check if it differs from scanned color)
-                    if saved_color != color_data['color']:
-                        item.color = saved_color
+                    
+                    # For color: use saved color (which was already written to object)
+                    # The scan reads FROM the object, so if user changed it,
+                    # the scanned color IS the user's change
+                    item.color = color_data['color']
                 else:
+                    # New property, use scanned values
                     item.live_sync = False
+                    item.color = color_data['color']
             
             self.report({'INFO'}, f"Found {len(detected)} color properties")
         
@@ -83,7 +92,6 @@ class OBJECT_COLORS_OT_refresh(Operator):
                 item = obj_colors.items.add()
                 item.label_short = f"{group_data['hex']} ({group_data['count']}×)"
                 item.label_detailed = f"Color group: {group_data['count']} instances"
-                item.color = group_data['color']
                 item.property_path = '__GROUP__'
                 
                 # Build instance data string
@@ -92,27 +100,27 @@ class OBJECT_COLORS_OT_refresh(Operator):
                     instance_strs.append(f"{inst['object_name']}:{inst['property_path']}:{inst['color_space']}")
                 item.object_name = f"{group_data['count']}|{group_data['hex']}|" + "|".join(instance_strs)
                 
-                # RESTORE: Check if we have saved state for this group
-                # Try to match by the instance data (might be same group)
-                key = ('__GROUP__', item.object_name)
-                if key in saved_state:
-                    saved_live_sync, saved_color = saved_state[key]
-                    item.live_sync = saved_live_sync
-                    if saved_color != group_data['color']:
-                        item.color = saved_color
-                else:
-                    # Try fuzzy match - same instances might have different order
-                    for saved_key, (saved_live_sync, saved_color) in saved_state.items():
-                        if saved_key[0] == '__GROUP__':
-                            # Compare instance sets (order-independent)
-                            saved_instances = set(saved_key[1].split('|')[2:])
-                            current_instances = set(instance_strs)
-                            if saved_instances == current_instances:
-                                item.live_sync = saved_live_sync
-                                item.color = saved_color
-                                break
-                    else:
-                        item.live_sync = False
+                # For color: use scanned color (it reads FROM objects)
+                # If user changed colors in Object Mode, those changes are now in the objects
+                # So the scan picks them up correctly
+                item.color = group_data['color']
+                
+                # RESTORE live_sync: Try to match this group to saved state
+                # Match by instance set (order-independent)
+                current_instances = set(instance_strs)
+                matched = False
+                
+                for saved_key, (saved_live_sync, saved_color) in saved_state.items():
+                    if saved_key[0] == '__GROUP__':
+                        # Compare instance sets
+                        saved_instances = set(saved_key[1].split('|')[2:])
+                        if saved_instances == current_instances:
+                            item.live_sync = saved_live_sync
+                            matched = True
+                            break
+                
+                if not matched:
+                    item.live_sync = False
             
             self.report({'INFO'}, f"Found {len(groups_data)} unique colors across {len(detected)} properties")
         

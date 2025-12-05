@@ -27,9 +27,12 @@ def draw_object_mode(layout, context, obj_colors):
         obj_box = layout.box()
         obj_row = obj_box.row(align=True)
         
-        # Collapse state
+        # Collapse state - use hash to avoid 63-char limit
+        import hashlib
+        obj_hash = hashlib.md5(obj_name.encode()).hexdigest()[:8]
+        collapse_prop = f"oc_col_{obj_hash}"  # "oc" = object colors, "col" = collapse
+        
         wm = context.window_manager
-        collapse_prop = f"obj_colors_collapse_{obj_name}"
         if not hasattr(wm, collapse_prop):
             wm[collapse_prop] = False
         
