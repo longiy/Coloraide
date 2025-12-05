@@ -125,6 +125,13 @@ class ColoraideObjectColorsProperties(PropertyGroup):
         except:
             pass
     
+    def update_show_multiple(self, context):
+        """Auto-refresh when toggling Multi on/off"""
+        try:
+            bpy.ops.object_colors.refresh()
+        except:
+            pass
+    
     display_mode: EnumProperty(
         name="Display Mode",
         description="How to display detected colors",
@@ -144,7 +151,8 @@ class ColoraideObjectColorsProperties(PropertyGroup):
     show_multiple_objects: BoolProperty(
         name="Show Multiple Objects",
         description="Show colors from all selected objects (off = active only)",
-        default=False
+        default=False,
+        update=update_show_multiple
     )
     
     tolerance: bpy.props.FloatProperty(
