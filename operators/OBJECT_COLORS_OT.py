@@ -1,6 +1,6 @@
 """
 Operators for object color property management in Coloraide.
-FIX: Refresh now preserves user changes (live_sync toggles, manual colors)
+CLEAN REWRITE: Simplified with auto-refresh on mode switch.
 """
 
 import bpy
@@ -15,7 +15,7 @@ class OBJECT_COLORS_OT_refresh(Operator):
     """Refresh detected color properties from selected objects"""
     bl_idname = "object_colors.refresh"
     bl_label = "Rescan Objects"
-    bl_description = "Scan selected objects for color properties (preserves your live sync toggles)"
+    bl_description = "Scan selected objects for color properties (preserves live sync toggles)"
     bl_options = {'INTERNAL'}
     
     @classmethod
@@ -31,68 +31,68 @@ class OBJECT_COLORS_OT_refresh(Operator):
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
-        # STEP 0: FORCE CLEAR ALL CACHES before scanning
-        # This ensures we read fresh data from objects
+        # Clear all caches for fresh scan
         from ..COLORAIDE_object_colors import clear_object_cache
-        clear_object_cache()  # Clear entire cache, not just specific objects
+        clear_object_cache()
         
-        # STEP 1: Save current user state (live_sync flags, manual colors)
-        saved_state = {}  # {(obj_name, prop_path): (live_sync, color)}
+        # Save live_sync states before clearing
+        saved_live_sync = {}  # {(obj_name, prop_path): live_sync}
         
         for item in obj_colors.items:
-            if item.property_path == '__GROUP__':
-                # For grouped items, save by the stored data
-                key = ('__GROUP__', item.object_name)
-            else:
-                # For individual items, save by object + path
+            if item.property_path != '__GROUP__':
+                # Individual item
                 key = (item.object_name, item.property_path)
-            
-            saved_state[key] = (item.live_sync, tuple(item.color[:3]))
+                saved_live_sync[key] = item.live_sync
+            else:
+                # Grouped item - save for all instances
+                parts = item.object_name.split('|')
+                instances = parts[2:] if len(parts) > 2 else []
+                for inst_str in instances:
+                    try:
+                        obj_name, prop_path, _ = inst_str.split(':')
+                        key = (obj_name, prop_path)
+                        saved_live_sync[key] = item.live_sync
+                    except:
+                        pass
         
-        # STEP 2: Clear existing items and rescan with use_cache=False
-        obj_colors.items.clear()
+        # Scan objects
         detected = scan_all_colors(context, obj_colors.show_multiple_objects, use_cache=False)
         
-        # STEP 3: Rebuild items based on current mode
+        # Clear and rebuild based on mode
+        obj_colors.items.clear()
+        
         if obj_colors.display_mode == 'OBJECT':
-            # OBJECT MODE: Add individual items
-            for color_data in detected:
+            # OBJECT MODE: Individual items
+            for data in detected:
                 item = obj_colors.items.add()
-                item.label_short = color_data['label_short']
-                item.label_detailed = color_data['label_detailed']
-                item.object_name = color_data['object_name']
-                item.property_path = color_data['property_path']
-                item.property_type = color_data['property_type']
-                item.color_space = color_data.get('color_space', 'LINEAR')
+                item.suppress_updates = True
+                item.label_short = data['label_short']
+                item.label_detailed = data['label_detailed']
+                item.object_name = data['object_name']
+                item.property_path = data['property_path']
+                item.property_type = data['property_type']
+                item.color_space = data.get('color_space', 'LINEAR')
+                item.color = data['color']
                 
-                # Check if we have saved state for this property
-                key = (item.object_name, item.property_path)
-                if key in saved_state:
-                    saved_live_sync, saved_color = saved_state[key]
-                    
-                    # RESTORE live_sync flag
-                    item.live_sync = saved_live_sync
-                    
-                    # For color: use saved color (which was already written to object)
-                    # The scan reads FROM the object, so if user changed it,
-                    # the scanned color IS the user's change
-                    item.color = color_data['color']
-                else:
-                    # New property, use scanned values
-                    item.live_sync = False
-                    item.color = color_data['color']
+                # Restore live_sync
+                key = (data['object_name'], data['property_path'])
+                item.live_sync = saved_live_sync.get(key, False)
+                
+                item.suppress_updates = False
             
             self.report({'INFO'}, f"Found {len(detected)} color properties")
         
         else:  # GROUPED MODE
-            # Group colors and create grouped items
+            # Group colors
             groups_data = build_grouped_properties(context, detected, obj_colors.tolerance)
             
             for group_data in groups_data:
                 item = obj_colors.items.add()
+                item.suppress_updates = True
                 item.label_short = f"{group_data['hex']} ({group_data['count']}×)"
                 item.label_detailed = f"Color group: {group_data['count']} instances"
                 item.property_path = '__GROUP__'
+                item.color = group_data['color']
                 
                 # Build instance data string
                 instance_strs = []
@@ -100,27 +100,15 @@ class OBJECT_COLORS_OT_refresh(Operator):
                     instance_strs.append(f"{inst['object_name']}:{inst['property_path']}:{inst['color_space']}")
                 item.object_name = f"{group_data['count']}|{group_data['hex']}|" + "|".join(instance_strs)
                 
-                # For color: use scanned color (it reads FROM objects)
-                # If user changed colors in Object Mode, those changes are now in the objects
-                # So the scan picks them up correctly
-                item.color = group_data['color']
+                # Restore live_sync: enabled if ANY instance had it
+                item.live_sync = False
+                for inst in group_data['instances']:
+                    key = (inst['object_name'], inst['property_path'])
+                    if saved_live_sync.get(key, False):
+                        item.live_sync = True
+                        break
                 
-                # RESTORE live_sync: Try to match this group to saved state
-                # Match by instance set (order-independent)
-                current_instances = set(instance_strs)
-                matched = False
-                
-                for saved_key, (saved_live_sync, saved_color) in saved_state.items():
-                    if saved_key[0] == '__GROUP__':
-                        # Compare instance sets
-                        saved_instances = set(saved_key[1].split('|')[2:])
-                        if saved_instances == current_instances:
-                            item.live_sync = saved_live_sync
-                            matched = True
-                            break
-                
-                if not matched:
-                    item.live_sync = False
+                item.suppress_updates = False
             
             self.report({'INFO'}, f"Found {len(groups_data)} unique colors across {len(detected)} properties")
         
@@ -150,29 +138,23 @@ class OBJECT_COLORS_OT_pull(Operator):
         obj_colors = wm.coloraide_object_colors
         
         if self.index >= len(obj_colors.items):
-            self.report({'WARNING'}, "Invalid index")
             return {'CANCELLED'}
         
         item = obj_colors.items[self.index]
         current_color = tuple(wm.coloraide_picker.mean)
         
-        # Check if this is a grouped item
         if item.property_path == '__GROUP__':
-            # GROUPED MODE: Pull to all instances
+            # GROUPED: Pull to all instances
             parts = item.object_name.split('|')
             count = int(parts[0])
             instances = parts[2:]
             
             success = 0
-            failed = 0
-            
             for inst_str in instances:
                 obj_name, prop_path, color_space = inst_str.split(':')
                 obj = bpy.data.objects.get(obj_name)
                 if obj and set_color_value(obj, prop_path, current_color, color_space):
                     success += 1
-                else:
-                    failed += 1
             
             # Update item
             item.suppress_updates = True
@@ -191,7 +173,6 @@ class OBJECT_COLORS_OT_pull(Operator):
         # OBJECT MODE: Pull to single property
         obj = bpy.data.objects.get(item.object_name)
         if not obj:
-            self.report({'WARNING'}, f"Object '{item.object_name}' not found")
             return {'CANCELLED'}
         
         if set_color_value(obj, item.property_path, current_color, item.color_space):
@@ -199,9 +180,8 @@ class OBJECT_COLORS_OT_pull(Operator):
             item.color = current_color
             item.suppress_updates = False
             return {'FINISHED'}
-        else:
-            self.report({'WARNING'}, f"Failed to set color")
-            return {'CANCELLED'}
+        
+        return {'CANCELLED'}
 
 
 class OBJECT_COLORS_OT_push(Operator):
@@ -227,12 +207,11 @@ class OBJECT_COLORS_OT_push(Operator):
         obj_colors = wm.coloraide_object_colors
         
         if self.index >= len(obj_colors.items):
-            self.report({'WARNING'}, "Invalid index")
             return {'CANCELLED'}
         
         item = obj_colors.items[self.index]
         
-        # For grouped items, just use the stored color
+        # For grouped items, use stored color
         if item.property_path == '__GROUP__':
             sync_all(context, 'object_colors', tuple(item.color))
             return {'FINISHED'}
@@ -240,7 +219,6 @@ class OBJECT_COLORS_OT_push(Operator):
         # OBJECT MODE: Read from object
         obj = bpy.data.objects.get(item.object_name)
         if not obj:
-            self.report({'WARNING'}, f"Object not found")
             return {'CANCELLED'}
         
         color = get_color_value(obj, item.property_path, item.color_space)
@@ -250,9 +228,8 @@ class OBJECT_COLORS_OT_push(Operator):
             item.suppress_updates = False
             sync_all(context, 'object_colors', color)
             return {'FINISHED'}
-        else:
-            self.report({'WARNING'}, "Failed to read color")
-            return {'CANCELLED'}
+        
+        return {'CANCELLED'}
 
 
 class OBJECT_COLORS_OT_update_group_color(Operator):
@@ -290,13 +267,12 @@ class OBJECT_COLORS_OT_update_group_color(Operator):
         instances = parts[2:]
         
         new_color = tuple(item.color[:3])
-        success = 0
         
         for inst_str in instances:
             obj_name, prop_path, color_space = inst_str.split(':')
             obj = bpy.data.objects.get(obj_name)
-            if obj and set_color_value(obj, prop_path, new_color, color_space):
-                success += 1
+            if obj:
+                set_color_value(obj, prop_path, new_color, color_space)
         
         # Update hex in label
         from ..COLORAIDE_colorspace import linear_to_hex
