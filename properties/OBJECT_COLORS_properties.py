@@ -58,14 +58,17 @@ class ColorPropertyItem(PropertyGroup):
     
     def update_color(self, context):
         """
-        When user changes color swatch, push to object.
-        Uses direct updates to prevent recursion.
+        When user changes color swatch, IMMEDIATELY push to object.
+        This ensures manual changes persist through rescans.
         """
         if self.suppress_updates:
+            print(f"Coloraide DEBUG: update_color skipped (suppress_updates=True)")
             return
         
+        print(f"Coloraide DEBUG: update_color called for {self.label_short}")
+        
         # Import here to avoid circular dependencies
-        from ..COLORAIDE_object_colors import set_color_value
+        from ..COLORAIDE_object_colors import set_color_value, clear_object_cache
         
         # Check if this is a grouped item
         if self.property_path == '__GROUP__':
@@ -75,13 +78,21 @@ class ColorPropertyItem(PropertyGroup):
             instances = parts[2:] if len(parts) > 2 else []
             
             new_color = tuple(self.color[:3])
+            print(f"Coloraide DEBUG: Updating {len(instances)} instances in group to {new_color}")
             
             for inst_str in instances:
                 try:
                     obj_name, prop_path, color_space = inst_str.split(':')
                     obj = bpy.data.objects.get(obj_name)
                     if obj:
-                        set_color_value(obj, prop_path, new_color, color_space)
+                        # CRITICAL: Write to object so rescan picks it up
+                        success = set_color_value(obj, prop_path, new_color, color_space)
+                        if success:
+                            # CRITICAL: Clear cache for this object
+                            clear_object_cache(obj_name)
+                            print(f"Coloraide DEBUG: Updated {obj_name}:{prop_path}")
+                        else:
+                            print(f"Coloraide DEBUG: FAILED to update {obj_name}:{prop_path}")
                 except Exception as e:
                     print(f"Coloraide: Error updating grouped instance: {e}")
             
@@ -97,10 +108,21 @@ class ColorPropertyItem(PropertyGroup):
         # OBJECT MODE: Update single property
         obj = bpy.data.objects.get(self.object_name)
         if not obj:
+            print(f"Coloraide DEBUG: Object '{self.object_name}' not found!")
             return
         
         color = tuple(self.color[:3])
-        set_color_value(obj, self.property_path, color, self.color_space)
+        print(f"Coloraide DEBUG: Writing color {color} to {self.object_name}:{self.property_path}")
+        
+        # CRITICAL: Write to object immediately so rescan sees the change
+        success = set_color_value(obj, self.property_path, color, self.color_space)
+        
+        if success:
+            # CRITICAL: Clear cache for this object so next scan reads fresh data
+            clear_object_cache(self.object_name)
+            print(f"Coloraide DEBUG: Successfully updated and cleared cache for {self.object_name}")
+        else:
+            print(f"Coloraide DEBUG: FAILED to write color to {self.property_path}")
     
     color: FloatVectorProperty(
         name="Color",
