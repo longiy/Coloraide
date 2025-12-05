@@ -1,7 +1,6 @@
 """
 Operators for object color property management in Coloraide.
-SUPPORTS: Object Mode, Grouped Mode, Relative Adjustments, Python Caching
-FIX: Added recursion guards to all operators.
+FIX: Refresh now preserves user changes (live_sync toggles, manual colors)
 """
 
 import bpy
@@ -15,33 +14,43 @@ from ..COLORAIDE_sync import sync_all, is_updating, is_updating_live_sync
 class OBJECT_COLORS_OT_refresh(Operator):
     """Refresh detected color properties from selected objects"""
     bl_idname = "object_colors.refresh"
-    bl_label = "Refresh Object Colors"
-    bl_description = "Scan selected objects for color properties"
+    bl_label = "Rescan Objects"
+    bl_description = "Scan selected objects for color properties (preserves your live sync toggles)"
     bl_options = {'INTERNAL'}
     
     @classmethod
     def poll(cls, context):
-        """FIX: Don't refresh during updates"""
         if is_updating() or is_updating_live_sync():
             return False
         return True
     
     def execute(self, context):
-        # FIX: Skip if updates in progress
         if is_updating() or is_updating_live_sync():
             return {'CANCELLED'}
         
         wm = context.window_manager
         obj_colors = wm.coloraide_object_colors
         
-        # Clear existing items
-        obj_colors.items.clear()
+        # STEP 1: Save current user state (live_sync flags, manual colors)
+        saved_state = {}  # {(obj_name, prop_path): (live_sync, color)}
         
-        # Scan for colors
+        for item in obj_colors.items:
+            if item.property_path == '__GROUP__':
+                # For grouped items, save by the stored data
+                key = ('__GROUP__', item.object_name)
+            else:
+                # For individual items, save by object + path
+                key = (item.object_name, item.property_path)
+            
+            saved_state[key] = (item.live_sync, tuple(item.color[:3]))
+        
+        # STEP 2: Clear existing items and rescan
+        obj_colors.items.clear()
         detected = scan_all_colors(context, obj_colors.show_multiple_objects)
         
+        # STEP 3: Rebuild items based on current mode
         if obj_colors.display_mode == 'OBJECT':
-            # OBJECT MODE: Add individual items as before
+            # OBJECT MODE: Add individual items
             for color_data in detected:
                 item = obj_colors.items.add()
                 item.label_short = color_data['label_short']
@@ -51,29 +60,59 @@ class OBJECT_COLORS_OT_refresh(Operator):
                 item.property_type = color_data['property_type']
                 item.color_space = color_data.get('color_space', 'LINEAR')
                 item.color = color_data['color']
-                item.live_sync = False
+                
+                # RESTORE: Check if we have saved state for this property
+                key = (item.object_name, item.property_path)
+                if key in saved_state:
+                    saved_live_sync, saved_color = saved_state[key]
+                    item.live_sync = saved_live_sync
+                    # Use saved color if user manually changed it
+                    # (Check if it differs from scanned color)
+                    if saved_color != color_data['color']:
+                        item.color = saved_color
+                else:
+                    item.live_sync = False
             
             self.report({'INFO'}, f"Found {len(detected)} color properties")
         
         else:  # GROUPED MODE
-            # Group colors and store for UI
+            # Group colors and create grouped items
             groups_data = build_grouped_properties(context, detected, obj_colors.tolerance)
             
-            # Store groups in a way the UI can access
             for group_data in groups_data:
-                # Create one "representative" item per group
                 item = obj_colors.items.add()
                 item.label_short = f"{group_data['hex']} ({group_data['count']}×)"
                 item.label_detailed = f"Color group: {group_data['count']} instances"
                 item.color = group_data['color']
-                item.property_path = '__GROUP__'  # Special marker for grouped items
+                item.property_path = '__GROUP__'
                 
-                # Store instance data in object_name
-                # Format: "instance_count|hex|obj1:path1:space|obj2:path2:space|..."
+                # Build instance data string
                 instance_strs = []
                 for inst in group_data['instances']:
                     instance_strs.append(f"{inst['object_name']}:{inst['property_path']}:{inst['color_space']}")
                 item.object_name = f"{group_data['count']}|{group_data['hex']}|" + "|".join(instance_strs)
+                
+                # RESTORE: Check if we have saved state for this group
+                # Try to match by the instance data (might be same group)
+                key = ('__GROUP__', item.object_name)
+                if key in saved_state:
+                    saved_live_sync, saved_color = saved_state[key]
+                    item.live_sync = saved_live_sync
+                    if saved_color != group_data['color']:
+                        item.color = saved_color
+                else:
+                    # Try fuzzy match - same instances might have different order
+                    for saved_key, (saved_live_sync, saved_color) in saved_state.items():
+                        if saved_key[0] == '__GROUP__':
+                            # Compare instance sets (order-independent)
+                            saved_instances = set(saved_key[1].split('|')[2:])
+                            current_instances = set(instance_strs)
+                            if saved_instances == current_instances:
+                                item.live_sync = saved_live_sync
+                                item.color = saved_color
+                                break
+                    else:
+                        item.live_sync = False
             
             self.report({'INFO'}, f"Found {len(groups_data)} unique colors across {len(detected)} properties")
         
@@ -84,20 +123,18 @@ class OBJECT_COLORS_OT_pull(Operator):
     """Pull color from Coloraide to object property (↓)"""
     bl_idname = "object_colors.pull"
     bl_label = "Pull Color from Coloraide"
-    bl_description = "Apply Coloraide's current color to this property (pull from Coloraide picker)"
+    bl_description = "Apply Coloraide's current color to this property"
     bl_options = {'INTERNAL'}
     
     index: IntProperty()
     
     @classmethod
     def poll(cls, context):
-        """FIX: Don't pull during updates"""
         if is_updating() or is_updating_live_sync():
             return False
         return True
     
     def execute(self, context):
-        # FIX: Skip if updates in progress
         if is_updating() or is_updating_live_sync():
             return {'CANCELLED'}
         
@@ -109,16 +146,14 @@ class OBJECT_COLORS_OT_pull(Operator):
             return {'CANCELLED'}
         
         item = obj_colors.items[self.index]
-        
-        # Get Coloraide's current color (scene linear)
         current_color = tuple(wm.coloraide_picker.mean)
         
         # Check if this is a grouped item
         if item.property_path == '__GROUP__':
-            # GROUPED MODE: Pull to all instances in group
+            # GROUPED MODE: Pull to all instances
             parts = item.object_name.split('|')
             count = int(parts[0])
-            instances = parts[2:]  # Skip count and hex
+            instances = parts[2:]
             
             success = 0
             failed = 0
@@ -131,17 +166,15 @@ class OBJECT_COLORS_OT_pull(Operator):
                 else:
                     failed += 1
             
-            # Update color and hex in the item
+            # Update item
             item.suppress_updates = True
             item.color = current_color
             item.suppress_updates = False
             
-            # Update hex value in label_short
+            # Update hex in label
             from ..COLORAIDE_colorspace import linear_to_hex
             new_hex = linear_to_hex(current_color)
             item.label_short = f"{new_hex} ({count}×)"
-            
-            # Update stored data with new hex
             item.object_name = f"{count}|{new_hex}|" + "|".join(instances)
             
             self.report({'INFO'}, f"Pulled to {success}/{count} instances")
@@ -159,7 +192,7 @@ class OBJECT_COLORS_OT_pull(Operator):
             item.suppress_updates = False
             return {'FINISHED'}
         else:
-            self.report({'WARNING'}, f"Failed to set color at {item.property_path}")
+            self.report({'WARNING'}, f"Failed to set color")
             return {'CANCELLED'}
 
 
@@ -167,20 +200,18 @@ class OBJECT_COLORS_OT_push(Operator):
     """Push color from object property to Coloraide (↑)"""
     bl_idname = "object_colors.push"
     bl_label = "Push Color to Coloraide"
-    bl_description = "Load this color into Coloraide's picker (push to Coloraide picker)"
+    bl_description = "Load this color into Coloraide's picker"
     bl_options = {'INTERNAL'}
     
     index: IntProperty()
     
     @classmethod
     def poll(cls, context):
-        """FIX: Don't push during updates"""
         if is_updating() or is_updating_live_sync():
             return False
         return True
     
     def execute(self, context):
-        # FIX: Skip if updates in progress
         if is_updating() or is_updating_live_sync():
             return {'CANCELLED'}
         
@@ -193,16 +224,15 @@ class OBJECT_COLORS_OT_push(Operator):
         
         item = obj_colors.items[self.index]
         
-        # Check if this is a grouped item
+        # For grouped items, just use the stored color
         if item.property_path == '__GROUP__':
-            # Just sync the group color to Coloraide
             sync_all(context, 'object_colors', tuple(item.color))
             return {'FINISHED'}
         
-        # OBJECT MODE: Push from specific property to Coloraide
+        # OBJECT MODE: Read from object
         obj = bpy.data.objects.get(item.object_name)
         if not obj:
-            self.report({'WARNING'}, f"Object '{item.object_name}' not found")
+            self.report({'WARNING'}, f"Object not found")
             return {'CANCELLED'}
         
         color = get_color_value(obj, item.property_path, item.color_space)
@@ -213,7 +243,7 @@ class OBJECT_COLORS_OT_push(Operator):
             sync_all(context, 'object_colors', color)
             return {'FINISHED'}
         else:
-            self.report({'WARNING'}, f"Failed to read color from {item.property_path}")
+            self.report({'WARNING'}, "Failed to read color")
             return {'CANCELLED'}
 
 
@@ -228,13 +258,11 @@ class OBJECT_COLORS_OT_update_group_color(Operator):
     
     @classmethod
     def poll(cls, context):
-        """FIX: Don't update during other updates"""
         if is_updating() or is_updating_live_sync():
             return False
         return True
     
     def execute(self, context):
-        # FIX: Skip if updates in progress
         if is_updating() or is_updating_live_sync():
             return {'CANCELLED'}
         
@@ -246,11 +274,9 @@ class OBJECT_COLORS_OT_update_group_color(Operator):
         
         item = obj_colors.items[self.index]
         
-        # Only handle grouped items
         if item.property_path != '__GROUP__':
             return {'CANCELLED'}
         
-        # Parse instance data
         parts = item.object_name.split('|')
         count = int(parts[0])
         instances = parts[2:]
@@ -258,19 +284,16 @@ class OBJECT_COLORS_OT_update_group_color(Operator):
         new_color = tuple(item.color[:3])
         success = 0
         
-        # Update all instances
         for inst_str in instances:
             obj_name, prop_path, color_space = inst_str.split(':')
             obj = bpy.data.objects.get(obj_name)
             if obj and set_color_value(obj, prop_path, new_color, color_space):
                 success += 1
         
-        # Update hex value in label
+        # Update hex in label
         from ..COLORAIDE_colorspace import linear_to_hex
         new_hex = linear_to_hex(new_color)
         item.label_short = f"{new_hex} ({count}×)"
-        
-        # Update stored data with new hex
         item.object_name = f"{count}|{new_hex}|" + "|".join(instances)
         
         return {'FINISHED'}
@@ -294,22 +317,8 @@ class OBJECT_COLORS_OT_show_tooltip(Operator):
 
 
 def update_live_synced_properties(context, color, mode='absolute', delta=None):
-    """
-    Update all properties with live sync enabled.
-    NOW USES PYTHON CACHING for performance (90-95% faster).
-    
-    Args:
-        context: Blender context
-        color: Target color in scene linear space (for absolute mode)
-        mode: 'absolute' (replace) or 'relative' (adjust by delta)
-        delta: Color delta (r, g, b) for relative adjustments
-    
-    Returns:
-        int: Number of properties updated
-    """
-    # Use the cached implementation for better performance
+    """Update all properties with live sync enabled (uses cache)"""
     from ..COLORAIDE_cache import update_live_synced_properties_cached
-    
     return update_live_synced_properties_cached(context, color, mode, delta)
 
 

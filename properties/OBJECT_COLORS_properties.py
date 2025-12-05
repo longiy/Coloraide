@@ -1,7 +1,7 @@
 """
 Object color properties detection and management for Coloraide.
 NOW WITH MODE TOGGLE: Object Mode vs Grouped Mode
-FIX 4: Prevent grouped update recursion by using direct updates.
+FIX: Removed auto-refresh from mode toggles - user must click Rescan explicitly
 """
 
 import bpy
@@ -59,7 +59,7 @@ class ColorPropertyItem(PropertyGroup):
     def update_color(self, context):
         """
         When user changes color swatch, push to object.
-        FIX 4: Use direct updates instead of operators to prevent recursion.
+        Uses direct updates to prevent recursion.
         """
         if self.suppress_updates:
             return
@@ -81,7 +81,6 @@ class ColorPropertyItem(PropertyGroup):
                     obj_name, prop_path, color_space = inst_str.split(':')
                     obj = bpy.data.objects.get(obj_name)
                     if obj:
-                        # FIX 4: Direct update, no operator call
                         set_color_value(obj, prop_path, new_color, color_space)
                 except Exception as e:
                     print(f"Coloraide: Error updating grouped instance: {e}")
@@ -122,15 +121,7 @@ class ColorPropertyItem(PropertyGroup):
 class ColoraideObjectColorsProperties(PropertyGroup):
     """Manager for detected object color properties with mode toggle"""
     
-    def update_display_mode(self, context):
-        """Auto-refresh when switching modes"""
-        # Automatically refresh the color list when mode changes
-        try:
-            bpy.ops.object_colors.refresh()
-        except:
-            pass  # Silent fail if context not ready
-    
-    # MODE SELECTION
+    # MODE SELECTION - NO AUTO-REFRESH
     display_mode: EnumProperty(
         name="Display Mode",
         description="How to display detected colors",
@@ -138,8 +129,8 @@ class ColoraideObjectColorsProperties(PropertyGroup):
             ('OBJECT', "Object Mode", "Show individual properties per object", 'OBJECT_DATA', 0),
             ('GROUPED', "Grouped Mode", "Group identical colors (Figma-style)", 'COLOR', 1),
         ],
-        default='OBJECT',
-        update=update_display_mode  # Auto-refresh on change
+        default='OBJECT'
+        # REMOVED: update=update_display_mode
     )
     
     # OBJECT MODE: Collection of individual properties
@@ -148,33 +139,26 @@ class ColoraideObjectColorsProperties(PropertyGroup):
         name="Color Properties"
     )
     
-    # Settings
-    def update_show_multiple(self, context):
-        """Auto-refresh when toggling Multi on/off"""
-        try:
-            bpy.ops.object_colors.refresh()
-        except:
-            pass
-    
+    # MULTI SELECTION - NO AUTO-REFRESH
     show_multiple_objects: BoolProperty(
         name="Show Multiple Objects",
         description="Show colors from all selected objects (off = active object only)",
-        default=False,
-        update=update_show_multiple  # Auto-refresh on toggle
+        default=False
+        # REMOVED: update=update_show_multiple
     )
     
     # Tolerance for grouped mode (HIDDEN - no UI control)
     tolerance: bpy.props.FloatProperty(
         name="Color Tolerance",
-        description="How similar colors must be to group together (0 = exact match, higher = more grouping)",
-        default=0.001,  # Very precise - groups visually identical colors
+        description="How similar colors must be to group together",
+        default=0.001,
         min=0.0,
         max=0.1,
         soft_min=0.0,
         soft_max=0.05,
         precision=4,
         step=0.01,
-        options={'HIDDEN', 'SKIP_SAVE'}  # Hidden from UI, not saved
+        options={'HIDDEN', 'SKIP_SAVE'}
     )
     
     # Internal state tracking

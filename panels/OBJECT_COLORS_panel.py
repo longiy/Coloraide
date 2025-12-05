@@ -1,18 +1,17 @@
 """
-Object color properties panel UI with MODE TOGGLE.
-Supports both Object Mode (individual) and Grouped Mode (Figma-style).
+Object color properties panel UI with MODE TOGGLE and EXPLICIT RESCAN.
+FIX: Added Rescan button, mode toggles no longer trigger refresh
 """
 
 import bpy
 
 
 def draw_object_mode(layout, context, obj_colors):
-    """Draw Object Mode UI (existing individual property view)"""
+    """Draw Object Mode UI (individual property view)"""
     
-    # Check if we have any detected colors
     if not obj_colors.items:
         layout.label(text="No colors detected", icon='INFO')
-        layout.label(text="Select object to auto-scan")
+        layout.label(text="Click 'Rescan' to detect colors")
         return
     
     # Group colors by object name
@@ -80,11 +79,11 @@ def draw_object_mode(layout, context, obj_colors):
                 btn_row = right_col.row(align=True)
                 btn_row.scale_x = 1.0
                 
-                # Push button (↑) - Load color FROM object TO Coloraide
+                # Push (↑) - Load FROM object TO Coloraide
                 push_op = btn_row.operator("object_colors.push", text="", icon='TRIA_UP')
                 push_op.index = idx
                 
-                # Pull button (↓) - Push color FROM Coloraide TO object
+                # Pull (↓) - Push FROM Coloraide TO object
                 pull_op = btn_row.operator("object_colors.pull", text="", icon='TRIA_DOWN')
                 pull_op.index = idx
     
@@ -98,15 +97,13 @@ def draw_object_mode(layout, context, obj_colors):
 
 
 def draw_grouped_mode(layout, context, obj_colors):
-    """Draw Grouped Mode UI (Figma-style color groups) - COMPACT LAYOUT"""
+    """Draw Grouped Mode UI (Figma-style color groups)"""
     
-    # Check if we have any detected colors
     if not obj_colors.items:
         layout.label(text="No colors detected", icon='INFO')
-        layout.label(text="Select object to auto-scan")
+        layout.label(text="Click 'Rescan' to detect colors")
         return
     
-    # Draw color groups
     wm = context.window_manager
     
     for idx, item in enumerate(obj_colors.items):
@@ -117,15 +114,14 @@ def draw_grouped_mode(layout, context, obj_colors):
         # Parse group data
         parts = item.object_name.split('|')
         count = int(parts[0])
-        hex_val = parts[1]  # This might be outdated if color changed
+        hex_val = parts[1]
         instances = parts[2:] if len(parts) > 2 else []
         
-        # Use label_short if it exists (updated with current hex), otherwise use parsed hex
         display_label = item.label_short if item.label_short else f"{hex_val} ({count}×)"
         
-        # Main row - NO GROUP BOX, direct in layout like Object Mode
+        # Main row
         main_row = layout.row(align=True)
-        main_row.scale_y = 1.0  # Regular spacing like Object Mode
+        main_row.scale_y = 1.0
         
         # Live sync checkbox
         sync_col = main_row.column(align=True)
@@ -134,11 +130,10 @@ def draw_grouped_mode(layout, context, obj_colors):
         
         main_row.separator(factor=0.5)
         
-        # Split: left side (label) gets flexible space, right side (color+buttons) gets fixed space
+        # Split for label and color+buttons
         split = main_row.split(factor=0.65, align=True)
         
-        # Left: Hex label with usage count - takes flexible space
-        # Build tooltip showing all instances
+        # Build tooltip
         tooltip_lines = []
         for inst_str in instances:
             parts = inst_str.split(':')
@@ -146,7 +141,6 @@ def draw_grouped_mode(layout, context, obj_colors):
                 obj_name = parts[0]
                 prop_path = parts[1]
                 
-                # Create readable label for tooltip
                 if 'material' in prop_path.lower():
                     tooltip_lines.append(f"• {obj_name} > Material")
                 elif 'light' in prop_path.lower() or 'data.color' in prop_path:
@@ -158,37 +152,35 @@ def draw_grouped_mode(layout, context, obj_colors):
         
         tooltip_text = "\n".join(tooltip_lines) if tooltip_lines else "No instances"
         
+        # Label with tooltip
         label_col = split.column(align=True)
         label_col.alignment = 'LEFT'
-        # Use tooltip operator to show instances on hover
         tooltip_op = label_col.operator("object_colors.show_tooltip", text=display_label, emboss=False)
         tooltip_op.tooltip = tooltip_text
         tooltip_op.label = display_label
         
-        # Right: Fixed-width section for color + buttons
+        # Color and buttons
         right_col = split.row(align=True)
         right_col.alignment = 'RIGHT'
         
-        # Color swatch - fixed proportion
+        # Color swatch
         color_col = right_col.column(align=True)
         color_col.scale_x = 1.0
         color_col.prop(item, "color", text="")
         
-        # Buttons - normal width, right next to color
+        # Buttons
         btn_row = right_col.row(align=True)
         btn_row.scale_x = 1.0
         
-        # Push button (↑) - Load color FROM group TO Coloraide (upload to picker)
+        # Push (↑) - Load FROM group TO Coloraide
         push_op = btn_row.operator("object_colors.push", text="", icon='TRIA_UP')
         push_op.index = idx
         
-        # Pull button (↓) - Push color FROM Coloraide TO all in group (download from picker)
+        # Pull (↓) - Push FROM Coloraide TO all in group
         pull_op = btn_row.operator("object_colors.pull", text="", icon='TRIA_DOWN')
         pull_op.index = idx
-        
-        # NO instance list - just the color group row like Figma
     
-    # Summary - COMPACT
+    # Summary
     total_groups = sum(1 for item in obj_colors.items if item.property_path == '__GROUP__')
     synced_groups = sum(1 for item in obj_colors.items 
                        if item.property_path == '__GROUP__' and item.live_sync)
@@ -200,7 +192,7 @@ def draw_grouped_mode(layout, context, obj_colors):
 
 
 def draw_object_colors_panel(layout, context):
-    """Main panel drawing function with mode toggle"""
+    """Main panel drawing function with explicit Rescan button"""
     wm = context.window_manager
     obj_colors = wm.coloraide_object_colors
     
@@ -215,25 +207,24 @@ def draw_object_colors_panel(layout, context):
     
     if not wm.coloraide_display.show_object_colors:
         return
-
     
-    # MODE TOGGLE BUTTONS (like RGB/HSV/LAB toggles)
-    mode_row = box.row(align=True)
+    # CONTROL ROW: Multi toggle + Mode buttons + RESCAN
+    control_row = box.row(align=True)
     
+    # Multi toggle (left side)
+    multi_col = control_row.column(align=True)
+    multi_col.prop(obj_colors, "show_multiple_objects", text="Multi", icon='MOD_ARRAY', toggle=True)
     
-    multi_row = mode_row.row(align=True)
-    multi_row.prop(obj_colors, "show_multiple_objects", text="Multi", icon='MOD_ARRAY', toggle=True)
-
-    # Object Mode button
-    obj_mode = mode_row.row(align=True)
-    obj_mode.prop_enum(obj_colors, "display_mode", 'OBJECT', text="Object", icon='OBJECT_DATA')
+    # Mode buttons (center)
+    mode_row = control_row.row(align=True)
+    mode_row.prop_enum(obj_colors, "display_mode", 'OBJECT', text="Object", icon='OBJECT_DATA')
+    mode_row.prop_enum(obj_colors, "display_mode", 'GROUPED', text="Grouped", icon='COLOR')
     
-    # Grouped Mode button
-    group_mode = mode_row.row(align=True)
-    group_mode.prop_enum(obj_colors, "display_mode", 'GROUPED', text="Grouped", icon='COLOR')
+    # RESCAN BUTTON (right side) - EXPLICIT ACTION
+    rescan_col = control_row.column(align=True)
+    rescan_col.operator("object_colors.refresh", text="Rescan", icon='FILE_REFRESH')
     
-    
-    # Draw appropriate UI based on mode
+    # Draw mode-specific UI
     if obj_colors.display_mode == 'OBJECT':
         draw_object_mode(box, context, obj_colors)
     else:  # GROUPED
