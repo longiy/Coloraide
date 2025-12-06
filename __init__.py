@@ -323,84 +323,106 @@ def initialize_addon(context):
     except Exception as e:
         print(f"Coloraide initialization warning: {e}")
 
-# Debounce timer for selection handler
-_LAST_SELECTION_CHECK = 0
-_DEBOUNCE_INTERVAL = 0.5  # Only check every 0.5 seconds
+# In __init__.py - Use msgbus to listen for selection changes
 
-# @persistent
-# def selection_change_handler(scene, depsgraph):
-#     """
-#     Auto-refresh object colors when selection changes.
-#     FIX 2: Only trigger on actual selection changes, not property updates.
-#     FIX 5: Debounce to prevent rapid-fire updates.
-#     """
-#     global _LAST_SELECTION_CHECK
-    
-#     try:
-#         # FIX 5: Debounce - ignore if called too recently
-#         current_time = time.time()
-#         if current_time - _LAST_SELECTION_CHECK < _DEBOUNCE_INTERVAL:
-#             return
+# msgbus subscription key
+_msgbus_owner = object()
+
+def on_selection_changed():
+    """
+    Callback when selection changes.
+    Called by msgbus when active_object or selected_objects changes.
+    """
+    try:
+        context = bpy.context
+        if not context:
+            return
         
-#         context = bpy.context
-#         if not context or not context.window_manager:
-#             return
+        wm = context.window_manager
+        if not hasattr(wm, 'coloraide_object_colors'):
+            return
         
-#         wm = context.window_manager
-#         if not hasattr(wm, 'coloraide_object_colors'):
-#             return
+        obj_colors = wm.coloraide_object_colors
         
-#         obj_colors = wm.coloraide_object_colors
+        # Only auto-refresh if panel is visible
+        if not hasattr(wm, 'coloraide_display') or not wm.coloraide_display.show_object_colors:
+            return
         
-#         # Only refresh if Object Colors panel is visible
-#         if not wm.coloraide_display.show_object_colors:
-#             return
+        # REMOVED: Don't wait for first manual scan anymore
+        # If items is empty, do initial scan automatically
+        if not obj_colors.items:
+            print("Coloraide: First selection detected - initializing object colors")
         
-#         # FIX 2: Only check selection changes, ignore property updates
-#         # Check if this is a property update by looking at depsgraph updates
-#         is_property_update = False
-#         for update in depsgraph.updates:
-#             # If updates are to properties/geometry, not objects themselves, skip
-#             if hasattr(update, 'is_updated_geometry') and update.is_updated_geometry:
-#                 is_property_update = True
-#                 break
-#             if hasattr(update, 'is_updated_shading') and update.is_updated_shading:
-#                 is_property_update = True
-#                 break
+        # Get current selection
+        active_obj = context.active_object
+        active_name = active_obj.name if active_obj else ""
+        selected_count = len(context.selected_objects)
         
-#         if is_property_update:
-#             return  # Skip property updates - only care about selection
+        # Check if actually changed (prevent redundant refreshes)
+        if (active_name == obj_colors.last_active_object and 
+            selected_count == obj_colors.last_selected_count):
+            return
         
-#         # Check if selection changed
-#         active_obj = context.active_object
-#         active_name = active_obj.name if active_obj else ""
-#         selected_count = len(context.selected_objects)
+        # Update tracking BEFORE refresh
+        obj_colors.last_active_object = active_name
+        obj_colors.last_selected_count = selected_count
         
-#         # Detect changes
-#         changed = (
-#             active_name != obj_colors.last_active_object or
-#             selected_count != obj_colors.last_selected_count
-#         )
+        # Trigger refresh
+        print(f"Coloraide: Selection changed - auto-refreshing (active: {active_name}, count: {selected_count})")
+        bpy.ops.object_colors.refresh()
         
-#         if changed and (active_obj or selected_count > 0):
-#             # Update tracking
-#             obj_colors.last_active_object = active_name
-#             obj_colors.last_selected_count = selected_count
-            
-#             # Update debounce timer
-#             _LAST_SELECTION_CHECK = current_time
-            
-#             # Auto-refresh colors
-#             bpy.ops.object_colors.refresh()
-    
-#     except Exception as e:
-#         print(f"Coloraide: Selection handler error: {e}")
+    except Exception as e:
+        print(f"Coloraide: Selection change callback error: {e}")
+
+
+def subscribe_to_selection_changes():
+    """Subscribe to selection change events via msgbus"""
+    try:
+        # Subscribe to active_object changes (when you select a different object)
+        bpy.msgbus.subscribe_rna(
+            key=(bpy.types.LayerObjects, "active"),
+            owner=_msgbus_owner,
+            args=(),
+            notify=on_selection_changed,
+        )
+        
+        # Subscribe to selected objects changes (when you select/deselect objects)
+        # This catches multi-selection and deselection
+        bpy.msgbus.subscribe_rna(
+            key=(bpy.types.LayerObjects, "selected"),
+            owner=_msgbus_owner,
+            args=(),
+            notify=on_selection_changed,
+        )
+        
+        print("Coloraide: Subscribed to selection changes (active + selected via msgbus)")
+    except Exception as e:
+        print(f"Coloraide: Failed to subscribe to selection changes: {e}")
+
+
+def unsubscribe_from_selection_changes():
+    """Unsubscribe from selection change events"""
+    try:
+        bpy.msgbus.clear_by_owner(_msgbus_owner)
+        print("Coloraide: Unsubscribed from selection changes")
+    except Exception as e:
+        print(f"Coloraide: Failed to unsubscribe: {e}")
+
+
+@persistent
+def load_handler(dummy):
+    """Ensure monitors are running after file load"""
+    # Start color monitor
+    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
+    # Subscribe to selection changes
+    bpy.app.timers.register(subscribe_to_selection_changes, first_interval=0.5)
+
 
 @persistent
 def cleanup_cache_on_load(dummy):
     """Clear all caches when file loads"""
-    clear_cache()  # Color update cache
-    clear_object_cache()  # Object scan cache
+    clear_cache()
+    clear_object_cache()
 
 
 def register():
@@ -430,7 +452,6 @@ def register():
     # Add handlers
     bpy.app.handlers.load_post.append(load_handler)
     bpy.app.handlers.load_post.append(cleanup_cache_on_load)
-    # bpy.app.handlers.depsgraph_update_post.append(selection_change_handler)
     
     # Initialize addon
     initialize_addon(bpy.context)
@@ -438,21 +459,26 @@ def register():
     # Start color monitor after slight delay
     bpy.app.timers.register(start_color_monitor, first_interval=0.1)
     
+    # Subscribe to selection changes after slight delay
+    bpy.app.timers.register(subscribe_to_selection_changes, first_interval=0.5)
+    
     print("✓ Coloraide v1.5.1 registered (Performance Optimized)")
-    print("  • Object scan caching enabled (instant refresh)")
-    print("  • O(1) history duplicate checking")
-    print("  • Single-pass material tree traversal")
-    print("  • Proper error handling throughout")
+    # print("  • Object scan caching enabled (instant refresh)")
+    # print("  • O(1) history duplicate checking")
+    # print("  • Single-pass material tree traversal")
+    # print("  • Proper error handling throughout")
+    # print("  • Auto-refresh on selection change enabled (msgbus)")
+
 
 def unregister():
     # Clear all caches before unregistering
     clear_cache()
     clear_object_cache()
     
+    # Unsubscribe from msgbus
+    unsubscribe_from_selection_changes()
+    
     # Remove handlers
-    # if selection_change_handler in bpy.app.handlers.depsgraph_update_post:
-    #     bpy.app.handlers.depsgraph_update_post.remove(selection_change_handler)
-
     if load_handler in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(load_handler)
     
