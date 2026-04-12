@@ -97,13 +97,17 @@ class IMAGE_OT_screen_picker(Operator):
         """
         if is_updating('picker'):
             return
-                
+
         distance = self.sqrt_length // 2
+        fb_width = context.window.width
+        fb_height = context.window.height
         start_x = max(event.mouse_x - distance, 0)
         start_y = max(event.mouse_y - distance, 0)
+        start_x = min(start_x, max(fb_width - self.sqrt_length, 0))
+        start_y = min(start_y, max(fb_height - self.sqrt_length, 0))
 
         fb = gpu.state.active_framebuffer_get()
-        
+
         screen_buffer = fb.read_color(start_x, start_y, self.sqrt_length, self.sqrt_length, 3, 0, 'FLOAT')
         channels = np.array(screen_buffer.to_list()).reshape((self.sqrt_length * self.sqrt_length, 3))
         mean_color_srgb = np.mean(channels, axis=0)
@@ -111,7 +115,9 @@ class IMAGE_OT_screen_picker(Operator):
         mean_color = rgb_srgb_to_linear(tuple(mean_color_srgb))
 
         # Sample single pixel for current color (also sRGB, needs conversion)
-        curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
+        curr_x = min(max(event.mouse_x, 0), fb_width - 1)
+        curr_y = min(max(event.mouse_y, 0), fb_height - 1)
+        curr_buffer = fb.read_color(curr_x, curr_y, 1, 1, 3, 0, 'FLOAT')
         current_color_srgb = np.array(curr_buffer.to_list()).reshape(-1)
         # Convert sRGB → scene linear
         current_color = rgb_srgb_to_linear(tuple(current_color_srgb))
@@ -214,12 +220,16 @@ class IMAGE_OT_quickpick(Operator):
             # Use custom size from picker properties
             self.sqrt_length = context.window_manager.coloraide_picker.custom_size
             distance = self.sqrt_length // 2
+            fb_width = context.window.width
+            fb_height = context.window.height
             start_x = max(event.mouse_x - distance, 0)
             start_y = max(event.mouse_y - distance, 0)
-            
+            start_x = min(start_x, max(fb_width - self.sqrt_length, 0))
+            start_y = min(start_y, max(fb_height - self.sqrt_length, 0))
+
             self.x = event.mouse_region_x
             self.y = event.mouse_region_y
-            
+
             fb = gpu.state.active_framebuffer_get()
 
             # Sample colors (framebuffer returns sRGB, need conversion)
@@ -229,7 +239,9 @@ class IMAGE_OT_quickpick(Operator):
             # Convert sRGB → scene linear
             mean_color = rgb_srgb_to_linear(tuple(mean_color_srgb))
 
-            curr_buffer = fb.read_color(event.mouse_x, event.mouse_y, 1, 1, 3, 0, 'FLOAT')
+            curr_x = min(max(event.mouse_x, 0), fb_width - 1)
+            curr_y = min(max(event.mouse_y, 0), fb_height - 1)
+            curr_buffer = fb.read_color(curr_x, curr_y, 1, 1, 3, 0, 'FLOAT')
             current_color_srgb = np.array(curr_buffer.to_list()).reshape(-1)
             # Convert sRGB → scene linear
             current_color = rgb_srgb_to_linear(tuple(current_color_srgb))
