@@ -11,8 +11,15 @@ Strategy per platform:
 """
 
 import sys
+import time
 import ctypes
 import numpy as np
+
+# Minimum seconds between screen-capture samples (~60 fps cap).
+# CGWindowListCreateImage / BitBlt each take ~10-30 ms; without this cap
+# high-frequency MOUSEMOVE events queue up and make the picker feel laggy.
+_SAMPLE_INTERVAL = 1.0 / 60.0
+_last_sample_time: float = 0.0
 
 # ---------------------------------------------------------------------------
 # macOS — CoreGraphics
@@ -30,6 +37,35 @@ def _load_macos():
     try:
         _cg = ctypes.CDLL('/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics')
         _cf = ctypes.CDLL('/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation')
+
+        # Configure function signatures once so the hot path doesn't repeat this work.
+        _cg.CGEventCreate.restype = ctypes.c_void_p
+        _cg.CGEventCreate.argtypes = [ctypes.c_void_p]
+        _cg.CGEventGetLocation.restype = _CGPoint
+        _cg.CGEventGetLocation.argtypes = [ctypes.c_void_p]
+        _cg.CGWindowListCreateImage.restype = ctypes.c_void_p
+        _cg.CGWindowListCreateImage.argtypes = [_CGRect, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32]
+        _cg.CGImageGetWidth.restype = ctypes.c_size_t
+        _cg.CGImageGetWidth.argtypes = [ctypes.c_void_p]
+        _cg.CGImageGetHeight.restype = ctypes.c_size_t
+        _cg.CGImageGetHeight.argtypes = [ctypes.c_void_p]
+        _cg.CGImageGetBytesPerRow.restype = ctypes.c_size_t
+        _cg.CGImageGetBytesPerRow.argtypes = [ctypes.c_void_p]
+        _cg.CGImageGetBitsPerPixel.restype = ctypes.c_size_t
+        _cg.CGImageGetBitsPerPixel.argtypes = [ctypes.c_void_p]
+        _cg.CGImageGetDataProvider.restype = ctypes.c_void_p
+        _cg.CGImageGetDataProvider.argtypes = [ctypes.c_void_p]
+        _cg.CGDataProviderCopyData.restype = ctypes.c_void_p
+        _cg.CGDataProviderCopyData.argtypes = [ctypes.c_void_p]
+        _cg.CGImageRelease.restype = None
+        _cg.CGImageRelease.argtypes = [ctypes.c_void_p]
+        _cf.CFDataGetLength.restype = ctypes.c_long
+        _cf.CFDataGetLength.argtypes = [ctypes.c_void_p]
+        _cf.CFDataGetBytePtr.restype = ctypes.c_void_p
+        _cf.CFDataGetBytePtr.argtypes = [ctypes.c_void_p]
+        _cf.CFRelease.restype = None
+        _cf.CFRelease.argtypes = [ctypes.c_void_p]
+
         _macos_ok = True
     except Exception as e:
         print(f"[CPICKER screen] CoreGraphics load failed: {e}")
@@ -50,11 +86,6 @@ class _CGRect(ctypes.Structure):
 def _cursor_macos():
     if not _load_macos():
         return None
-    _cg.CGEventCreate.restype = ctypes.c_void_p
-    _cg.CGEventCreate.argtypes = [ctypes.c_void_p]
-    _cg.CGEventGetLocation.restype = _CGPoint
-    _cg.CGEventGetLocation.argtypes = [ctypes.c_void_p]
-    _cf.CFRelease.argtypes = [ctypes.c_void_p]
     ev = _cg.CGEventCreate(None)
     if not ev:
         return None
@@ -84,25 +115,6 @@ def _sample_macos(sqrt_size):
             print(f"[CPICKER screen/macOS] CGWindowListCreateImage NULL — "
                   f"check Screen Recording permission in System Settings")
             return None, None, None
-
-        for fn, res, args in [
-            ('CGImageGetWidth',       ctypes.c_size_t,  [ctypes.c_void_p]),
-            ('CGImageGetHeight',      ctypes.c_size_t,  [ctypes.c_void_p]),
-            ('CGImageGetBytesPerRow', ctypes.c_size_t,  [ctypes.c_void_p]),
-            ('CGImageGetBitsPerPixel',ctypes.c_size_t,  [ctypes.c_void_p]),
-            ('CGImageGetDataProvider',ctypes.c_void_p,  [ctypes.c_void_p]),
-            ('CGDataProviderCopyData',ctypes.c_void_p,  [ctypes.c_void_p]),
-            ('CGImageRelease',        None,             [ctypes.c_void_p]),
-        ]:
-            getattr(_cg, fn).restype  = res
-            getattr(_cg, fn).argtypes = args
-        for fn, res, args in [
-            ('CFDataGetLength',  ctypes.c_long,    [ctypes.c_void_p]),
-            ('CFDataGetBytePtr', ctypes.c_void_p,  [ctypes.c_void_p]),
-            ('CFRelease',        None,             [ctypes.c_void_p]),
-        ]:
-            getattr(_cf, fn).restype  = res
-            getattr(_cf, fn).argtypes = args
 
         img_w = _cg.CGImageGetWidth(img)
         img_h = _cg.CGImageGetHeight(img)
@@ -275,8 +287,14 @@ def sample_at_cursor(sqrt_size):
     """
     Capture sqrt_size×sqrt_size pixels centred on the current cursor.
     Returns (channels_srgb, mean_srgb, curr_srgb) — floats in [0,1] sRGB —
-    or (None, None, None) if unavailable (Linux: caller uses GPU framebuffer).
+    or (None, None, None) if unavailable or throttled.
     """
+    global _last_sample_time
+    now = time.monotonic()
+    if now - _last_sample_time < _SAMPLE_INTERVAL:
+        return None, None, None
+    _last_sample_time = now
+
     if sys.platform == 'darwin':
         return _sample_macos(sqrt_size)
     elif sys.platform == 'win32':
