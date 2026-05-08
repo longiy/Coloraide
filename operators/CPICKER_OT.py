@@ -1,5 +1,5 @@
 """
-Core operators for color picker functionality - Blender 5.1+
+Core operators for color picker functionality - Blender 5.0+
 
 Platform strategy
 -----------------
