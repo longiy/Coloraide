@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import IntProperty, FloatVectorProperty
+from bpy.props import IntProperty, FloatProperty, FloatVectorProperty
 from ..COLORAIDE_sync import sync_all, is_updating
 from .base import SuppressUpdatesMixin
 
