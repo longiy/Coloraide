@@ -35,7 +35,7 @@ from .COLORAIDE_properties import ColoraideDisplayProperties
 
 # Import all operators and panels
 from .operators.NORMAL_OT import NORMAL_OT_color_picker
-from .operators.CPICKER_OT import IMAGE_OT_screen_picker, IMAGE_OT_quickpick, IMAGE_OT_screen_picker_quick
+from .operators.CPICKER_OT import IMAGE_OT_screen_picker_quick, IMAGE_OT_quickpick
 from .operators.HSV_OT import COLOR_OT_sync_hsv  
 from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
@@ -284,7 +284,6 @@ classes = [
     OBJECT_COLORS_OT_update_group_color,
     OBJECT_COLORS_OT_show_tooltip,
     NORMAL_OT_color_picker,
-    IMAGE_OT_screen_picker,
     IMAGE_OT_screen_picker_quick,
     IMAGE_OT_quickpick,
     COLOR_OT_sync_hex,

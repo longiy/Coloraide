@@ -152,7 +152,7 @@ class _PickerHandlerMixin:
 
     def _cleanup_handlers(self, context):
         context.window.cursor_modal_restore()
-        space = getattr(bpy.types, self.space_type, None)
+        space = getattr(bpy.types, self._handler_space_type, None)
         if space:
             if self._draw_handler:
                 space.draw_handler_remove(self._draw_handler, 'WINDOW')
@@ -166,14 +166,14 @@ class _PickerHandlerMixin:
 # Operators
 # ---------------------------------------------------------------------------
 
-class IMAGE_OT_screen_picker(_PickerHandlerMixin, Operator):
-    """Sample colors from screen with custom size"""
-    bl_idname = "image.screen_picker"
+class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
+    """Sample colors from screen — used for both 1×1 and custom-size buttons"""
+    bl_idname = "image.screen_picker_quick"
     bl_label = "Screen Color Picker"
-    bl_description = "Sample colors from screen 1x1 pixel area"
+    bl_description = "Sample colors from screen"
     bl_options = {'REGISTER'}
 
-    sqrt_length:    bpy.props.IntProperty()
+    sqrt_length:    bpy.props.IntProperty(default=1)
     x:              bpy.props.IntProperty()
     y:              bpy.props.IntProperty()
     mouse_region_x: bpy.props.IntProperty()
@@ -218,22 +218,14 @@ class IMAGE_OT_screen_picker(_PickerHandlerMixin, Operator):
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
 
-        self.space_type = context.space_data.__class__.__name__
-        space = getattr(bpy.types, self.space_type)
+        self._handler_space_type = context.space_data.__class__.__name__
+        space = getattr(bpy.types, self._handler_space_type)
         self._draw_handler = space.draw_handler_add(
             draw_preview_boxes, (self,), 'WINDOW', 'POST_PIXEL')
         if not is_native_capture_available():
             self._read_handler = space.draw_handler_add(
                 _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
         return {'RUNNING_MODAL'}
-
-
-class IMAGE_OT_screen_picker_quick(IMAGE_OT_screen_picker):
-    """Sample colors with the custom size picker"""
-    bl_idname = "image.screen_picker_quick"
-    bl_label = "Custom Size Color Picker"
-    bl_description = "Sample colors from screen custom pixel area"
-    bl_options = {'REGISTER'}
 
 
 class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
@@ -297,8 +289,8 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
 
-        self.space_type = context.space_data.__class__.__name__
-        space = getattr(bpy.types, self.space_type)
+        self._handler_space_type = context.space_data.__class__.__name__
+        space = getattr(bpy.types, self._handler_space_type)
         self._draw_handler = space.draw_handler_add(
             draw_preview_boxes, (self,), 'WINDOW', 'POST_PIXEL')
         if not is_native_capture_available():
@@ -308,11 +300,9 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
 
 
 def register():
-    bpy.utils.register_class(IMAGE_OT_screen_picker)
     bpy.utils.register_class(IMAGE_OT_screen_picker_quick)
     bpy.utils.register_class(IMAGE_OT_quickpick)
 
 def unregister():
     bpy.utils.unregister_class(IMAGE_OT_quickpick)
     bpy.utils.unregister_class(IMAGE_OT_screen_picker_quick)
-    bpy.utils.unregister_class(IMAGE_OT_screen_picker)

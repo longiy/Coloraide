@@ -14,7 +14,9 @@ def draw_palette_panel(layout, context):
 
     if is_open:
         paint_settings = ModeManager.get_paint_settings(context)
-            
+        if paint_settings is None:
+            paint_settings = context.tool_settings.image_paint
+
         # Palette selector
         row = box.row(align=True)
         row.template_ID(paint_settings, "palette", new="palette.new")

@@ -21,7 +21,7 @@ def draw_picker_panel(layout, context):
         split.prop(wm.coloraide_picker, 'mean', text='')  # Area average (50%)
         split2 = split.split(factor=0.5, align=True)
         split2.prop(wm.coloraide_picker, 'current', text='')  # Current pixel (25%)
-        split2.operator('image.screen_picker', text='', icon='EYEDROPPER').sqrt_length = 1  # Picker (25%)
+        split2.operator('image.screen_picker_quick', text='', icon='EYEDROPPER').sqrt_length = 1
 
         # Quick pick size control
         row = col.row(align=True)
