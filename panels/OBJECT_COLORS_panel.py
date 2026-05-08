@@ -1,6 +1,6 @@
 """
-Object color properties panel UI with FILTERS and COMPACT RESCAN BUTTON.
-UPDATED: Added collapsible filter section and icon-only rescan button.
+Object color properties panel UI with MODE TOGGLE and EXPLICIT RESCAN.
+FIX: Added Rescan button, mode toggles no longer trigger refresh
 """
 
 import bpy
@@ -11,7 +11,7 @@ def draw_object_mode(layout, context, obj_colors):
     
     if not obj_colors.items:
         layout.label(text="No colors detected", icon='INFO')
-        layout.label(text="Click rescan to detect colors")
+        layout.label(text="Click 'Rescan' to detect colors")
         return
     
     # Group colors by object name
@@ -104,7 +104,7 @@ def draw_grouped_mode(layout, context, obj_colors):
     
     if not obj_colors.items:
         layout.label(text="No colors detected", icon='INFO')
-        layout.label(text="Click rescan to detect colors")
+        layout.label(text="Click 'Rescan' to detect colors")
         return
     
     wm = context.window_manager
@@ -195,7 +195,7 @@ def draw_grouped_mode(layout, context, obj_colors):
 
 
 def draw_object_colors_panel(layout, context):
-    """Main panel drawing function with filters and compact rescan button"""
+    """Main panel drawing function with explicit Rescan button"""
     wm = context.window_manager
     obj_colors = wm.coloraide_object_colors
     
@@ -211,38 +211,7 @@ def draw_object_colors_panel(layout, context):
     if not wm.coloraide_display.show_object_colors:
         return
     
-    # NEW: FILTERS SECTION (Collapsible)
-    filter_box = box.box()
-    filter_row = filter_box.row()
-    
-    # Use a property on obj_colors instead of wm
-    # This is more reliable than dynamic properties
-    icon = 'TRIA_DOWN' if obj_colors.show_filters else 'TRIA_RIGHT'
-    
-    filter_row.prop(obj_colors, 'show_filters',
-        text="Filters",
-        icon=icon,
-        emboss=False,
-        toggle=True
-    )
-    
-    # Draw filter checkboxes if expanded
-    if obj_colors.show_filters:
-        filter_col = filter_box.column(align=True)
-        
-        # Two-column layout for filters
-        split = filter_col.split(factor=0.5)
-        
-        left_col = split.column(align=True)
-        left_col.prop(obj_colors, "filter_materials", text="Materials")
-        left_col.prop(obj_colors, "filter_geonodes", text="Geometry Nodes")
-        left_col.prop(obj_colors, "filter_lights", text="Lights")
-        
-        right_col = split.column(align=True)
-        right_col.prop(obj_colors, "filter_objects", text="Objects")
-        right_col.prop(obj_colors, "filter_gpencil", text="Grease Pencil")
-    
-    # CONTROL ROW: Multi toggle + Mode buttons + COMPACT RESCAN
+    # CONTROL ROW: Multi toggle + Mode buttons + RESCAN
     control_row = box.row(align=True)
     
     # Multi toggle (left side)
@@ -254,10 +223,9 @@ def draw_object_colors_panel(layout, context):
     mode_row.prop_enum(obj_colors, "display_mode", 'OBJECT', text="Object", icon='OBJECT_DATA')
     mode_row.prop_enum(obj_colors, "display_mode", 'GROUPED', text="Grouped", icon='COLOR')
     
-    # COMPACT RESCAN BUTTON (right side) - icon only, square
+    # RESCAN BUTTON (right side) - EXPLICIT ACTION
     rescan_col = control_row.column(align=True)
-    rescan_col.scale_x = 0.8  # Make it more square/compact
-    rescan_op = rescan_col.operator("object_colors.refresh", text="", icon='FILE_REFRESH')
+    rescan_col.operator("object_colors.refresh", text="Rescan", icon='FILE_REFRESH')
     
     # Draw mode-specific UI
     if obj_colors.display_mode == 'OBJECT':

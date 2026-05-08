@@ -1,7 +1,8 @@
 """
 Object color property detection and access for Coloraide.
-UPDATED: Added filter support to scan_all_colors() function.
-Performance improvements maintained:
+NOW WITH: Python caching + single-pass tree traversal + proper error handling.
+
+Performance improvements:
 - Cache scan results (50-500ms → instant on refresh)
 - Single BFS tree traversal (halves material scan time)
 - Proper exception handling (no silent failures)
@@ -344,7 +345,7 @@ def scan_greasepencil_colors(obj):
 def scan_all_colors(context, show_multiple=False, use_cache=True):
     """
     Scan selected objects for all color properties.
-    NOW WITH CACHING for instant refresh AND FILTER SUPPORT.
+    NOW WITH CACHING for instant refresh.
     
     Args:
         context: Blender context
@@ -355,9 +356,6 @@ def scan_all_colors(context, show_multiple=False, use_cache=True):
         list: Color property dictionaries
     """
     all_colors = []
-    
-    # Get filter settings from context
-    obj_colors = context.window_manager.coloraide_object_colors
     
     # Get objects to scan
     if show_multiple:
@@ -373,72 +371,26 @@ def scan_all_colors(context, show_multiple=False, use_cache=True):
         if use_cache:
             cache_key = _compute_cache_key(obj)
             if cache_key and cache_key in _SCAN_CACHE:
-                # Filter cached results based on current filter settings
-                cached_colors = _SCAN_CACHE[cache_key]
-                filtered_colors = [
-                    color for color in cached_colors
-                    if _should_include_property(color['property_type'], obj_colors)
-                ]
-                all_colors.extend(filtered_colors)
+                all_colors.extend(_SCAN_CACHE[cache_key])
                 continue
         
-        # Cache miss - do full scan with filters
-        obj_colors_list = []
+        # Cache miss - do full scan
+        obj_colors = []
+        obj_colors.extend(scan_geonodes_colors(obj))
+        obj_colors.extend(scan_material_colors(obj))
+        obj_colors.extend(scan_light_colors(obj))
+        obj_colors.extend(scan_greasepencil_colors(obj))
+        obj_colors.extend(scan_object_colors(obj))
         
-        # Only scan property types that are enabled in filters
-        if obj_colors.filter_geonodes:
-            obj_colors_list.extend(scan_geonodes_colors(obj))
-        
-        if obj_colors.filter_materials:
-            obj_colors_list.extend(scan_material_colors(obj))
-        
-        if obj_colors.filter_lights:
-            obj_colors_list.extend(scan_light_colors(obj))
-        
-        if obj_colors.filter_gpencil:
-            obj_colors_list.extend(scan_greasepencil_colors(obj))
-        
-        if obj_colors.filter_objects:
-            obj_colors_list.extend(scan_object_colors(obj))
-        
-        # Store UNFILTERED results in cache (so cache works across filter changes)
+        # Store in cache
         if use_cache:
             cache_key = _compute_cache_key(obj)
             if cache_key:
-                # Cache the full scan (all property types)
-                full_scan = []
-                full_scan.extend(scan_geonodes_colors(obj))
-                full_scan.extend(scan_material_colors(obj))
-                full_scan.extend(scan_light_colors(obj))
-                full_scan.extend(scan_greasepencil_colors(obj))
-                full_scan.extend(scan_object_colors(obj))
-                _SCAN_CACHE[cache_key] = full_scan
+                _SCAN_CACHE[cache_key] = obj_colors
         
-        all_colors.extend(obj_colors_list)
+        all_colors.extend(obj_colors)
     
     return all_colors
-
-
-def _should_include_property(property_type, obj_colors):
-    """
-    Check if a property type should be included based on filter settings.
-    
-    Args:
-        property_type: String like 'GEONODES', 'MATERIAL', etc.
-        obj_colors: ColoraideObjectColorsProperties instance
-    
-    Returns:
-        bool: True if property should be included
-    """
-    filter_map = {
-        'GEONODES': obj_colors.filter_geonodes,
-        'MATERIAL': obj_colors.filter_materials,
-        'LIGHT': obj_colors.filter_lights,
-        'OBJECT': obj_colors.filter_objects,
-        'GPENCIL': obj_colors.filter_gpencil,
-    }
-    
-    return filter_map.get(property_type, True)
 
 
 # ============================================================================

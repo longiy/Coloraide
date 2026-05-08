@@ -1,6 +1,6 @@
 """
 Object color properties detection and management for Coloraide.
-UPDATED: Added filter properties for property type visibility control.
+CLEAN REWRITE: Simplified with auto-refresh on mode switch.
 """
 
 import bpy
@@ -175,55 +175,4 @@ class ColoraideObjectColorsProperties(PropertyGroup):
         name="Last Selected Count",
         default=0,
         options={'SKIP_SAVE'}
-    )
-    
-    # UI state for filter collapse
-    show_filters: BoolProperty(
-        name="Show Filters",
-        description="Show/hide filter options",
-        default=False
-    )
-    
-    # Helper function for filter update callbacks
-    def update_filter(self, context):
-        """Auto-refresh when filter changes"""
-        try:
-            bpy.ops.object_colors.refresh()
-        except:
-            pass
-    
-    # NEW: Filter properties for property type visibility
-    filter_geonodes: BoolProperty(
-        name="Geometry Nodes",
-        description="Show Geometry Nodes color inputs",
-        default=True,
-        update=update_filter
-    )
-    
-    filter_materials: BoolProperty(
-        name="Materials",
-        description="Show material shader node colors",
-        default=True,
-        update=update_filter
-    )
-    
-    filter_lights: BoolProperty(
-        name="Lights",
-        description="Show light colors",
-        default=True,
-        update=update_filter
-    )
-    
-    filter_objects: BoolProperty(
-        name="Objects",
-        description="Show object viewport display colors",
-        default=True,
-        update=update_filter
-    )
-    
-    filter_gpencil: BoolProperty(
-        name="Grease Pencil",
-        description="Show Grease Pencil fill/stroke colors",
-        default=True,
-        update=update_filter
     )
