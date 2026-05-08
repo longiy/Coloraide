@@ -142,10 +142,31 @@ def _gpu_read_colors(op):
 
 
 # ---------------------------------------------------------------------------
+# Shared mixin
+# ---------------------------------------------------------------------------
+
+class _PickerHandlerMixin:
+    """Shared draw-handler teardown for screen picker operators."""
+    _draw_handler = None
+    _read_handler = None
+
+    def _cleanup_handlers(self, context):
+        context.window.cursor_modal_restore()
+        space = getattr(bpy.types, self.space_type, None)
+        if space:
+            if self._draw_handler:
+                space.draw_handler_remove(self._draw_handler, 'WINDOW')
+                self._draw_handler = None
+            if self._read_handler:
+                space.draw_handler_remove(self._read_handler, 'WINDOW')
+                self._read_handler = None
+
+
+# ---------------------------------------------------------------------------
 # Operators
 # ---------------------------------------------------------------------------
 
-class IMAGE_OT_screen_picker(Operator):
+class IMAGE_OT_screen_picker(_PickerHandlerMixin, Operator):
     """Sample colors from screen with custom size"""
     bl_idname = "image.screen_picker"
     bl_label = "Screen Color Picker"
@@ -158,20 +179,10 @@ class IMAGE_OT_screen_picker(Operator):
     mouse_region_x: bpy.props.IntProperty()
     mouse_region_y: bpy.props.IntProperty()
 
-    _draw_handler = None
-    _read_handler = None   # Linux only
     invoke_region_ptr = 0
 
     def cleanup(self, context):
-        context.window.cursor_modal_restore()
-        space = getattr(bpy.types, self.space_type, None)
-        if space:
-            if self._draw_handler:
-                space.draw_handler_remove(self._draw_handler, 'WINDOW')
-                self._draw_handler = None
-            if self._read_handler:
-                space.draw_handler_remove(self._read_handler, 'WINDOW')
-                self._read_handler = None
+        self._cleanup_handlers(context)
 
     def modal(self, context, event):
         context.area.tag_redraw()
@@ -225,7 +236,7 @@ class IMAGE_OT_screen_picker_quick(IMAGE_OT_screen_picker):
     bl_options = {'REGISTER'}
 
 
-class IMAGE_OT_quickpick(Operator):
+class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
     """Quick color picker activated by hotkey"""
     bl_idname = "image.quickpick"
     bl_label = "Quick Color Picker"
@@ -241,20 +252,10 @@ class IMAGE_OT_quickpick(Operator):
     mouse_region_x: bpy.props.IntProperty()
     mouse_region_y: bpy.props.IntProperty()
 
-    _draw_handler = None
-    _read_handler = None   # Linux only
     invoke_region_ptr = 0
 
     def cleanup(self, context, add_to_history=True):
-        context.window.cursor_modal_restore()
-        space = getattr(bpy.types, self.space_type, None)
-        if space:
-            if self._draw_handler:
-                space.draw_handler_remove(self._draw_handler, 'WINDOW')
-                self._draw_handler = None
-            if self._read_handler:
-                space.draw_handler_remove(self._read_handler, 'WINDOW')
-                self._read_handler = None
+        self._cleanup_handlers(context)
         if add_to_history and hasattr(context.window_manager, 'coloraide_history'):
             context.window_manager.coloraide_history.add_color(
                 tuple(context.window_manager.coloraide_picker.mean))

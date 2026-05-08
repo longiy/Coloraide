@@ -25,7 +25,7 @@ def cache_color_update(obj_name, prop_path, color, color_space):
         color: (r, g, b) tuple in scene linear space
         color_space: 'LINEAR' or 'COLOR_GAMMA'
     """
-    cache_key = f"{obj_name}:{prop_path}"
+    cache_key = (obj_name, prop_path)
     _COLOR_CACHE[cache_key] = (tuple(color[:3]), color_space)
 
 
@@ -62,7 +62,7 @@ def flush_color_cache(context):
         # Write all cached colors to Blender
         for cache_key, (color, color_space) in _COLOR_CACHE.items():
             try:
-                obj_name, prop_path = cache_key.split(':', 1)
+                obj_name, prop_path = cache_key
                 obj = bpy.data.objects.get(obj_name)
                 
                 if obj:

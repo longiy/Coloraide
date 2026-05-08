@@ -13,16 +13,13 @@ from bpy.types import AddonPreferences
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 
 # First utilities and sync system from root
-from .COLORAIDE_colorspace import *
 from .COLORAIDE_mode_manager import ModeManager
-from .COLORAIDE_utils import *
 from .COLORAIDE_sync import sync_all, is_updating, update_lock
 from .COLORAIDE_keymaps import register_keymaps, unregister_keymaps
-from .COLORAIDE_brush_sync import (sync_coloraide_from_brush, update_brush_color, 
+from .COLORAIDE_brush_sync import (sync_coloraide_from_brush, update_brush_color,
                                    is_brush_updating)
-from .COLORAIDE_color_grouping import *
 from .COLORAIDE_cache import flush_color_cache, clear_cache
-from .COLORAIDE_object_colors import clear_object_cache  # NEW: Cache management
+from .COLORAIDE_object_colors import clear_object_cache
 
 # Import all properties
 from .properties.PALETTE_properties import ColoraidePaletteProperties

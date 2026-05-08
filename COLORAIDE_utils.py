@@ -5,6 +5,7 @@ All color conversion functions work with scene linear RGB as input/output.
 
 import numpy as np
 from math import pow
+from mathutils import Vector
 from .COLORAIDE_colorspace import *
 
 def rgb_to_hsv(rgb_linear):
@@ -261,6 +262,28 @@ def lab_to_rgb(lab):
     return xyz_to_rgb(xyz)
 
 
+def get_barycentric_weights(p, a, b, c):
+    """Compute barycentric weights of point p in triangle (a, b, c)."""
+    v0 = b - a
+    v1 = c - a
+    v2 = p - a
+
+    d00 = v0.dot(v0)
+    d01 = v0.dot(v1)
+    d11 = v1.dot(v1)
+    d20 = v2.dot(v0)
+    d21 = v2.dot(v1)
+
+    denom = d00 * d11 - d01 * d01
+    if abs(denom) < 1e-6:
+        return (1.0/3.0, 1.0/3.0, 1.0/3.0)
+
+    v = (d11 * d20 - d01 * d21) / denom
+    w = (d00 * d21 - d01 * d20) / denom
+    u = 1.0 - v - w
+    return (u, v, w)
+
+
 def color_statistics(colors):
     """
     Calculate color statistics for an array of colors.
@@ -293,5 +316,6 @@ __all__ = [
     'xyz_to_rgb',
     'xyz_to_lab',
     'lab_to_xyz',
-    'color_statistics'
+    'color_statistics',
+    'get_barycentric_weights',
 ]

@@ -7,6 +7,7 @@ from bpy.props import BoolProperty
 from bpy.types import Operator
 from bpy_extras import view3d_utils
 from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_utils import get_barycentric_weights
 
 def normal_to_color(normal):
     """Convert normal vector to RGB color values"""
@@ -87,28 +88,6 @@ class NORMAL_OT_color_picker(Operator):
                 loop = eval_mesh.loops[loop_idx]
                 vertices.append(eval_mesh.vertices[loop.vertex_index].co)
                 loop_normals.append(loop.normal)
-
-            # Calculate barycentric coordinates for interpolation
-            def get_barycentric_weights(p, a, b, c):
-                v0 = b - a
-                v1 = c - a
-                v2 = p - a
-                
-                d00 = v0.dot(v0)
-                d01 = v0.dot(v1)
-                d11 = v1.dot(v1)
-                d20 = v2.dot(v0)
-                d21 = v2.dot(v1)
-                
-                denom = d00 * d11 - d01 * d01
-                if abs(denom) < 1e-6:
-                    return (1.0/3.0, 1.0/3.0, 1.0/3.0)
-                    
-                v = (d11 * d20 - d01 * d21) / denom
-                w = (d00 * d21 - d01 * d20) / denom
-                u = 1.0 - v - w
-                
-                return (u, v, w)
 
             # Use first 3 vertices for barycentric coordinates
             weights = get_barycentric_weights(location, vertices[0], vertices[1], vertices[2])

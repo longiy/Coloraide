@@ -2,6 +2,7 @@ import bpy
 from bpy.props import FloatVectorProperty
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all
+from ..COLORAIDE_mode_manager import ModeManager
 
 class PALETTE_OT_add_color(Operator):
     bl_idname = "palette.add_color"
@@ -15,19 +16,7 @@ class PALETTE_OT_add_color(Operator):
     )
     
     def execute(self, context):
-        ts = context.tool_settings
-        paint_settings = None
-        
-        # Get correct paint settings based on mode
-        if context.mode == 'PAINT_GPENCIL':
-            paint_settings = ts.gpencil_paint
-        elif context.mode == 'VERTEX_GREASE_PENCIL':
-            paint_settings = ts.gpencil_vertex_paint
-        elif context.mode == 'PAINT_VERTEX':
-            paint_settings = ts.vertex_paint
-        else:
-            paint_settings = ts.image_paint
-            
+        paint_settings = ModeManager.get_paint_settings(context)
         if paint_settings and paint_settings.palette:
             new_color = paint_settings.palette.colors.new()
             new_color.color = self.color
@@ -46,30 +35,12 @@ class PALETTE_OT_remove_color(Operator):
     
     @classmethod
     def poll(cls, context):
-        ts = context.tool_settings
-        paint_settings = None
-        if context.mode == 'PAINT_GPENCIL':
-            paint_settings = ts.gpencil_paint
-        elif context.mode == 'PAINT_VERTEX':
-            paint_settings = ts.vertex_paint
-        else:
-            paint_settings = ts.image_paint
-            
-        return (paint_settings and paint_settings.palette 
+        paint_settings = ModeManager.get_paint_settings(context)
+        return (paint_settings and paint_settings.palette
                 and paint_settings.palette.colors.active)
-    
+
     def execute(self, context):
-        ts = context.tool_settings
-        paint_settings = None
-        
-        # Get correct paint settings based on mode
-        if context.mode == 'PAINT_GPENCIL':
-            paint_settings = ts.gpencil_paint
-        elif context.mode == 'PAINT_VERTEX':
-            paint_settings = ts.vertex_paint
-        else:
-            paint_settings = ts.image_paint
-        
+        paint_settings = ModeManager.get_paint_settings(context)
         if paint_settings and paint_settings.palette:
             paint_settings.palette.colors.remove(paint_settings.palette.colors.active)
             return {'FINISHED'}
