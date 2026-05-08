@@ -468,7 +468,7 @@ def register():
     # Subscribe to selection changes after slight delay
     bpy.app.timers.register(subscribe_to_selection_changes, first_interval=0.5)
     
-    print("✓ Coloraide v1.5.2 registered")
+    print("✓ Coloraide v1.5.3 registered")
 
 
 def unregister():

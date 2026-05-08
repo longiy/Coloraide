@@ -23,56 +23,63 @@ def draw_dynamics_panel(layout, context):
         box.label(text="No active brush, go to paint mode", icon='INFO')
         return
     
-    # Check if brush has color jitter properties
-    if not hasattr(brush, 'use_color_jitter'):
-        box.label(text="Color jitter not available", icon='INFO')
-        return
-    
-    # Master toggle for color jitter
-    row = box.row()
-    row.prop(brush, "use_color_jitter", text="Enable Randomization")
-    
-    # Main controls column - ALWAYS VISIBLE
-    col = box.column(align=True)
-    
-    # Dim the controls if randomization is disabled (visual feedback only)
-    col.enabled = brush.use_color_jitter
-    
-    # === HUE ROW ===
-    row = col.row(align=True)
-    row.prop(brush, "hue_jitter", text="Hue", slider=True)
-    if hasattr(brush, 'use_stroke_random_hue'):
-        row.prop(brush, "use_stroke_random_hue", text="", icon='GP_SELECT_STROKES', toggle=True)
-    if hasattr(brush, 'use_random_press_hue'):
-        row.prop(brush, "use_random_press_hue", text="", icon='STYLUS_PRESSURE', toggle=True)
-    
-    # Show pressure curve if enabled
-    if hasattr(brush, 'use_random_press_hue') and brush.use_random_press_hue:
-        if hasattr(brush, 'curve_random_hue'):
-            col.template_curve_mapping(brush, "curve_random_hue", brush=True)
-    
-    # === SATURATION ROW ===
-    row = col.row(align=True)
-    row.prop(brush, "saturation_jitter", text="Saturation", slider=True)
-    if hasattr(brush, 'use_stroke_random_sat'):
-        row.prop(brush, "use_stroke_random_sat", text="", icon='GP_SELECT_STROKES', toggle=True)
-    if hasattr(brush, 'use_random_press_sat'):
-        row.prop(brush, "use_random_press_sat", text="", icon='STYLUS_PRESSURE', toggle=True)
-    
-    # Show pressure curve if enabled
-    if hasattr(brush, 'use_random_press_sat') and brush.use_random_press_sat:
-        if hasattr(brush, 'curve_random_saturation'):
-            col.template_curve_mapping(brush, "curve_random_saturation", brush=True)
-    
-    # === VALUE ROW ===
-    row = col.row(align=True)
-    row.prop(brush, "value_jitter", text="Value", slider=True)
-    if hasattr(brush, 'use_stroke_random_val'):
-        row.prop(brush, "use_stroke_random_val", text="", icon='GP_SELECT_STROKES', toggle=True)
-    if hasattr(brush, 'use_random_press_val'):
-        row.prop(brush, "use_random_press_val", text="", icon='STYLUS_PRESSURE', toggle=True)
-    
-    # Show pressure curve if enabled
-    if hasattr(brush, 'use_random_press_val') and brush.use_random_press_val:
-        if hasattr(brush, 'curve_random_value'):
-            col.template_curve_mapping(brush, "curve_random_value", brush=True)
+    gp = getattr(brush, 'gpencil_settings', None)
+
+    if gp is not None:
+        # --- Grease Pencil brush: color randomization lives in gpencil_settings ---
+        col = box.column(align=True)
+        row = col.row(align=True)
+        row.prop(gp, "random_hue", text="Hue", slider=True)
+        if hasattr(gp, 'use_random_hue'):
+            row.prop(gp, "use_random_hue", text="", icon='GP_SELECT_STROKES', toggle=True)
+
+        row = col.row(align=True)
+        row.prop(gp, "random_saturation", text="Saturation", slider=True)
+        if hasattr(gp, 'use_random_saturation'):
+            row.prop(gp, "use_random_saturation", text="", icon='GP_SELECT_STROKES', toggle=True)
+
+        row = col.row(align=True)
+        row.prop(gp, "random_value", text="Value", slider=True)
+        if hasattr(gp, 'use_random_value'):
+            row.prop(gp, "use_random_value", text="", icon='GP_SELECT_STROKES', toggle=True)
+
+    elif hasattr(brush, 'use_color_jitter'):
+        # --- Standard brush: unified color jitter ---
+        row = box.row()
+        row.prop(brush, "use_color_jitter", text="Enable Randomization")
+
+        col = box.column(align=True)
+        col.enabled = brush.use_color_jitter
+
+        row = col.row(align=True)
+        row.prop(brush, "hue_jitter", text="Hue", slider=True)
+        if hasattr(brush, 'use_stroke_random_hue'):
+            row.prop(brush, "use_stroke_random_hue", text="", icon='GP_SELECT_STROKES', toggle=True)
+        if hasattr(brush, 'use_random_press_hue'):
+            row.prop(brush, "use_random_press_hue", text="", icon='STYLUS_PRESSURE', toggle=True)
+        if hasattr(brush, 'use_random_press_hue') and brush.use_random_press_hue:
+            if hasattr(brush, 'curve_random_hue'):
+                col.template_curve_mapping(brush, "curve_random_hue", brush=True)
+
+        row = col.row(align=True)
+        row.prop(brush, "saturation_jitter", text="Saturation", slider=True)
+        if hasattr(brush, 'use_stroke_random_sat'):
+            row.prop(brush, "use_stroke_random_sat", text="", icon='GP_SELECT_STROKES', toggle=True)
+        if hasattr(brush, 'use_random_press_sat'):
+            row.prop(brush, "use_random_press_sat", text="", icon='STYLUS_PRESSURE', toggle=True)
+        if hasattr(brush, 'use_random_press_sat') and brush.use_random_press_sat:
+            if hasattr(brush, 'curve_random_saturation'):
+                col.template_curve_mapping(brush, "curve_random_saturation", brush=True)
+
+        row = col.row(align=True)
+        row.prop(brush, "value_jitter", text="Value", slider=True)
+        if hasattr(brush, 'use_stroke_random_val'):
+            row.prop(brush, "use_stroke_random_val", text="", icon='GP_SELECT_STROKES', toggle=True)
+        if hasattr(brush, 'use_random_press_val'):
+            row.prop(brush, "use_random_press_val", text="", icon='STYLUS_PRESSURE', toggle=True)
+        if hasattr(brush, 'use_random_press_val') and brush.use_random_press_val:
+            if hasattr(brush, 'curve_random_value'):
+                col.template_curve_mapping(brush, "curve_random_value", brush=True)
+
+    else:
+        box.label(text="Color dynamics not available", icon='INFO')
