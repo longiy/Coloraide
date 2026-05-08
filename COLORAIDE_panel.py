@@ -127,7 +127,7 @@ def draw_coloraide_panels(self, context):
         draw_object_colors_panel(layout, context)
 
 class IMAGE_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.5.0"
+    bl_label = "Coloraide 1.5.1"
     bl_idname = "IMAGE_PT_coloraide"
     bl_space_type = 'IMAGE_EDITOR'
     bl_region_type = 'UI'
@@ -137,7 +137,7 @@ class IMAGE_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class VIEW3D_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.5.0"
+    bl_label = "Coloraide 1.5.1"
     bl_idname = "VIEW3D_PT_coloraide"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -159,7 +159,7 @@ class VIEW3D_PT_coloraide(Panel):
         draw_coloraide_panels(self, context)
 
 class CLIP_PT_coloraide(Panel):
-    bl_label = "Coloraide 1.5.0"
+    bl_label = "Coloraide 1.5.1"
     bl_idname = "CLIP_PT_coloraide"
     bl_space_type = 'CLIP_EDITOR'
     bl_region_type = 'UI'

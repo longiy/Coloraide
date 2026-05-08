@@ -219,7 +219,28 @@ class ColoraideAddonPreferences(AddonPreferences):
         info_box.label(text="Use this to customize your workflow and reduce clutter.")
         
         layout.separator()
-        
+
+        # Platform / Color Picker notice
+        import sys
+        if sys.platform == 'darwin':
+            box = layout.box()
+            col = box.column(align=True)
+            col.label(text="macOS Color Picker — Screen Recording Required",
+                      icon='ERROR')
+            col.separator(factor=0.5)
+            col.label(text="Blender 5.1+ on macOS uses Metal, which renders the 3D")
+            col.label(text="viewport to private GPU textures that Python cannot read.")
+            col.label(text="Coloraide uses the macOS Screen Recording API instead.")
+            col.separator(factor=0.5)
+            col.label(text="Grant permission once:")
+            col.label(text="System Settings → Privacy & Security → Screen Recording")
+            col.label(text="→ enable for Blender (or Terminal if running from there).")
+            col.separator(factor=0.5)
+            col.label(text="Without this permission the color picker returns black.",
+                      icon='INFO')
+
+        layout.separator()
+
         # Performance Section
         box = layout.box()
         box.label(text="Performance Settings", icon='PREFERENCES')
