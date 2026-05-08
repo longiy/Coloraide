@@ -4,19 +4,13 @@ CLEANED: Removed unused class methods (draw_compact, draw_expanded, draw_minimal
 """
 
 import bpy
+from .panel_helpers import draw_collapsible_header
 
 def draw_picker_panel(layout, context):
     wm = context.window_manager
-    
-    box = layout.box()
-    row = box.row()
-    row.prop(wm.coloraide_display, "show_picker", 
-        text="Color Picker", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_picker else 'TRIA_RIGHT',
-        emboss=False
-    )
-    
-    if wm.coloraide_display.show_picker:
+    box, is_open = draw_collapsible_header(layout, wm.coloraide_display, "show_picker", "Color Picker")
+
+    if is_open:
         # Create a single aligned column for all controls
         col = box.column(align=True)
 

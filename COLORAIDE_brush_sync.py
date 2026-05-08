@@ -7,26 +7,24 @@ import bpy
 from contextlib import contextmanager
 from .COLORAIDE_mode_manager import ModeManager
 from .COLORAIDE_sync import sync_all
-
-_UPDATING_BRUSH = False
+from . import COLORAIDE_state as _state
 
 @contextmanager
 def brush_update_lock():
     """Prevent recursive brush updates."""
-    global _UPDATING_BRUSH
-    if _UPDATING_BRUSH:
+    if _state.is_brush_updating:
         yield False
         return
-    _UPDATING_BRUSH = True
+    _state.is_brush_updating = True
     try:
         yield True
     finally:
-        _UPDATING_BRUSH = False
+        _state.is_brush_updating = False
 
 
 def is_brush_updating():
     """Check if brush update is in progress."""
-    return _UPDATING_BRUSH
+    return _state.is_brush_updating
 
 
 def sync_coloraide_from_brush(context, brush_color):

@@ -1,10 +1,9 @@
 import bpy
-from bpy.props import IntProperty, FloatProperty, BoolProperty, FloatVectorProperty
-from bpy.types import PropertyGroup
+from bpy.props import IntProperty, FloatVectorProperty
 from ..COLORAIDE_sync import sync_all, is_updating
+from .base import SuppressUpdatesMixin
 
-class ColoraideRGBProperties(PropertyGroup):
-    suppress_updates: BoolProperty(default=False)
+class ColoraideRGBProperties(SuppressUpdatesMixin):
     
     def update_rgb_values(self, context):
         if is_updating() or self.suppress_updates:

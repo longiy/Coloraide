@@ -1,11 +1,10 @@
 import bpy
-from bpy.props import IntProperty, FloatVectorProperty, BoolProperty, CollectionProperty
-from bpy.types import PropertyGroup
+from bpy.props import IntProperty, FloatVectorProperty, CollectionProperty
 from ..COLORAIDE_sync import sync_all, is_updating
+from .base import SuppressUpdatesMixin
 
-class ColorHistoryItemProperties(PropertyGroup):
+class ColorHistoryItemProperties(SuppressUpdatesMixin):
     """Individual color history item with optimized update handling"""
-    suppress_updates: BoolProperty(default=False)
     
     def update_history_color(self, context):
         """Update handler with improved sync check"""

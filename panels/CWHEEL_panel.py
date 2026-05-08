@@ -4,21 +4,14 @@ Updated to remove color dynamics (now in separate panel).
 """
 
 import bpy
+from .panel_helpers import draw_collapsible_header
 
 def draw_wheel_panel(layout, context):
     """Draw color wheel controls in the given layout"""
     wm = context.window_manager
-    
-    # Color wheel box with toggle
-    box = layout.box()
-    row = box.row()
-    row.prop(wm.coloraide_display, "show_wheel", 
-        text="Color Wheel", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_wheel else 'TRIA_RIGHT', 
-        emboss=False
-    )
-    
-    if wm.coloraide_display.show_wheel:
+    box, is_open = draw_collapsible_header(layout, wm.coloraide_display, "show_wheel", "Color Wheel")
+
+    if is_open:
         # Color picker type dropdown (controls global Blender preference)
         prefs = context.preferences
         row = box.row(align=True)

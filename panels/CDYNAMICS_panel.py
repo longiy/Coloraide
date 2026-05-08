@@ -6,36 +6,16 @@ UI matches Blender 5.0 native layout with collapsible style.
 
 import bpy
 from ..COLORAIDE_mode_manager import ModeManager
+from .panel_helpers import draw_collapsible_header
 
 def draw_dynamics_panel(layout, context):
-    """
-    Draw native Blender color jitter controls from the active brush.
-    UI layout matches Blender 5.0's native "Randomize Color" panel
-    with Coloraide's collapsible box style.
-    
-    All properties are on bpy.types.Brush:
-    - use_color_jitter (bool) - Master toggle
-    - hue_jitter, saturation_jitter, value_jitter (float 0-1) - Jitter amounts
-    - use_stroke_random_hue/sat/val (bool) - Per-stroke toggles
-    - use_random_press_hue/sat/val (bool) - Pressure sensitivity toggles
-    - curve_random_hue/saturation/value (CurveMapping) - Pressure curves
-    """
+    """Draw native Blender color jitter controls from the active brush."""
     wm = context.window_manager
-    
-    # Get current brush using ModeManager
     brush = ModeManager.get_current_brush(context)
-    
-    # Main collapsible box with toggle
-    box = layout.box()
-    row = box.row()
-    row.prop(wm.coloraide_display, "show_dynamics", 
-        text="Color Dynamics", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_dynamics else 'TRIA_RIGHT',
-        emboss=False
-    )
-    
-    # Only draw contents if expanded
-    if not wm.coloraide_display.show_dynamics:
+
+    box, is_open = draw_collapsible_header(layout, wm.coloraide_display, "show_dynamics", "Color Dynamics")
+
+    if not is_open:
         return
     
     # Check if brush exists

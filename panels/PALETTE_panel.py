@@ -4,29 +4,16 @@ CLEANED: Removed unused PALETTE_PT_panel class with dead methods.
 """
 
 import bpy
+from .panel_helpers import draw_collapsible_header
+from ..COLORAIDE_mode_manager import ModeManager
 
 def draw_palette_panel(layout, context):
     """Draw palette controls in the given layout"""
     wm = context.window_manager
-    
-    # Palette box with toggle
-    box = layout.box()
-    row = box.row()
-    row.prop(wm.coloraide_display, "show_palettes", 
-        text="Color Palettes", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_palettes else 'TRIA_RIGHT',
-        emboss=False
-    )
-    
-    if wm.coloraide_display.show_palettes:
-        ts = context.tool_settings
-        # Get correct paint settings based on context mode
-        if context.mode == 'PAINT_GPENCIL':
-            paint_settings = ts.gpencil_paint
-        elif context.mode == 'PAINT_VERTEX':
-            paint_settings = ts.vertex_paint
-        else:
-            paint_settings = ts.image_paint
+    box, is_open = draw_collapsible_header(layout, wm.coloraide_display, "show_palettes", "Color Palettes")
+
+    if is_open:
+        paint_settings = ModeManager.get_paint_settings(context)
             
         # Palette selector
         row = box.row(align=True)

@@ -4,17 +4,12 @@ Uses colorspace module for proper sRGB <-> scene linear conversion.
 """
 
 import bpy
-from bpy.props import StringProperty, BoolProperty
-from bpy.types import PropertyGroup
+from bpy.props import StringProperty
 from ..COLORAIDE_sync import sync_all, is_updating
+from .base import SuppressUpdatesMixin
 
-class ColoraideHexProperties(PropertyGroup):
-    """
-    Properties for hex color input.
-    Hex values are inherently sRGB and are converted to scene linear internally.
-    """
-    
-    suppress_updates: BoolProperty(default=False)
+class ColoraideHexProperties(SuppressUpdatesMixin):
+    """Hex color input. Values are sRGB, converted to scene linear internally."""
     
     # Previous valid hex value - stored as proper Blender property
     # Name changed from '_prev_value' to 'prev_value' (no underscore)

@@ -1,12 +1,11 @@
 """LAB Properties with fixed range handling and relative adjustment mode"""
 
 import bpy
-from bpy.props import FloatProperty, BoolProperty
-from bpy.types import PropertyGroup
+from bpy.props import FloatProperty
 from ..import COLORAIDE_sync
+from .base import SuppressUpdatesMixin
 
-class ColoraideLABProperties(PropertyGroup):
-    suppress_updates: BoolProperty(default=False)
+class ColoraideLABProperties(SuppressUpdatesMixin):
     
     def update_lab_values(self, context):
         if COLORAIDE_sync.is_updating() or self.suppress_updates:

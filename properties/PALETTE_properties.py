@@ -1,11 +1,9 @@
-# PALETTE_properties.py
 import bpy
-from bpy.props import BoolProperty, FloatVectorProperty
-from bpy.types import PropertyGroup
+from bpy.props import FloatVectorProperty
 from ..COLORAIDE_sync import sync_all, is_updating
+from .base import SuppressUpdatesMixin
 
-class ColoraidePaletteProperties(PropertyGroup):
-   suppress_updates: BoolProperty(default=False)
+class ColoraidePaletteProperties(SuppressUpdatesMixin):
    
    # REMOVED: update_preview_color callback
    # This was causing recursion because it would call sync_all('palette')

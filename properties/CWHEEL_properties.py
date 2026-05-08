@@ -1,11 +1,10 @@
 import bpy
-from bpy.props import FloatProperty, FloatVectorProperty, BoolProperty, EnumProperty
-from bpy.types import PropertyGroup
+from bpy.props import FloatProperty, FloatVectorProperty, EnumProperty
 from ..COLORAIDE_sync import sync_all, is_updating
+from .base import SuppressUpdatesMixin
 
 
-class ColoraideWheelProperties(PropertyGroup):
-    suppress_updates: BoolProperty(default=False)
+class ColoraideWheelProperties(SuppressUpdatesMixin):
     
     def update_wheel_color(self, context):
         if is_updating() or self.suppress_updates:

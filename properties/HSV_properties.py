@@ -1,12 +1,11 @@
 """HSV Properties with optimized response and relative adjustment mode"""
 
 import bpy
-from bpy.props import FloatProperty, BoolProperty
-from bpy.types import PropertyGroup
+from bpy.props import FloatProperty
 from ..import COLORAIDE_sync
+from .base import SuppressUpdatesMixin
 
-class ColoraideHSVProperties(PropertyGroup):
-    suppress_updates: BoolProperty(default=False)
+class ColoraideHSVProperties(SuppressUpdatesMixin):
     
     def update_hsv_values(self, context):
         if COLORAIDE_sync.is_updating() or self.suppress_updates:

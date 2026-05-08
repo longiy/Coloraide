@@ -1,16 +1,12 @@
 """Color picker properties - Blender 5.0+ (scene linear color space)"""
 
 import bpy
-from bpy.props import IntProperty, FloatVectorProperty, BoolProperty
-from bpy.types import PropertyGroup
+from bpy.props import IntProperty, FloatVectorProperty
 from ..COLORAIDE_sync import sync_all, is_updating
+from .base import SuppressUpdatesMixin
 
-class ColoraidePickerProperties(PropertyGroup):
-    """
-    Color picker properties.
-    All colors stored in scene linear color space (Blender 5.0+ standard).
-    """
-    suppress_updates: BoolProperty(default=False)
+class ColoraidePickerProperties(SuppressUpdatesMixin):
+    """Color picker properties. All colors in scene linear color space."""
 
     def update_mean_color(self, context):
         """Sync mean color (scene linear) to all other properties."""

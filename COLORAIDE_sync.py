@@ -8,7 +8,7 @@ FIX: Added recursion guards for live sync updates.
 import bpy
 from contextlib import contextmanager
 from .COLORAIDE_utils import (
-    rgb_to_lab, 
+    rgb_to_lab,
     lab_to_rgb,
     rgb_to_hsv,
     hsv_to_rgb
@@ -20,60 +20,46 @@ from .COLORAIDE_colorspace import (
     hex_to_linear
 )
 from .COLORAIDE_mode_manager import ModeManager
+from . import COLORAIDE_state as _state
 
-_UPDATING = False
-_UPDATE_SOURCE = None
-_PREVIOUS_COLOR = (0.5, 0.5, 0.5)  # Track previous color for delta calculations
-_UPDATING_LIVE_SYNC = False  # FIX 1: Guard for live sync recursion
-
-@contextmanager 
+@contextmanager
 def update_lock(source=None):
     """Context manager to prevent recursive updates."""
-    global _UPDATING, _UPDATE_SOURCE
-    if _UPDATING:
+    if _state.is_updating:
         yield False
         return
-    _UPDATING = True
-    _UPDATE_SOURCE = source
+    _state.is_updating = True
+    _state.update_source = source
     try:
         yield True
     finally:
-        _UPDATING = False
-        _UPDATE_SOURCE = None
+        _state.is_updating = False
+        _state.update_source = None
 
 
 @contextmanager
 def live_sync_lock():
     """Context manager to prevent recursive live sync updates."""
-    global _UPDATING_LIVE_SYNC
-    if _UPDATING_LIVE_SYNC:
+    if _state.is_live_sync_updating:
         yield False
         return
-    _UPDATING_LIVE_SYNC = True
+    _state.is_live_sync_updating = True
     try:
         yield True
     finally:
-        _UPDATING_LIVE_SYNC = False
+        _state.is_live_sync_updating = False
 
 
 def is_updating(source=None):
-    """
-    Check if an update is currently in progress.
-    
-    Args:
-        source: Optional source identifier to check against
-    
-    Returns:
-        bool: True if updating (and source doesn't match if provided)
-    """
+    """Check if an update is in progress. If source given, only True when a DIFFERENT source holds the lock."""
     if source:
-        return _UPDATING and _UPDATE_SOURCE != source
-    return _UPDATING
+        return _state.is_updating and _state.update_source != source
+    return _state.is_updating
 
 
 def is_updating_live_sync():
     """Check if live sync update is in progress."""
-    return _UPDATING_LIVE_SYNC
+    return _state.is_live_sync_updating
 
 
 def sync_all(context, source, color_value, mode='absolute'):
@@ -95,14 +81,12 @@ def sync_all(context, source, color_value, mode='absolute'):
         - lab: (L, a, b) where L=0-100, a=-128-127, b=-128-127
         - hex: "#RRGGBB" string
     """
-    global _PREVIOUS_COLOR
-    
     with update_lock(source) as acquired:
         if not acquired:
             return
-        
+
         wm = context.window_manager
-        
+
         # Convert input to scene linear RGB
         if source in ('picker', 'wheel', 'history', 'palette', 'brush', 'object_colors'):
             rgb_linear = tuple(color_value[:3])
@@ -120,14 +104,13 @@ def sync_all(context, source, color_value, mode='absolute'):
         else:
             print(f"Unknown source: {source}")
             return
-        
+
         # Calculate delta for relative mode
         delta = None
         if mode == 'relative':
-            delta = tuple(new - old for new, old in zip(rgb_linear, _PREVIOUS_COLOR))
-        
-        # Update previous color
-        _PREVIOUS_COLOR = rgb_linear
+            delta = tuple(new - old for new, old in zip(rgb_linear, _state.previous_color))
+
+        _state.previous_color = rgb_linear
         
         # Update picker (mean color)
         if source != 'picker':

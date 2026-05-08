@@ -18,6 +18,7 @@ from .panels.HEX_panel import draw_hex_panel
 from .panels.CHISTORY_panel import draw_history_panel
 from .panels.PALETTE_panel import draw_palette_panel
 from .panels.OBJECT_COLORS_panel import draw_object_colors_panel
+from .panels.panel_helpers import draw_collapsible_header
 
 def draw_coloraide_panels(self, context):
     """Draw all Coloraide panels in the specified order, respecting preferences"""
@@ -90,15 +91,9 @@ def draw_coloraide_panels(self, context):
     
     # 4. Color spaces box (if enabled in preferences)
     if prefs.enable_color_sliders:
-        box = layout.box()
-        row = box.row()
-        row.prop(wm.coloraide_display, "show_color_sliders", 
-            text="Color Sliders", 
-            icon='TRIA_DOWN' if wm.coloraide_display.show_color_sliders else 'TRIA_RIGHT',
-            emboss=False
-        )
-        
-        if wm.coloraide_display.show_color_sliders:
+        box, sliders_open = draw_collapsible_header(layout, wm.coloraide_display, "show_color_sliders", "Color Sliders")
+
+        if sliders_open:
             # Color space toggles
             row = box.row(align=True)
             row.prop(wm.coloraide_display, "show_hsv_sliders", text="HSV", toggle=True)

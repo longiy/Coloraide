@@ -8,114 +8,76 @@ when updating many live-synced properties.
 """
 
 import bpy
-
-# Global cache for pending color updates (avoids Blender property overhead)
-_COLOR_CACHE = {}  # {cache_key: (color, color_space)}
-_FLUSH_SCHEDULED = False
+from . import COLORAIDE_state as _state
 
 
 def cache_color_update(obj_name, prop_path, color, color_space):
     """
     Store color in Python cache instead of immediately updating Blender property.
     This is FAST (~0.001ms) compared to Blender property updates (~10ms).
-    
-    Args:
-        obj_name: Name of the object
-        prop_path: Property path string
-        color: (r, g, b) tuple in scene linear space
-        color_space: 'LINEAR' or 'COLOR_GAMMA'
     """
-    cache_key = (obj_name, prop_path)
-    _COLOR_CACHE[cache_key] = (tuple(color[:3]), color_space)
+    _state.color_cache[(obj_name, prop_path)] = (tuple(color[:3]), color_space)
 
 
 def flush_color_cache(context):
     """
     Flush all cached colors to actual Blender properties.
     This is the SLOW part, but happens less frequently.
-    
-    Args:
-        context: Blender context
-    
-    Returns:
-        None (for timer compatibility)
+
+    Returns None (for timer compatibility).
     """
-    global _COLOR_CACHE, _FLUSH_SCHEDULED
-    
-    if not _COLOR_CACHE:
-        _FLUSH_SCHEDULED = False
-        return None  # Nothing to flush
-    
+    if not _state.color_cache:
+        _state.is_flush_scheduled = False
+        return None
+
     from .COLORAIDE_object_colors import set_color_value
     from .COLORAIDE_sync import live_sync_lock
-    
-    # Use live sync lock to prevent recursion during flush
+
     with live_sync_lock() as acquired:
         if not acquired:
-            # Already flushing, reschedule
-            _FLUSH_SCHEDULED = False
-            return 0.05  # Try again in 50ms
-        
-        # Track which objects were modified
+            _state.is_flush_scheduled = False
+            return 0.05  # retry in 50ms
+
         updated_objects = set()
-        
-        # Write all cached colors to Blender
-        for cache_key, (color, color_space) in _COLOR_CACHE.items():
+
+        for cache_key, (color, color_space) in _state.color_cache.items():
             try:
                 obj_name, prop_path = cache_key
                 obj = bpy.data.objects.get(obj_name)
-                
                 if obj:
                     set_color_value(obj, prop_path, color, color_space)
                     updated_objects.add(obj)
             except Exception as e:
                 print(f"Error flushing color cache for {cache_key}: {e}")
-        
-        # Single depsgraph update for all modified objects
+
         for obj in updated_objects:
             try:
                 obj.update_tag()
             except:
                 pass
-        
-        # Single view layer update
+
         if updated_objects and context.view_layer:
             try:
                 context.view_layer.update()
             except:
                 pass
-        
-        # Clear cache
-        _COLOR_CACHE.clear()
-        _FLUSH_SCHEDULED = False
-        
-        return None  # For timer
+
+        _state.color_cache.clear()
+        _state.is_flush_scheduled = False
+        return None
 
 
 def schedule_flush(context, mode='BATCHED_TIMER'):
-    """
-    Schedule a flush based on update mode.
-    
-    Args:
-        context: Blender context
-        mode: 'IMMEDIATE', 'BATCHED_TIMER', or 'ON_RELEASE'
-    """
-    global _FLUSH_SCHEDULED
-    
+    """Schedule a cache flush based on the configured update mode."""
     if mode == 'IMMEDIATE':
-        # Flush right now
         flush_color_cache(context)
-    
+
     elif mode == 'BATCHED_TIMER':
-        # Flush after 100ms (if not already scheduled)
-        if not _FLUSH_SCHEDULED:
-            _FLUSH_SCHEDULED = True
+        if not _state.is_flush_scheduled:
+            _state.is_flush_scheduled = True
             bpy.app.timers.register(lambda: flush_color_cache(context), first_interval=0.1)
-    
-    elif mode == 'ON_RELEASE':
-        # Don't flush - will happen when user releases mouse
-        # This is handled by a separate system that detects mouse release
-        pass
+
+    # ON_RELEASE: no-op — flush triggered externally on mouse release
 
 
 def update_live_synced_properties_cached(context, color, mode='absolute', delta=None):
@@ -197,10 +159,9 @@ def update_live_synced_properties_cached(context, color, mode='absolute', delta=
 
 
 def clear_cache():
-    """Clear all cached colors (useful for cleanup)"""
-    global _COLOR_CACHE, _FLUSH_SCHEDULED
-    _COLOR_CACHE.clear()
-    _FLUSH_SCHEDULED = False
+    """Clear all cached colors."""
+    _state.color_cache.clear()
+    _state.is_flush_scheduled = False
 
 
 __all__ = [

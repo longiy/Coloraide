@@ -3,21 +3,15 @@ Color history panel UI implementation for Coloraide.
 """
 
 import bpy
+from .panel_helpers import draw_collapsible_header
 
 def draw_history_panel(layout, context):
     """Draw color history controls in the given layout"""
     wm = context.window_manager
-    # In the draw_history_panel function, near the "Clear history button"
-    # History box with toggle
-    box = layout.box()
-    row = box.row()
-    row.prop(wm.coloraide_display, "show_history", 
-        text=f"Color Picker History ({wm.coloraide_history.size})", 
-        icon='TRIA_DOWN' if wm.coloraide_display.show_history else 'TRIA_RIGHT',
-        emboss=False
-    )
-    
-    if wm.coloraide_display.show_history:
+    title = f"Color Picker History ({wm.coloraide_history.size})"
+    box, is_open = draw_collapsible_header(layout, wm.coloraide_display, "show_history", title)
+
+    if is_open:
         main_col = box.column(align=True)
         
         # Size adjustment row
