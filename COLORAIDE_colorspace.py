@@ -7,16 +7,15 @@ Color space conversion utilities for Blender 5.0+
 Handles scene linear ↔ sRGB conversions for proper color management.
 """
 
-
-def rgb_bytes_to_float(rgb_bytes):
+def rgb_bytes_to_float(rgb_bytes: tuple[int, int, int]) -> tuple[float, float, float]:
     """Convert RGB bytes (0-255) to float values (0-1)"""
     return tuple(c / 255 for c in rgb_bytes)
 
-def rgb_float_to_bytes(rgb_float):
+def rgb_float_to_bytes(rgb_float: tuple[float, float, float]) -> tuple[int, int, int]:
     """Convert RGB float values (0-1) to bytes (0-255)"""
     return tuple(round(c * 255) for c in rgb_float)
 
-def srgb_to_linear(c):
+def srgb_to_linear(c: float) -> float:
     """
     Convert single sRGB channel to scene linear color space.
     
@@ -32,7 +31,7 @@ def srgb_to_linear(c):
     return ((c + 0.055) / 1.055) ** 2.4
 
 
-def linear_to_srgb(c):
+def linear_to_srgb(c: float) -> float:
     """
     Convert single scene linear channel to sRGB color space.
     
@@ -48,7 +47,7 @@ def linear_to_srgb(c):
     return 1.055 * (c ** (1.0 / 2.4)) - 0.055
 
 
-def rgb_srgb_to_linear(rgb_srgb):
+def rgb_srgb_to_linear(rgb_srgb: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert RGB tuple from sRGB to scene linear color space.
     
@@ -61,7 +60,7 @@ def rgb_srgb_to_linear(rgb_srgb):
     return tuple(srgb_to_linear(c) for c in rgb_srgb[:3])
 
 
-def rgb_linear_to_srgb(rgb_linear):
+def rgb_linear_to_srgb(rgb_linear: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert RGB tuple from scene linear to sRGB color space.
     
@@ -74,7 +73,7 @@ def rgb_linear_to_srgb(rgb_linear):
     return tuple(linear_to_srgb(c) for c in rgb_linear[:3])
 
 
-def rgb_bytes_to_linear(rgb_bytes):
+def rgb_bytes_to_linear(rgb_bytes: tuple[int, int, int]) -> tuple[float, float, float]:
     """
     Convert RGB bytes (0-255) to scene linear float values.
     
@@ -88,7 +87,7 @@ def rgb_bytes_to_linear(rgb_bytes):
     return rgb_srgb_to_linear(rgb_srgb)
 
 
-def rgb_linear_to_bytes(rgb_linear):
+def rgb_linear_to_bytes(rgb_linear: tuple[float, float, float]) -> tuple[int, int, int]:
     """
     Convert scene linear RGB to bytes (0-255) in sRGB space.
     
@@ -102,7 +101,7 @@ def rgb_linear_to_bytes(rgb_linear):
     return tuple(round(c * 255) for c in rgb_srgb)
 
 
-def hex_to_linear(hex_str):
+def hex_to_linear(hex_str: str) -> tuple[float, float, float]:
     """
     Convert hex color string to scene linear RGB.
     
@@ -123,7 +122,7 @@ def hex_to_linear(hex_str):
         return (0.0, 0.0, 0.0)
 
 
-def linear_to_hex(rgb_linear):
+def linear_to_hex(rgb_linear: tuple[float, float, float]) -> str:
     """
     Convert scene linear RGB to hex color string.
     

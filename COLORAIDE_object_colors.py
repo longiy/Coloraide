@@ -17,51 +17,37 @@ from .COLORAIDE_colorspace import rgb_srgb_to_linear, rgb_linear_to_srgb, linear
 # SCAN RESULT CACHING (Issue 3C)
 # ============================================================================
 
-_SCAN_CACHE = {}  # {cache_key: scan_results}
+_SCAN_CACHE = {}  # {obj_name: (fingerprint_hash, scan_results)}
 
-def _compute_cache_key(obj):
-    """Compute unique cache key based on object state"""
+def _compute_fingerprint(obj):
+    """Compute state fingerprint for an object to detect when rescan is needed."""
     try:
-        # Include factors that affect color properties
         key_parts = [
             obj.name,
             str(obj.type),
             str(len(obj.modifiers)) if hasattr(obj, 'modifiers') else '0',
             str(len(obj.material_slots)) if hasattr(obj, 'material_slots') else '0',
         ]
-        
-        # Hash modifier data (GeoNodes)
         if hasattr(obj, 'modifiers'):
             for mod in obj.modifiers:
                 if mod.type == 'NODES' and mod.node_group:
                     key_parts.append(f"{mod.name}:{mod.node_group.name}")
-        
-        # Hash material data
         if hasattr(obj, 'material_slots'):
             for slot in obj.material_slots:
                 if slot.material:
-                    key_parts.append(f"{slot.material.name}")
-        
-        # Light data
+                    key_parts.append(slot.material.name)
         if obj.type == 'LIGHT' and obj.data:
             key_parts.append(f"light:{obj.data.name}")
-        
-        # Create hash
-        key_string = "|".join(key_parts)
-        return hashlib.md5(key_string.encode()).hexdigest()
-    
+        return hashlib.md5("|".join(key_parts).encode()).hexdigest()
     except Exception as e:
-        print(f"Coloraide: Cache key error for {obj.name}: {e}")
+        print(f"Coloraide: Fingerprint error for {obj.name}: {e}")
         return None
 
 
 def clear_object_cache(obj_name=None):
-    """Clear cache for specific object or all objects"""
-    global _SCAN_CACHE
+    """Clear cache for specific object or all objects."""
     if obj_name:
-        keys_to_remove = [k for k in _SCAN_CACHE.keys() if k.startswith(obj_name)]
-        for key in keys_to_remove:
-            del _SCAN_CACHE[key]
+        _SCAN_CACHE.pop(obj_name, None)
     else:
         _SCAN_CACHE.clear()
 
@@ -369,11 +355,12 @@ def scan_all_colors(context, show_multiple=False, use_cache=True):
         
         # Try cache first
         if use_cache:
-            cache_key = _compute_cache_key(obj)
-            if cache_key and cache_key in _SCAN_CACHE:
-                all_colors.extend(_SCAN_CACHE[cache_key])
+            fingerprint = _compute_fingerprint(obj)
+            cached = _SCAN_CACHE.get(obj.name)
+            if cached and fingerprint and cached[0] == fingerprint:
+                all_colors.extend(cached[1])
                 continue
-        
+
         # Cache miss - do full scan
         obj_colors = []
         obj_colors.extend(scan_geonodes_colors(obj))
@@ -381,12 +368,12 @@ def scan_all_colors(context, show_multiple=False, use_cache=True):
         obj_colors.extend(scan_light_colors(obj))
         obj_colors.extend(scan_greasepencil_colors(obj))
         obj_colors.extend(scan_object_colors(obj))
-        
-        # Store in cache
+
+        # Store in cache keyed by name with fingerprint for invalidation
         if use_cache:
-            cache_key = _compute_cache_key(obj)
-            if cache_key:
-                _SCAN_CACHE[cache_key] = obj_colors
+            fingerprint = _compute_fingerprint(obj)
+            if fingerprint:
+                _SCAN_CACHE[obj.name] = (fingerprint, obj_colors)
         
         all_colors.extend(obj_colors)
     

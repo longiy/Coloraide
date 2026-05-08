@@ -8,7 +8,7 @@ from math import pow
 from mathutils import Vector
 from .COLORAIDE_colorspace import *
 
-def rgb_to_hsv(rgb_linear):
+def rgb_to_hsv(rgb_linear: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert scene linear RGB to HSV.
     
@@ -42,7 +42,7 @@ def rgb_to_hsv(rgb_linear):
     return (h, s, v)
 
 
-def hsv_to_rgb(hsv):
+def hsv_to_rgb(hsv: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert HSV to scene linear RGB.
     
@@ -82,7 +82,7 @@ def hsv_to_rgb(hsv):
         return (v, p, q)
 
 
-def rgb_to_xyz(rgb_linear):
+def rgb_to_xyz(rgb_linear: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert scene linear RGB to XYZ color space (D50).
     
@@ -107,7 +107,7 @@ def rgb_to_xyz(rgb_linear):
     return (x_d50, y_d50, z_d50)
 
 
-def xyz_to_lab(xyz):
+def xyz_to_lab(xyz: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert XYZ D50 to LAB color space.
     
@@ -155,7 +155,7 @@ def xyz_to_lab(xyz):
     return (L, a, b)
 
 
-def lab_to_xyz(lab):
+def lab_to_xyz(lab: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert LAB to XYZ D50 color space.
     
@@ -204,7 +204,7 @@ def lab_to_xyz(lab):
     return (x, y, z)
 
 
-def xyz_to_rgb(xyz):
+def xyz_to_rgb(xyz: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert XYZ D50 to scene linear RGB.
     
@@ -234,7 +234,7 @@ def xyz_to_rgb(xyz):
     return (r, g, b)
 
 
-def rgb_to_lab(rgb_linear):
+def rgb_to_lab(rgb_linear: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert scene linear RGB to LAB.
     
@@ -248,7 +248,7 @@ def rgb_to_lab(rgb_linear):
     return xyz_to_lab(xyz)
 
 
-def lab_to_rgb(lab):
+def lab_to_rgb(lab: tuple[float, float, float]) -> tuple[float, float, float]:
     """
     Convert LAB to scene linear RGB.
     
@@ -262,7 +262,7 @@ def lab_to_rgb(lab):
     return xyz_to_rgb(xyz)
 
 
-def get_barycentric_weights(p, a, b, c):
+def get_barycentric_weights(p: Vector, a: Vector, b: Vector, c: Vector) -> tuple[float, float, float]:
     """Compute barycentric weights of point p in triangle (a, b, c)."""
     v0 = b - a
     v1 = c - a
@@ -284,7 +284,7 @@ def get_barycentric_weights(p, a, b, c):
     return (u, v, w)
 
 
-def color_statistics(colors):
+def color_statistics(colors: np.ndarray) -> dict | None:
     """
     Calculate color statistics for an array of colors.
     

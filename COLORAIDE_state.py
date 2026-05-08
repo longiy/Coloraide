@@ -24,7 +24,7 @@ color_cache: dict = {}
 is_flush_scheduled: bool = False
 
 
-def reset():
+def reset() -> None:
     """Reset all state — called on unregister or file load."""
     global is_updating, update_source, previous_color
     global is_live_sync_updating, is_brush_updating
