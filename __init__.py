@@ -8,11 +8,8 @@ OPTIMIZATIONS APPLIED:
 - Proper error handling (no silent failures)
 """
 import bpy
-import time
 from bpy.app.handlers import persistent
 from bpy.types import AddonPreferences
-from bpy.props import StringProperty
-from bpy.app.handlers import persistent
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 
 # First utilities and sync system from root
@@ -314,11 +311,6 @@ def start_color_monitor():
     bpy.ops.color.monitor('INVOKE_DEFAULT')
     return None
 
-@persistent
-def load_handler(dummy):
-    """Ensure color monitor is running after file load"""
-    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
-
 def initialize_addon(context):
     """Initialize addon state after registration."""
     if not context or not context.window_manager:
@@ -344,9 +336,6 @@ def initialize_addon(context):
     except Exception as e:
         print(f"Coloraide initialization warning: {e}")
 
-# In __init__.py - Use msgbus to listen for selection changes
-
-# msgbus subscription key
 _msgbus_owner = object()
 
 def on_selection_changed():
@@ -483,12 +472,7 @@ def register():
     # Subscribe to selection changes after slight delay
     bpy.app.timers.register(subscribe_to_selection_changes, first_interval=0.5)
     
-    print("✓ Coloraide v1.5.1 registered (Performance Optimized)")
-    # print("  • Object scan caching enabled (instant refresh)")
-    # print("  • O(1) history duplicate checking")
-    # print("  • Single-pass material tree traversal")
-    # print("  • Proper error handling throughout")
-    # print("  • Auto-refresh on selection change enabled (msgbus)")
+    print("✓ Coloraide v1.5.1 registered")
 
 
 def unregister():

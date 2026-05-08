@@ -7,21 +7,6 @@ Color space conversion utilities for Blender 5.0+
 Handles scene linear ↔ sRGB conversions for proper color management.
 """
 
-def rgb_to_hex(rgb_float):
-    """Convert RGB float values to hex string"""
-    rgb_bytes = rgb_float_to_bytes(rgb_float)
-    return "#{:02X}{:02X}{:02X}".format(*rgb_bytes)
-
-def hex_to_rgb(hex_str):
-    """Convert hex string to RGB float values"""
-    hex_str = hex_str.lstrip('#')
-    if len(hex_str) != 6:
-        return (0.0, 0.0, 0.0)
-    try:
-        rgb_bytes = tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
-        return rgb_bytes_to_float(rgb_bytes)
-    except ValueError:
-        return (0.0, 0.0, 0.0)
 
 def rgb_bytes_to_float(rgb_bytes):
     """Convert RGB bytes (0-255) to float values (0-1)"""

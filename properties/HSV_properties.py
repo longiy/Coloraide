@@ -4,7 +4,6 @@ import bpy
 from bpy.props import FloatProperty, BoolProperty
 from bpy.types import PropertyGroup
 from ..import COLORAIDE_sync
-from ..import COLORAIDE_utils
 
 class ColoraideHSVProperties(PropertyGroup):
     suppress_updates: BoolProperty(default=False)

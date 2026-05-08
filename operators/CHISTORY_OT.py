@@ -3,7 +3,6 @@
 
 import bpy
 from bpy.types import Operator
-from ..COLORAIDE_sync import sync_all, is_updating
 
 class COLOR_OT_adjust_history_size(Operator):
     bl_idname = "color.adjust_history_size"
