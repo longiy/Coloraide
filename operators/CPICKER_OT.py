@@ -259,7 +259,7 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
             self.cleanup(context, add_to_history=True)
             return {'FINISHED'}
 
-        elif event.type in {'MOUSEMOVE'} or (event.type == self._key_pressed):
+        elif event.type == 'MOUSEMOVE':
             if is_updating('picker'):
                 return {'PASS_THROUGH'}
             self.sqrt_length   = context.window_manager.coloraide_picker.custom_size
