@@ -124,14 +124,62 @@ class ColoraideObjectColorsProperties(PropertyGroup):
             bpy.ops.object_colors.refresh()
         except:
             pass
-    
+
     def update_show_multiple(self, context):
         """Auto-refresh when toggling Multi on/off"""
         try:
             bpy.ops.object_colors.refresh()
         except:
             pass
-    
+
+    def update_filter(self, context):
+        """Auto-refresh when filter changes"""
+        try:
+            bpy.ops.object_colors.refresh()
+        except:
+            pass
+
+    show_filters: BoolProperty(
+        name="Show Filters",
+        description="Show/hide filter options",
+        default=False
+    )
+
+    filter_materials: BoolProperty(
+        name="Materials",
+        description="Show material shader node colors",
+        default=True,
+        update=update_filter
+    )
+
+    filter_geonodes: BoolProperty(
+        name="Geometry Nodes",
+        description="Show Geometry Nodes color inputs",
+        default=True,
+        update=update_filter
+    )
+
+    filter_lights: BoolProperty(
+        name="Lights",
+        description="Show light colors",
+        default=True,
+        update=update_filter
+    )
+
+    filter_objects: BoolProperty(
+        name="Objects",
+        description="Show object viewport display colors",
+        default=True,
+        update=update_filter
+    )
+
+    filter_gpencil: BoolProperty(
+        name="Grease Pencil",
+        description="Show Grease Pencil fill/stroke colors",
+        default=True,
+        update=update_filter
+    )
+
     display_mode: EnumProperty(
         name="Display Mode",
         description="How to display detected colors",

@@ -211,21 +211,42 @@ def draw_object_colors_panel(layout, context):
     if not wm.coloraide_display.show_object_colors:
         return
     
+    # FILTERS SECTION (collapsible)
+    filter_box = box.box()
+    filter_row = filter_box.row()
+    filter_row.prop(obj_colors, "show_filters",
+        text="Filters",
+        icon='TRIA_DOWN' if obj_colors.show_filters else 'TRIA_RIGHT',
+        emboss=False,
+        toggle=True
+    )
+
+    if obj_colors.show_filters:
+        split = filter_box.split(factor=0.5)
+        left_col = split.column(align=True)
+        left_col.prop(obj_colors, "filter_materials", text="Materials")
+        left_col.prop(obj_colors, "filter_geonodes", text="Geometry Nodes")
+        left_col.prop(obj_colors, "filter_lights", text="Lights")
+        right_col = split.column(align=True)
+        right_col.prop(obj_colors, "filter_objects", text="Objects")
+        right_col.prop(obj_colors, "filter_gpencil", text="Grease Pencil")
+
     # CONTROL ROW: Multi toggle + Mode buttons + RESCAN
     control_row = box.row(align=True)
-    
+
     # Multi toggle (left side)
     multi_col = control_row.column(align=True)
     multi_col.prop(obj_colors, "show_multiple_objects", text="Multi", icon='MOD_ARRAY', toggle=True)
-    
+
     # Mode buttons (center)
     mode_row = control_row.row(align=True)
     mode_row.prop_enum(obj_colors, "display_mode", 'OBJECT', text="Object", icon='OBJECT_DATA')
     mode_row.prop_enum(obj_colors, "display_mode", 'GROUPED', text="Grouped", icon='COLOR')
-    
-    # RESCAN BUTTON (right side) - EXPLICIT ACTION
+
+    # RESCAN BUTTON (right side) - icon only
     rescan_col = control_row.column(align=True)
-    rescan_col.operator("object_colors.refresh", text="Rescan", icon='FILE_REFRESH')
+    rescan_col.scale_x = 0.8
+    rescan_col.operator("object_colors.refresh", text="", icon='FILE_REFRESH')
     
     # Draw mode-specific UI
     if obj_colors.display_mode == 'OBJECT':

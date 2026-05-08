@@ -328,55 +328,65 @@ def scan_greasepencil_colors(obj):
     return colors
 
 
+def _should_include_property(property_type, filters):
+    """Return True if property_type passes the current filter settings."""
+    filter_map = {
+        'GEONODES': filters.filter_geonodes,
+        'MATERIAL': filters.filter_materials,
+        'LIGHT': filters.filter_lights,
+        'OBJECT': filters.filter_objects,
+        'GPENCIL': filters.filter_gpencil,
+    }
+    return filter_map.get(property_type, True)
+
+
 def scan_all_colors(context, show_multiple=False, use_cache=True):
     """
     Scan selected objects for all color properties.
-    NOW WITH CACHING for instant refresh.
-    
-    Args:
-        context: Blender context
-        show_multiple: Scan all selected (True) or active only (False)
-        use_cache: Use cached results if available
-    
-    Returns:
-        list: Color property dictionaries
+    Cache stores full (unfiltered) results; filters are applied at retrieval time
+    so toggling filters is instant without rescanning.
     """
     all_colors = []
-    
-    # Get objects to scan
+    filters = context.window_manager.coloraide_object_colors
+
     if show_multiple:
         objects = list(context.selected_objects)
     else:
         objects = [context.active_object] if context.active_object else []
-    
+
     for obj in objects:
         if not obj:
             continue
-        
+
         # Try cache first
         if use_cache:
             fingerprint = _compute_fingerprint(obj)
             cached = _SCAN_CACHE.get(obj.name)
             if cached and fingerprint and cached[0] == fingerprint:
-                all_colors.extend(cached[1])
+                all_colors.extend(
+                    c for c in cached[1]
+                    if _should_include_property(c['property_type'], filters)
+                )
                 continue
 
-        # Cache miss - do full scan
-        obj_colors = []
-        obj_colors.extend(scan_geonodes_colors(obj))
-        obj_colors.extend(scan_material_colors(obj))
-        obj_colors.extend(scan_light_colors(obj))
-        obj_colors.extend(scan_greasepencil_colors(obj))
-        obj_colors.extend(scan_object_colors(obj))
+        # Cache miss - always scan ALL types and store unfiltered
+        full_scan = []
+        full_scan.extend(scan_geonodes_colors(obj))
+        full_scan.extend(scan_material_colors(obj))
+        full_scan.extend(scan_light_colors(obj))
+        full_scan.extend(scan_greasepencil_colors(obj))
+        full_scan.extend(scan_object_colors(obj))
 
-        # Store in cache keyed by name with fingerprint for invalidation
         if use_cache:
             fingerprint = _compute_fingerprint(obj)
             if fingerprint:
-                _SCAN_CACHE[obj.name] = (fingerprint, obj_colors)
-        
-        all_colors.extend(obj_colors)
-    
+                _SCAN_CACHE[obj.name] = (fingerprint, full_scan)
+
+        all_colors.extend(
+            c for c in full_scan
+            if _should_include_property(c['property_type'], filters)
+        )
+
     return all_colors
 
 
