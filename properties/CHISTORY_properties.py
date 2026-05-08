@@ -1,5 +1,6 @@
 import bpy
 from bpy.props import IntProperty, FloatVectorProperty, CollectionProperty
+from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all, is_updating
 from .base import SuppressUpdatesMixin
 
