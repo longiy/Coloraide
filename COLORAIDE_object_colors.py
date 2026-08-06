@@ -413,8 +413,11 @@ def get_color_value(obj, property_path, color_space='LINEAR'):
                     return tuple(value[:3])
             return None
         
-        # Standard property access
-        value = eval(f"obj.{property_path}")
+        # Standard property access via safe attribute traversal
+        target = obj
+        for part in property_path.split('.'):
+            target = getattr(target, part)
+        value = target
         if hasattr(value, '__len__') and len(value) >= 3:
             return tuple(value[:3])
         return None
@@ -467,7 +470,9 @@ def set_color_value(obj, property_path, color, color_space='LINEAR'):
             container_path = path_parts[0]
             attr = path_parts[1]
             
-            container = eval(f"obj.{container_path}")
+            container = obj
+            for part in container_path.split('.'):
+                container = getattr(container, part)
             current = getattr(container, attr)
             
             if hasattr(current, '__len__'):

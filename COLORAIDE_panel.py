@@ -30,32 +30,7 @@ def draw_coloraide_panels(self, context):
     
     # Try to get addon preferences, fallback to all enabled if fails
     try:
-        # Get the correct addon identifier by finding which addon registered this module
-        # This works for both legacy addons and extensions
-        addon_prefs = None
-        for addon in context.preferences.addons:
-            if hasattr(addon.module, '__package__'):
-                # Check if this module belongs to the addon
-                if __name__.startswith(addon.module):
-                    addon_prefs = addon.preferences
-                    break
-        
-        # Fallback: try direct lookup (legacy addon path)
-        if addon_prefs is None:
-            module_parts = __name__.split('.')
-            # Try to find the root module name
-            for i in range(len(module_parts)):
-                try:
-                    test_name = '.'.join(module_parts[:i+1])
-                    addon_prefs = context.preferences.addons[test_name].preferences
-                    break
-                except KeyError:
-                    continue
-        
-        if addon_prefs is None:
-            raise KeyError("Could not find addon preferences")
-        
-        prefs = addon_prefs
+        prefs = context.preferences.addons[__package__].preferences
         
         # Check if preferences have the new properties
         if not hasattr(prefs, 'enable_color_wheel'):

@@ -1,13 +1,6 @@
 """
 Core operators for color picker functionality - Blender 5.0+
-
-Platform strategy
------------------
-macOS  (Metal)  : CGWindowListCreateImage via CoreGraphics ctypes.
-                  Requires Screen Recording permission in System Settings.
-Windows (OpenGL/Vulkan) : GDI32 BitBlt via ctypes. No extra permissions.
-Linux           : gpu.state.active_framebuffer_get() in a POST_VIEW draw
-                  callback (GPU framebuffer is accessible on OpenGL/Vulkan).
+Uses GPU framebuffer sampling via a POST_VIEW draw callback on all platforms.
 """
 
 import sys
@@ -19,7 +12,6 @@ from gpu_extras.batch import batch_for_shader
 from ..COLORAIDE_sync import sync_all
 from ..COLORAIDE_sync import is_updating
 from ..COLORAIDE_colorspace import rgb_linear_to_srgb, rgb_srgb_to_linear
-from .CPICKER_screen import sample_at_cursor, is_native_capture_available
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
@@ -192,9 +184,6 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
             self.y = event.mouse_region_y
             self.mouse_region_x = event.mouse_region_x
             self.mouse_region_y = event.mouse_region_y
-            if is_native_capture_available() and not is_updating('picker'):
-                channels, mean_s, curr_s = sample_at_cursor(self.sqrt_length)
-                _apply_sample(context, channels, mean_s, curr_s)
 
         if event.type == 'LEFTMOUSE':
             self.cleanup(context)
@@ -222,9 +211,8 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
         space = getattr(bpy.types, self._handler_space_type)
         self._draw_handler = space.draw_handler_add(
             draw_preview_boxes, (self,), 'WINDOW', 'POST_PIXEL')
-        if not is_native_capture_available():
-            self._read_handler = space.draw_handler_add(
-                _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
+        self._read_handler = space.draw_handler_add(
+            _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
         return {'RUNNING_MODAL'}
 
 
@@ -267,10 +255,6 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
             self.y             = event.mouse_region_y
             self.mouse_region_x = event.mouse_region_x
             self.mouse_region_y = event.mouse_region_y
-            if is_native_capture_available():
-                channels, mean_s, curr_s = sample_at_cursor(self.sqrt_length)
-                _apply_sample(context, channels, mean_s, curr_s)
-            # Linux: sampling happens in _gpu_read_colors draw callback
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             self.cleanup(context, add_to_history=False)
@@ -293,9 +277,8 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
         space = getattr(bpy.types, self._handler_space_type)
         self._draw_handler = space.draw_handler_add(
             draw_preview_boxes, (self,), 'WINDOW', 'POST_PIXEL')
-        if not is_native_capture_available():
-            self._read_handler = space.draw_handler_add(
-                _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
+        self._read_handler = space.draw_handler_add(
+            _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
         return {'RUNNING_MODAL'}
 
 

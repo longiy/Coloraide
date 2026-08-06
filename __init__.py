@@ -96,16 +96,16 @@ def update_panel(self, context):
 
         # Update category and re-register
         for panel in panels:
-            panel.bl_category = context.preferences.addons[__name__].preferences.category
+            panel.bl_category = context.preferences.addons[__package__].preferences.category
             bpy.utils.register_class(panel)
 
     except Exception as e:
-        print("\n[{}]\n{}\n\nError:\n{}".format(__name__, message, e))
+        print("\n[{}]\n{}\n\nError:\n{}".format(__package__, message, e))
 
 
 class ColoraideAddonPreferences(AddonPreferences):
     """Addon preferences for Coloraide - allows customizing panel tab location and enabled panels"""
-    bl_idname = __name__
+    bl_idname = __package__
 
     category: StringProperty(
         name="Tab Category",

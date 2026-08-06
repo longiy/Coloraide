@@ -99,12 +99,8 @@ def update_live_synced_properties_cached(context, color, mode='absolute', delta=
     
     # Get update mode from preferences
     try:
-        # Get addon name from module path
-        addon_name = __name__.split('.')[0]
-        
-        # Try to get addon preferences
-        if addon_name in context.preferences.addons:
-            addon_prefs = context.preferences.addons[addon_name].preferences
+        if __package__ in context.preferences.addons:
+            addon_prefs = context.preferences.addons[__package__].preferences
             if hasattr(addon_prefs, 'live_sync_mode'):
                 update_mode = addon_prefs.live_sync_mode
             else:

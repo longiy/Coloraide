@@ -43,9 +43,3 @@ def draw_wheel_panel(layout, context):
             icon='LOOP_BACK'
         )
 
-# Registration
-def register():
-    bpy.utils.register_class(COLOR_OT_reset_wheel_scale)
-
-def unregister():
-    bpy.utils.unregister_class(COLOR_OT_reset_wheel_scale)
