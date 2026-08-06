@@ -22,14 +22,14 @@ def draw_palette_panel(layout, context):
         row.template_ID(paint_settings, "palette", new="palette.new")
         
         if paint_settings.palette:
-            # Color selector UI
-            add_row = box.row(align=True)
-            palette_box = box.column()
-            palette_box.template_palette(
-                paint_settings,
-                "palette",
-                color=True
-            )
+            # Blender 5.2 dropped the `color` argument from
+            # template_palette(); calling with 3 args raises TypeError
+            # there, which silently killed the whole panel's remaining
+            # draw (grid never appeared, no error visible in the UI).
+            if bpy.app.version >= (5, 2, 0):
+                box.template_palette(paint_settings, "palette")
+            else:
+                box.template_palette(paint_settings, "palette", color=True)
 
 
 def register():

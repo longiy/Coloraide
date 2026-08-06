@@ -7,7 +7,13 @@
       "Bash(gh repo *)",
       "Bash(gh api *)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('panels/PALETTE_panel.py'\\).read\\(\\)\\)\")",
+      "WebFetch(domain:docs.blender.org)",
+      "WebSearch",
+      "WebFetch(domain:web.archive.org)",
+      "WebFetch(domain:developer.blender.org)",
+      "WebFetch(domain:r.jina.ai)"
     ]
   }
 }
