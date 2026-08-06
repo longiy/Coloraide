@@ -1,6 +1,9 @@
 """
 Core operators for color picker functionality - Blender 5.0+
-Uses GPU framebuffer sampling via a POST_VIEW draw callback on all platforms.
+Samples the GPU framebuffer directly from modal() on MOUSEMOVE, using
+fb.viewport_get() for bounds and absolute event.mouse_x/y coordinates
+(clamping required for Vulkan) — same approach as color-picker-pro
+(https://github.com/semagnum/color-picker-pro).
 """
 
 import sys
@@ -11,7 +14,7 @@ from bpy.types import Operator
 from gpu_extras.batch import batch_for_shader
 from ..COLORAIDE_sync import sync_all
 from ..COLORAIDE_sync import is_updating
-from ..COLORAIDE_colorspace import rgb_linear_to_srgb, rgb_srgb_to_linear
+from ..COLORAIDE_colorspace import rgb_linear_to_srgb
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
@@ -22,34 +25,6 @@ try:
 except Exception as e:
     import logging
     logging.getLogger(__name__).warning(f'Failed to initialize gpu shader: {e}')
-
-
-# ---------------------------------------------------------------------------
-# Shared helpers
-# ---------------------------------------------------------------------------
-
-def _apply_sample(context, channels_srgb, mean_srgb, curr_srgb):
-    """Convert sampled sRGB values to scene-linear and push through sync."""
-    if mean_srgb is None:
-        return
-    mean_linear = rgb_srgb_to_linear(tuple(mean_srgb))
-    curr_linear = rgb_srgb_to_linear(tuple(curr_srgb))
-
-    wm = context.window_manager
-    if channels_srgb is not None and len(channels_srgb) > 0:
-        channels_linear = np.array([rgb_srgb_to_linear(tuple(c)) for c in channels_srgb])
-        dot = np.sum(channels_linear, axis=1)
-        wm.coloraide_picker.max    = tuple(channels_linear[np.argmax(dot)])
-        wm.coloraide_picker.min    = tuple(channels_linear[np.argmin(dot)])
-        wm.coloraide_picker.median = tuple(np.median(channels_linear, axis=0))
-
-    # sync_all skips picker.mean when source='picker' (anti-recursion guard),
-    # so we must set mean explicitly here alongside current.
-    wm.coloraide_picker.suppress_updates = True
-    wm.coloraide_picker.mean    = tuple(mean_linear)
-    wm.coloraide_picker.current = tuple(curr_linear)
-    wm.coloraide_picker.suppress_updates = False
-    sync_all(context, 'picker', tuple(mean_linear))
 
 
 def draw_preview_boxes(op):
@@ -71,66 +46,58 @@ def draw_preview_boxes(op):
 
 
 # ---------------------------------------------------------------------------
-# Linux GPU framebuffer path (POST_VIEW draw callback)
+# GPU framebuffer sampling — called directly from modal(), not a draw handler
 # ---------------------------------------------------------------------------
 
-def _gpu_read_colors(op):
+def _gpu_read_colors(op, event):
     """
-    POST_VIEW draw callback used on Linux.
-    At this point the GPU framebuffer contains the rendered scene (OpenGL/Vulkan).
-    Reads pixel data and pushes to picker state.
+    Read the active framebuffer around the cursor and push pixel data to
+    picker state. Uses fb.viewport_get() for bounds (already in the same
+    physical-pixel, absolute-screen coordinate space as event.mouse_x/y),
+    so this is correct under Retina/HiDPI and Windows display scaling
+    without any manual coordinate conversion.
     """
-    context = bpy.context
-    region  = context.region
-    if region.as_pointer() != op.invoke_region_ptr:
-        return
     if is_updating('picker'):
         return
 
-    fb   = gpu.state.active_framebuffer_get()
-    fw   = region.width
-    fh   = region.height
-    dist = op.sqrt_length // 2
-    mx   = op.mouse_region_x
-    my   = op.mouse_region_y
+    fb = gpu.state.active_framebuffer_get()
+    min_x, min_y, max_x, max_y = fb.viewport_get()
 
-    sx = max(0, min(mx - dist, fw - op.sqrt_length))
-    sy = max(0, min(my - dist, fh - op.sqrt_length))
-    sw = min(op.sqrt_length, fw - sx)
-    sh = min(op.sqrt_length, fh - sy)
-    if sw <= 0 or sh <= 0:
-        return
+    sqrt_length = op.sqrt_length
+    distance    = sqrt_length // 2
+    mouse_x, mouse_y = event.mouse_x, event.mouse_y
 
+    # Clamping is required for Vulkan.
+    sx = min(max(mouse_x - distance, min_x), max_x - sqrt_length - 1)
+    sy = min(max(mouse_y - distance, min_y), max_y - sqrt_length - 1)
     try:
-        area_buf = fb.read_color(sx, sy, sw, sh, 3, 0, 'FLOAT')
+        area_buf = fb.read_color(sx, sy, sqrt_length, sqrt_length, 3, 0, 'FLOAT')
     except ValueError:
         return
 
-    channels_raw = np.array(area_buf.to_list()).reshape((sw * sh, 3))
-    mean_raw     = np.mean(channels_raw, axis=0)
-    mean_linear  = rgb_srgb_to_linear(tuple(mean_raw))
+    # Framebuffer values are already scene-linear — no sRGB decode needed.
+    channels_raw = np.array(area_buf.to_list()).reshape((sqrt_length * sqrt_length, 3))
+    mean_linear  = tuple(np.mean(channels_raw, axis=0))
 
-    px = max(0, min(mx, fw - 1))
-    py = max(0, min(my, fh - 1))
+    px = min(max(mouse_x, min_x), max_x - 1)
+    py = min(max(mouse_y, min_y), max_y - 1)
     try:
         px_buf = fb.read_color(px, py, 1, 1, 3, 0, 'FLOAT')
     except ValueError:
         return
-    curr_raw    = np.array(px_buf.to_list()).reshape(-1)
-    curr_linear = rgb_srgb_to_linear(tuple(curr_raw))
+    curr_linear = tuple(np.array(px_buf.to_list()).reshape(-1))
 
-    wm = context.window_manager
-    channels_linear = np.array([rgb_srgb_to_linear(tuple(c)) for c in channels_raw])
-    dot = np.sum(channels_linear, axis=1)
-    wm.coloraide_picker.max    = tuple(channels_linear[np.argmax(dot)])
-    wm.coloraide_picker.min    = tuple(channels_linear[np.argmin(dot)])
-    wm.coloraide_picker.median = tuple(np.median(channels_linear, axis=0))
+    wm = bpy.context.window_manager
+    dot = np.sum(channels_raw, axis=1)
+    wm.coloraide_picker.max    = tuple(channels_raw[np.argmax(dot)])
+    wm.coloraide_picker.min    = tuple(channels_raw[np.argmin(dot)])
+    wm.coloraide_picker.median = tuple(np.median(channels_raw, axis=0))
 
     wm.coloraide_picker.suppress_updates = True
-    wm.coloraide_picker.mean    = tuple(mean_linear)
-    wm.coloraide_picker.current = tuple(curr_linear)
+    wm.coloraide_picker.mean    = mean_linear
+    wm.coloraide_picker.current = curr_linear
     wm.coloraide_picker.suppress_updates = False
-    sync_all(context, 'picker', tuple(mean_linear))
+    sync_all(bpy.context, 'picker', mean_linear)
 
 
 # ---------------------------------------------------------------------------
@@ -140,18 +107,13 @@ def _gpu_read_colors(op):
 class _PickerHandlerMixin:
     """Shared draw-handler teardown for screen picker operators."""
     _draw_handler = None
-    _read_handler = None
 
     def _cleanup_handlers(self, context):
         context.window.cursor_modal_restore()
         space = getattr(bpy.types, self._handler_space_type, None)
-        if space:
-            if self._draw_handler:
-                space.draw_handler_remove(self._draw_handler, 'WINDOW')
-                self._draw_handler = None
-            if self._read_handler:
-                space.draw_handler_remove(self._read_handler, 'WINDOW')
-                self._read_handler = None
+        if space and self._draw_handler:
+            space.draw_handler_remove(self._draw_handler, 'WINDOW')
+            self._draw_handler = None
 
 
 # ---------------------------------------------------------------------------
@@ -168,10 +130,6 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
     sqrt_length:    bpy.props.IntProperty(default=1)
     x:              bpy.props.IntProperty()
     y:              bpy.props.IntProperty()
-    mouse_region_x: bpy.props.IntProperty()
-    mouse_region_y: bpy.props.IntProperty()
-
-    invoke_region_ptr = 0
 
     def cleanup(self, context):
         self._cleanup_handlers(context)
@@ -182,8 +140,7 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
         if event.type in {'MOUSEMOVE', 'LEFTMOUSE'}:
             self.x = event.mouse_region_x
             self.y = event.mouse_region_y
-            self.mouse_region_x = event.mouse_region_x
-            self.mouse_region_y = event.mouse_region_y
+            _gpu_read_colors(self, event)
 
         if event.type == 'LEFTMOUSE':
             self.cleanup(context)
@@ -201,9 +158,7 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
     def invoke(self, context, event):
         self.x = event.mouse_region_x
         self.y = event.mouse_region_y
-        self.mouse_region_x = event.mouse_region_x
-        self.mouse_region_y = event.mouse_region_y
-        self.invoke_region_ptr = context.region.as_pointer()
+        _gpu_read_colors(self, event)
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
 
@@ -211,8 +166,6 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
         space = getattr(bpy.types, self._handler_space_type)
         self._draw_handler = space.draw_handler_add(
             draw_preview_boxes, (self,), 'WINDOW', 'POST_PIXEL')
-        self._read_handler = space.draw_handler_add(
-            _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
         return {'RUNNING_MODAL'}
 
 
@@ -229,10 +182,6 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
     sqrt_length:    bpy.props.IntProperty(default=3)
     x:              bpy.props.IntProperty()
     y:              bpy.props.IntProperty()
-    mouse_region_x: bpy.props.IntProperty()
-    mouse_region_y: bpy.props.IntProperty()
-
-    invoke_region_ptr = 0
 
     def cleanup(self, context, add_to_history=True):
         self._cleanup_handlers(context)
@@ -250,11 +199,10 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
         elif event.type == 'MOUSEMOVE':
             if is_updating('picker'):
                 return {'PASS_THROUGH'}
-            self.sqrt_length   = context.window_manager.coloraide_picker.custom_size
-            self.x             = event.mouse_region_x
-            self.y             = event.mouse_region_y
-            self.mouse_region_x = event.mouse_region_x
-            self.mouse_region_y = event.mouse_region_y
+            self.sqrt_length = context.window_manager.coloraide_picker.custom_size
+            self.x           = event.mouse_region_x
+            self.y           = event.mouse_region_y
+            _gpu_read_colors(self, event)
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
             self.cleanup(context, add_to_history=False)
@@ -263,13 +211,11 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
         return {'RUNNING_MODAL'}
 
     def invoke(self, context, event):
-        self._key_pressed  = event.type
+        self._key_pressed = event.type
         self.sqrt_length   = context.window_manager.coloraide_picker.custom_size
         self.x             = event.mouse_region_x
         self.y             = event.mouse_region_y
-        self.mouse_region_x = event.mouse_region_x
-        self.mouse_region_y = event.mouse_region_y
-        self.invoke_region_ptr = context.region.as_pointer()
+        _gpu_read_colors(self, event)
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set('EYEDROPPER')
 
@@ -277,8 +223,6 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
         space = getattr(bpy.types, self._handler_space_type)
         self._draw_handler = space.draw_handler_add(
             draw_preview_boxes, (self,), 'WINDOW', 'POST_PIXEL')
-        self._read_handler = space.draw_handler_add(
-            _gpu_read_colors, (self,), 'WINDOW', 'POST_VIEW')
         return {'RUNNING_MODAL'}
 
 

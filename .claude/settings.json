@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('operators/CPICKER_OT.py'\\).read\\(\\)\\)\")",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
