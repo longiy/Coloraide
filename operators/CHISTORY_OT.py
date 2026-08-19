@@ -26,7 +26,5 @@ class COLOR_OT_clear_history(Operator):
     bl_options = {'INTERNAL'}
     
     def execute(self, context):
-        history = context.window_manager.coloraide_history
-        while len(history.items) > 0:
-            history.items.remove(0)
+        context.window_manager.coloraide_history.clear_history()
         return {'FINISHED'}

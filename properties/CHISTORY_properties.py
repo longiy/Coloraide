@@ -120,6 +120,13 @@ class ColoraideHistoryProperties(PropertyGroup):
         # Double-check all flags are reset
         self.reset_all_suppress_flags()
     
+    def clear_history(self):
+        """Remove all history items and reset the duplicate-check hash set."""
+        items = self.items
+        while items:
+            items.remove(0)
+        self._color_hashes = set()
+
     def get_color_at_index(self, index):
         """Safely get color at specific index"""
         if 0 <= index < len(self.items):

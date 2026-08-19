@@ -3,6 +3,7 @@
 import bpy
 from bpy.types import Operator
 from ..COLORAIDE_sync import sync_all, is_updating
+from ..COLORAIDE_colorspace import rgb_linear_to_bytes
 
 class COLOR_OT_sync_rgb(Operator):
     bl_idname = "color.sync_rgb"
@@ -19,6 +20,6 @@ class COLOR_OT_sync_rgb(Operator):
             return {'FINISHED'}
             
         current_color = tuple(context.window_manager.coloraide_picker.mean)
-        rgb_bytes = tuple(int(c * 255) for c in current_color)
+        rgb_bytes = rgb_linear_to_bytes(current_color)
         sync_all(context, 'rgb', rgb_bytes)
         return {'FINISHED'}

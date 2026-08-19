@@ -14,7 +14,7 @@ from bpy.types import Operator
 from gpu_extras.batch import batch_for_shader
 from ..COLORAIDE_sync import sync_all
 from ..COLORAIDE_sync import is_updating
-from ..COLORAIDE_colorspace import rgb_linear_to_srgb
+from ..COLORAIDE_colorspace import rgb_linear_to_srgb, rgb_srgb_to_linear
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
@@ -75,8 +75,11 @@ def _gpu_read_colors(op, event):
     except ValueError:
         return
 
-    # Framebuffer values are already scene-linear — no sRGB decode needed.
-    channels_raw = np.array(area_buf.to_list()).reshape((sqrt_length * sqrt_length, 3))
+    # active_framebuffer_get() returns the display-encoded buffer (post view/
+    # display transform), same as what's rendered on screen — decode to
+    # scene-linear before storing, since the picker properties are linear.
+    channels_display = np.array(area_buf.to_list()).reshape((sqrt_length * sqrt_length, 3))
+    channels_raw = np.array([rgb_srgb_to_linear(tuple(c)) for c in channels_display])
     mean_linear  = tuple(np.mean(channels_raw, axis=0))
 
     px = min(max(mouse_x, min_x), max_x - 1)
@@ -85,13 +88,15 @@ def _gpu_read_colors(op, event):
         px_buf = fb.read_color(px, py, 1, 1, 3, 0, 'FLOAT')
     except ValueError:
         return
-    curr_linear = tuple(np.array(px_buf.to_list()).reshape(-1))
+    curr_linear = rgb_srgb_to_linear(tuple(np.array(px_buf.to_list()).reshape(-1)))
 
     wm = bpy.context.window_manager
+    # max/min/median are COLOR_GAMMA (no display transform applied by Blender),
+    # so they must hold display-encoded values, unlike mean/current (COLOR).
     dot = np.sum(channels_raw, axis=1)
-    wm.coloraide_picker.max    = tuple(channels_raw[np.argmax(dot)])
-    wm.coloraide_picker.min    = tuple(channels_raw[np.argmin(dot)])
-    wm.coloraide_picker.median = tuple(np.median(channels_raw, axis=0))
+    wm.coloraide_picker.max    = tuple(channels_display[np.argmax(dot)])
+    wm.coloraide_picker.min    = tuple(channels_display[np.argmin(dot)])
+    wm.coloraide_picker.median = tuple(np.median(channels_display, axis=0))
 
     wm.coloraide_picker.suppress_updates = True
     wm.coloraide_picker.mean    = mean_linear

@@ -258,8 +258,8 @@ def scan_object_colors(obj):
     colors = []
     
     try:
-        obj_color_linear = tuple(obj.color[:3])
-        
+        obj_color_linear = rgb_srgb_to_linear(tuple(obj.color[:3]))
+
         colors.append({
             'label_short': "Obj:Color",
             'label_detailed': f"Object '{obj.name}' > Viewport Display Color",
@@ -298,7 +298,7 @@ def scan_greasepencil_colors(obj):
             
             # Fill color
             if hasattr(gp_settings, 'fill_color'):
-                fill_linear = tuple(gp_settings.fill_color[:3])
+                fill_linear = rgb_srgb_to_linear(tuple(gp_settings.fill_color[:3]))
                 colors.append({
                     'label_short': f"GP:{mat_label}:Fill",
                     'label_detailed': f"Grease Pencil Material '{mat.name}' > Fill Color",
@@ -311,7 +311,7 @@ def scan_greasepencil_colors(obj):
             
             # Stroke color
             if hasattr(gp_settings, 'color'):
-                stroke_linear = tuple(gp_settings.color[:3])
+                stroke_linear = rgb_srgb_to_linear(tuple(gp_settings.color[:3]))
                 colors.append({
                     'label_short': f"GP:{mat_label}:Stroke",
                     'label_detailed': f"Grease Pencil Material '{mat.name}' > Stroke Color",
@@ -397,31 +397,37 @@ def scan_all_colors(context, show_multiple=False, use_cache=True):
 def get_color_value(obj, property_path, color_space='LINEAR'):
     """
     Get color value from object using property path.
-    Returns color in scene linear space.
+    Returns color in scene linear space, decoding from sRGB first if the
+    underlying Blender property is display-encoded (color_space=='COLOR_GAMMA').
     """
+    def _to_linear(raw):
+        if color_space == 'COLOR_GAMMA':
+            return rgb_srgb_to_linear(raw)
+        return raw
+
     try:
         # GeoNodes special handling
         if 'modifiers[' in property_path and '"][' in property_path:
             parts = property_path.split('"]["')
             mod_part = parts[0].replace('modifiers["', '')
             key = parts[1].replace('"]', '')
-            
+
             mod = obj.modifiers.get(mod_part)
             if mod and key in mod:
                 value = mod[key]
                 if hasattr(value, '__len__') and len(value) >= 3:
-                    return tuple(value[:3])
+                    return _to_linear(tuple(value[:3]))
             return None
-        
+
         # Standard property access via safe attribute traversal
         target = obj
         for part in property_path.split('.'):
             target = getattr(target, part)
         value = target
         if hasattr(value, '__len__') and len(value) >= 3:
-            return tuple(value[:3])
+            return _to_linear(tuple(value[:3]))
         return None
-    
+
     except (AttributeError, KeyError, SyntaxError) as e:
         print(f"Coloraide: Could not read color from {property_path}: {e}")
         return None
@@ -434,10 +440,14 @@ def set_color_value(obj, property_path, color, color_space='LINEAR'):
     """
     Set color value on object using property path.
     Invalidates cache for the object.
+    `color` is scene-linear; encoded to sRGB before writing if the
+    underlying Blender property is display-encoded (color_space=='COLOR_GAMMA').
     """
     try:
         write_color = tuple(color[:3])
-        
+        if color_space == 'COLOR_GAMMA':
+            write_color = rgb_linear_to_srgb(write_color)
+
         # GeoNodes special handling
         if 'modifiers[' in property_path and '"][' in property_path:
             parts = property_path.split('"]["')

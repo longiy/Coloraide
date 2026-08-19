@@ -17,7 +17,9 @@ from .COLORAIDE_colorspace import (
     rgb_linear_to_bytes,
     rgb_bytes_to_linear,
     linear_to_hex,
-    hex_to_linear
+    hex_to_linear,
+    rgb_linear_to_srgb,
+    rgb_srgb_to_linear
 )
 from .COLORAIDE_mode_manager import ModeManager
 from . import COLORAIDE_state as _state
@@ -93,10 +95,14 @@ def sync_all(context, source, color_value, mode='absolute'):
         elif source == 'rgb':
             rgb_linear = rgb_bytes_to_linear(color_value)
         elif source == 'hsv':
+            # HSV is computed on display (sRGB) RGB, matching Photoshop/
+            # other DCC tools, so sliders read predictably against those
+            # tools rather than against scene-linear light values.
             h_norm = color_value[0] / 360.0
             s_norm = color_value[1] / 100.0
             v_norm = color_value[2] / 100.0
-            rgb_linear = hsv_to_rgb((h_norm, s_norm, v_norm))
+            rgb_srgb = hsv_to_rgb((h_norm, s_norm, v_norm))
+            rgb_linear = rgb_srgb_to_linear(rgb_srgb)
         elif source == 'lab':
             rgb_linear = lab_to_rgb(color_value)
         elif source == 'hex':
@@ -131,15 +137,17 @@ def sync_all(context, source, color_value, mode='absolute'):
             wm.coloraide_rgb.red = rgb_bytes[0]
             wm.coloraide_rgb.green = rgb_bytes[1]
             wm.coloraide_rgb.blue = rgb_bytes[2]
-            # Update preview colors
-            wm.coloraide_rgb.red_preview = (rgb_linear[0], 0.0, 0.0)
-            wm.coloraide_rgb.green_preview = (0.0, rgb_linear[1], 0.0)
-            wm.coloraide_rgb.blue_preview = (0.0, 0.0, rgb_linear[2])
+            # Preview swatches are COLOR_GAMMA (display-encoded, no transform
+            # applied by Blender), so they must hold sRGB values, not linear.
+            r_srgb, g_srgb, b_srgb = rgb_linear_to_srgb(rgb_linear)
+            wm.coloraide_rgb.red_preview = (r_srgb, 0.0, 0.0)
+            wm.coloraide_rgb.green_preview = (0.0, g_srgb, 0.0)
+            wm.coloraide_rgb.blue_preview = (0.0, 0.0, b_srgb)
             wm.coloraide_rgb.suppress_updates = False
         
-        # Update HSV sliders
+        # Update HSV sliders (computed on display/sRGB RGB — see note above)
         if source != 'hsv':
-            hsv = rgb_to_hsv(rgb_linear)
+            hsv = rgb_to_hsv(rgb_linear_to_srgb(rgb_linear))
             wm.coloraide_hsv.suppress_updates = True
             wm.coloraide_hsv.hue = hsv[0] * 360.0
             wm.coloraide_hsv.saturation = hsv[1] * 100.0
@@ -170,10 +178,11 @@ def sync_all(context, source, color_value, mode='absolute'):
             except Exception as e:
                 pass  # Silent fail if not in paint mode
         
-        # Update palette preview
+        # Update palette preview (COLOR_GAMMA — display-encoded, no
+        # transform applied by Blender, so it must hold sRGB, not linear)
         if source != 'palette':
             wm.coloraide_palette.suppress_updates = True
-            wm.coloraide_palette.preview_color = rgb_linear
+            wm.coloraide_palette.preview_color = rgb_linear_to_srgb(rgb_linear)
             wm.coloraide_palette.suppress_updates = False
         
         # Update live-synced object colors (with mode)
