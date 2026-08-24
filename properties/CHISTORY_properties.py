@@ -2,6 +2,7 @@ import bpy
 from bpy.props import IntProperty, FloatVectorProperty, CollectionProperty
 from bpy.types import PropertyGroup
 from ..COLORAIDE_sync import sync_all, is_updating
+from ..COLORAIDE_debug import log as debug_log
 from .base import SuppressUpdatesMixin
 
 class ColorHistoryItemProperties(SuppressUpdatesMixin):
@@ -86,12 +87,14 @@ class ColoraideHistoryProperties(PropertyGroup):
         
         Performance: 80 items * 3 comparisons = 240 ops → 1 hash lookup
         """
-        if not color or not all(isinstance(c, float) for c in color):
+        if not color or not all(isinstance(c, (int, float)) for c in color):
+            debug_log(f"add_color rejected invalid value: {color!r}", "HISTORY")
             return
-        
+
         # O(1) duplicate check using set
         color_hash = self._hash_color(color)
         if color_hash in self._color_hashes:
+            debug_log(f"add_color skipped duplicate: {color_hash}", "HISTORY")
             return  # Already exists
         
         items = self.items
@@ -119,13 +122,15 @@ class ColoraideHistoryProperties(PropertyGroup):
         
         # Double-check all flags are reset
         self.reset_all_suppress_flags()
-    
+        debug_log(f"add_color added {color_hash} ({len(items)} items)", "HISTORY")
+
     def clear_history(self):
         """Remove all history items and reset the duplicate-check hash set."""
         items = self.items
         while items:
             items.remove(0)
         self._color_hashes = set()
+        debug_log("clear_history()", "HISTORY")
 
     def get_color_at_index(self, index):
         """Safely get color at specific index"""

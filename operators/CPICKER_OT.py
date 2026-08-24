@@ -15,6 +15,7 @@ from gpu_extras.batch import batch_for_shader
 from ..COLORAIDE_sync import sync_all
 from ..COLORAIDE_sync import is_updating
 from ..COLORAIDE_colorspace import rgb_linear_to_srgb, rgb_srgb_to_linear
+from ..COLORAIDE_debug import log as debug_log
 
 # Vertex data for color preview rectangles
 vertices = ((0, 0), (100, 0), (0, -100), (100, -100))
@@ -72,7 +73,12 @@ def _gpu_read_colors(op, event):
     sy = min(max(mouse_y - distance, min_y), max_y - sqrt_length - 1)
     try:
         area_buf = fb.read_color(sx, sy, sqrt_length, sqrt_length, 3, 0, 'FLOAT')
-    except ValueError:
+    except ValueError as e:
+        debug_log(
+            f"read_color(area) failed: {e} | mouse=({mouse_x},{mouse_y}) "
+            f"viewport=({min_x},{min_y},{max_x},{max_y}) sample=({sx},{sy},{sqrt_length})",
+            "PICKER",
+        )
         return
 
     # active_framebuffer_get() returns the display-encoded buffer (post view/
@@ -86,7 +92,12 @@ def _gpu_read_colors(op, event):
     py = min(max(mouse_y, min_y), max_y - 1)
     try:
         px_buf = fb.read_color(px, py, 1, 1, 3, 0, 'FLOAT')
-    except ValueError:
+    except ValueError as e:
+        debug_log(
+            f"read_color(pixel) failed: {e} | mouse=({mouse_x},{mouse_y}) "
+            f"viewport=({min_x},{min_y},{max_x},{max_y}) sample=({px},{py})",
+            "PICKER",
+        )
         return
     curr_linear = rgb_srgb_to_linear(tuple(np.array(px_buf.to_list()).reshape(-1)))
 
@@ -150,8 +161,9 @@ class IMAGE_OT_screen_picker_quick(_PickerHandlerMixin, Operator):
         if event.type == 'LEFTMOUSE':
             self.cleanup(context)
             if hasattr(context.window_manager, 'coloraide_history'):
-                context.window_manager.coloraide_history.add_color(
-                    tuple(context.window_manager.coloraide_picker.mean))
+                mean = tuple(context.window_manager.coloraide_picker.mean)
+                debug_log(f"screen_picker_quick add_color({mean})", "PICKER")
+                context.window_manager.coloraide_history.add_color(mean)
             return {'FINISHED'}
 
         elif event.type in {'RIGHTMOUSE', 'ESC'}:
@@ -191,8 +203,9 @@ class IMAGE_OT_quickpick(_PickerHandlerMixin, Operator):
     def cleanup(self, context, add_to_history=True):
         self._cleanup_handlers(context)
         if add_to_history and hasattr(context.window_manager, 'coloraide_history'):
-            context.window_manager.coloraide_history.add_color(
-                tuple(context.window_manager.coloraide_picker.mean))
+            mean = tuple(context.window_manager.coloraide_picker.mean)
+            debug_log(f"quickpick add_color({mean})", "PICKER")
+            context.window_manager.coloraide_history.add_color(mean)
 
     def modal(self, context, event):
         context.area.tag_redraw()

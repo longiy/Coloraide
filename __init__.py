@@ -41,6 +41,8 @@ from .operators.RGB_OT import COLOR_OT_sync_rgb
 from .operators.LAB_OT import COLOR_OT_sync_lab
 from .operators.CWHEEL_OT import COLOR_OT_sync_wheel, COLOR_OT_reset_wheel_scale
 from .operators.CHISTORY_OT import COLOR_OT_adjust_history_size, COLOR_OT_clear_history
+from .operators.DEBUG_OT import COLOR_OT_open_debug_log, COLOR_OT_clear_debug_log
+from .COLORAIDE_debug import log_startup_diagnostics
 from .operators.PALETTE_OT import PALETTE_OT_add_color, PALETTE_OT_remove_color
 from .COLORAIDE_monitor import COLOR_OT_monitor
 from .operators.HEX_OT import COLOR_OT_sync_hex
@@ -160,6 +162,15 @@ class ColoraideAddonPreferences(AddonPreferences):
         default='BATCHED_TIMER'
     )
 
+    # Debug logging preference
+    enable_debug_log: BoolProperty(
+        name="Create Debug Log",
+        description="Write diagnostic messages (startup info, sync errors, color "
+                    "picker sampling, history changes, etc.) to a "
+                    "'Coloraide_Debug_Log' text block for bug reports",
+        default=False
+    )
+
     def draw(self, context):
         layout = self.layout
 
@@ -225,6 +236,24 @@ class ColoraideAddonPreferences(AddonPreferences):
             info_box.label(text="⚠ Colors update only when you release mouse")
             info_box.label(text="Best for: Heavy scenes with 200+ properties")
 
+        layout.separator()
+
+        # Debugging Section
+        box = layout.box()
+        box.label(text="Debugging", icon='CONSOLE')
+        col = box.column()
+        col.prop(self, "enable_debug_log")
+
+        row = box.row(align=True)
+        row.enabled = self.enable_debug_log
+        row.operator("color.open_debug_log", icon='TEXT', text="Open Log")
+        row.operator("color.clear_debug_log", icon='TRASH', text="Clear Log")
+
+        info_box = box.box()
+        info_box.label(text="Logs startup info, color picker sampling, history and", icon='INFO')
+        info_box.label(text="sync errors to a 'Coloraide_Debug_Log' text block.")
+        info_box.label(text="Useful when attaching diagnostics to a bug report.")
+
 
 # Collect all classes that need registration
 # CLEANED: Removed COLOR_OT_reset_history_flags (debugging operator)
@@ -261,6 +290,8 @@ classes = [
     COLOR_OT_reset_wheel_scale,
     COLOR_OT_adjust_history_size,
     COLOR_OT_clear_history,
+    COLOR_OT_open_debug_log,
+    COLOR_OT_clear_debug_log,
     PALETTE_OT_add_color,
     PALETTE_OT_remove_color,
     COLOR_OT_monitor,
@@ -402,7 +433,9 @@ def register():
     # Register non-panel classes first
     for cls in classes:
         bpy.utils.register_class(cls)
-        
+
+    log_startup_diagnostics()
+
     # Register keymaps
     register_keymaps()
     

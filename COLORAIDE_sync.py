@@ -13,6 +13,7 @@ from .COLORAIDE_utils import (
     rgb_to_hsv,
     hsv_to_rgb
 )
+from .COLORAIDE_debug import log as debug_log
 from .COLORAIDE_colorspace import (
     rgb_linear_to_bytes,
     rgb_bytes_to_linear,
@@ -108,7 +109,7 @@ def sync_all(context, source, color_value, mode='absolute'):
         elif source == 'hex':
             rgb_linear = hex_to_linear(color_value)
         else:
-            print(f"Unknown source: {source}")
+            debug_log(f"sync_all received unknown source: {source!r}", "SYNC")
             return
 
         # Calculate delta for relative mode
