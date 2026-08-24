@@ -13,7 +13,11 @@ import sys
 import bpy
 
 LOG_NAME = "Coloraide_Debug_Log"
-_ADDON_KEY = __name__.split('.')[0]
+# This module lives at the package root, so __package__ is the full addon
+# key Blender registers under (e.g. "bl_ext.user_default.Coloraide" for an
+# extension install) — NOT __name__.split('.')[0], which would only be
+# "bl_ext" and never match, silently disabling logging.
+_ADDON_KEY = __package__
 
 
 def _get_prefs():

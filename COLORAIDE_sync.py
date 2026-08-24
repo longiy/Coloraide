@@ -29,6 +29,14 @@ from . import COLORAIDE_state as _state
 def update_lock(source=None):
     """Context manager to prevent recursive updates."""
     if _state.is_updating:
+        # A sync is already in flight (from `_state.update_source`) and this
+        # call is being dropped entirely - nothing from `source` will reach
+        # any other panel/property this call. This is the main place color
+        # data silently "goes missing" between the picker and the UI.
+        debug_log(
+            f"sync BLOCKED: '{source}' dropped, '{_state.update_source}' already updating",
+            "SYNC",
+        )
         yield False
         return
     _state.is_updating = True
@@ -88,6 +96,8 @@ def sync_all(context, source, color_value, mode='absolute'):
         if not acquired:
             return
 
+        debug_log(f"sync_all(source={source!r}, value={color_value!r}, mode={mode!r})", "SYNC")
+
         wm = context.window_manager
 
         # Convert input to scene linear RGB
@@ -118,7 +128,8 @@ def sync_all(context, source, color_value, mode='absolute'):
             delta = tuple(new - old for new, old in zip(rgb_linear, _state.previous_color))
 
         _state.previous_color = rgb_linear
-        
+        debug_log(f"sync_all converted -> rgb_linear={rgb_linear} delta={delta}", "SYNC")
+
         # Update picker (mean color)
         if source != 'picker':
             wm.coloraide_picker.suppress_updates = True
@@ -177,7 +188,7 @@ def sync_all(context, source, color_value, mode='absolute'):
             try:
                 ModeManager.set_brush_color(context, rgb_linear)
             except Exception as e:
-                pass  # Silent fail if not in paint mode
+                debug_log(f"set_brush_color failed (likely not in paint mode): {e}", "SYNC")
         
         # Update palette preview (COLOR_GAMMA — display-encoded, no
         # transform applied by Blender, so it must hold sRGB, not linear)
@@ -192,8 +203,12 @@ def sync_all(context, source, color_value, mode='absolute'):
             try:
                 from .operators.OBJECT_COLORS_OT import update_live_synced_properties
                 update_live_synced_properties(context, rgb_linear, mode=mode, delta=delta)
-            except ImportError:
-                pass  # Object colors module not yet loaded
+            except ImportError as e:
+                debug_log(f"object_colors live sync unavailable (module not loaded): {e}", "SYNC")
+
+        targets = ('picker', 'wheel', 'rgb', 'hsv', 'lab', 'hex', 'brush', 'palette', 'object_colors')
+        updated = [t for t in targets if t != source]
+        debug_log(f"sync_all done: source={source!r} updated={updated}", "SYNC")
 
 
 __all__ = ['sync_all', 'is_updating', 'update_lock', 'is_updating_live_sync', 'live_sync_lock']
