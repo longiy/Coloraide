@@ -301,7 +301,9 @@ classes = [
 ]
 
 def start_color_monitor():
-    """Start the color monitor modal operator"""
+    """Initialize runtime state once Blender's context is available."""
+    initialize_addon(bpy.context)
+    subscribe_to_selection_changes()
     bpy.ops.color.monitor('INVOKE_DEFAULT')
     return None
 
@@ -382,6 +384,7 @@ def on_selection_changed():
 def subscribe_to_selection_changes():
     """Subscribe to selection change events via msgbus"""
     try:
+        bpy.msgbus.clear_by_owner(_msgbus_owner)
         # Subscribe to active_object changes (when you select a different object)
         bpy.msgbus.subscribe_rna(
             key=(bpy.types.LayerObjects, "active"),
@@ -416,10 +419,14 @@ def unsubscribe_from_selection_changes():
 @persistent
 def load_handler(dummy):
     """Ensure monitors are running after file load"""
-    # Start color monitor
-    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
-    # Subscribe to selection changes
-    bpy.app.timers.register(subscribe_to_selection_changes, first_interval=0.5)
+    COLOR_OT_monitor.stop()
+    schedule_startup()
+
+
+def schedule_startup():
+    """Coalesce registration and file-load startup requests."""
+    if not bpy.app.timers.is_registered(start_color_monitor):
+        bpy.app.timers.register(start_color_monitor, first_interval=0.1)
 
 
 @persistent
@@ -459,19 +466,17 @@ def register():
     bpy.app.handlers.load_post.append(load_handler)
     bpy.app.handlers.load_post.append(cleanup_cache_on_load)
     
-    # Initialize addon
-    initialize_addon(bpy.context)
-    
-    # Start color monitor after slight delay
-    bpy.app.timers.register(start_color_monitor, first_interval=0.1)
-    
-    # Subscribe to selection changes after slight delay
-    bpy.app.timers.register(subscribe_to_selection_changes, first_interval=0.5)
+    # Registration runs with a restricted context; defer runtime initialization.
+    schedule_startup()
     
     print("✓ Coloraide v1.5.3 registered")
 
 
 def unregister():
+    if bpy.app.timers.is_registered(start_color_monitor):
+        bpy.app.timers.unregister(start_color_monitor)
+    COLOR_OT_monitor.stop()
+
     # Clear all caches before unregistering
     clear_cache()
     clear_object_cache()
