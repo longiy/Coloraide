@@ -17,6 +17,7 @@ class COLOR_OT_monitor(Operator):
     
     # State tracking
     is_running = False
+    _timer_callback = None
     last_palette_name = None
     last_palette_color = None
     last_palette_count = 0
@@ -223,8 +224,20 @@ class COLOR_OT_monitor(Operator):
         
         return 0.1
     
+    @classmethod
+    def stop(cls):
+        """Remove the exact callback registered for this monitor."""
+        cls.is_running = False
+        if cls._timer_callback is not None:
+            if bpy.app.timers.is_registered(cls._timer_callback):
+                bpy.app.timers.unregister(cls._timer_callback)
+            cls._timer_callback = None
+
     def invoke(self, context, event):
-        """Start the color monitor"""
+        """Start the color monitor once, even if startup is requested twice."""
+        cls = self.__class__
+        if cls._timer_callback is not None and bpy.app.timers.is_registered(cls._timer_callback):
+            return {'FINISHED'}
         print("\n=== COLORAIDE MONITOR STARTING ===")
         print("NEW: Keeping brush synced with Coloraide at all times")
         print("This makes native + button use Coloraide color!")
@@ -270,11 +283,12 @@ class COLOR_OT_monitor(Operator):
         
         # Start timer
         COLOR_OT_monitor.is_running = True
-        bpy.app.timers.register(self.__class__._timer_function)
+        cls._timer_callback = cls._timer_function
+        bpy.app.timers.register(cls._timer_callback)
         
         return {'FINISHED'}
     
     def execute(self, context):
         """Stop the color monitor"""
-        COLOR_OT_monitor.is_running = False
+        self.__class__.stop()
         return {'FINISHED'}
